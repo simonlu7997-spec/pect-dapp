@@ -5,17 +5,10 @@
   "env": {
     "NODE_ENV": "production"
   },
-  "functions": {
-    "server/index.ts": {
-      "runtime": "nodejs20.x",
-      "memory": 1024,
-      "maxDuration": 60
-    }
-  },
   "routes": [
     {
       "src": "^/api/(.*)$",
-      "dest": "/server/index.ts"
+      "dest": "/dist/index.js"
     },
     {
       "src": "^/.*",
