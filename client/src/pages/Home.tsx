@@ -1,25 +1,249 @@
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import { Streamdown } from 'streamdown';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { useWallet } from "@/contexts/WalletContext";
+import { useLocation } from "wouter";
 
-/**
- * All content in this page are only for example, replace with your own feature implementation
- * When building pages, remember your instructions in Frontend Best Practices, Design Guide and Common Pitfalls
- */
+const tokenDistribution = [
+  { name: "私募（进行中）", value: 20, color: "#10b981" },
+  { name: "公募（进行中）", value: 30, color: "#06b6d4" },
+  { name: "生态基金", value: 20, color: "#f59e0b" },
+  { name: "团队", value: 15, color: "#ef4444" },
+  { name: "流动性", value: 15, color: "#8b5cf6" },
+];
+
+const oracleData = [
+  { label: "发电量", value: "487,884", unit: "kWh" },
+  { label: "电费收入", value: "541,412", unit: "RMB" },
+  { label: "分红池", value: "329,244", unit: "RMB" },
+  { label: "汇率", value: "7.2", unit: "RMB/USDT" },
+];
+
+const stations = [
+  { name: "电站 A", capacity: "100kW", location: "浙江", generation: "45,000", revenue: "180,000" },
+  { name: "电站 B", capacity: "150kW", location: "江苏", generation: "67,500", revenue: "270,000" },
+  { name: "电站 C", capacity: "120kW", location: "安徽", generation: "54,000", revenue: "216,000" },
+];
+
+const faqs = [
+  { q: "PV-Coin 如何分红？", a: "PV-Coin 持有者每月可获得电站收益的分红，分红金额根据持仓比例计算。" },
+  { q: "C2-Coin 有什么用？", a: "C2-Coin 是碳额排代币，可用于质押获得额外收益，同时支持项目的碳中和目标。" },
+  { q: "如何质押 C2-Coin？", a: "在质押页面输入要质押的 C2-Coin 数量，批准后即可质押，每月获得奖励。" },
+];
+
 export default function Home() {
-  // If theme is switchable in App.tsx, we can implement theme toggling like this:
-  // const { theme, toggleTheme } = useTheme();
+  const { isConnected } = useWallet();
+  const [, navigate] = useLocation();
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <main>
-        {/* Example: lucide-react for icons */}
-        <Loader2 className="animate-spin" />
-        Example Page
-        {/* Example: Streamdown for markdown rendering */}
-        <Streamdown>Any **markdown** content</Streamdown>
-        <Button variant="default">Example Button</Button>
-      </main>
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50">
+      {/* Hero Section */}
+      <section className="relative py-20 overflow-hidden">
+        <div className="container max-w-6xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+            <div className="space-y-6">
+              <h1 className="text-5xl md:text-6xl font-bold text-gray-900 leading-tight">
+                <span className="bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
+                  绿色资产 × 数字金融
+                </span>
+              </h1>
+              <p className="text-xl text-gray-600">
+                稳定收益 + 环保价值
+              </p>
+              <div className="flex gap-4">
+                <Button 
+                  size="lg"
+                  className="bg-green-600 hover:bg-green-700 text-white px-8 py-6 text-lg"
+                  onClick={() => navigate("/buy")}
+                >
+                  立即购买
+                </Button>
+                <Button 
+                  size="lg"
+                  variant="outline"
+                  className="border-2 border-green-600 text-green-600 hover:bg-green-50 px-8 py-6 text-lg"
+                >
+                  了解更多
+                </Button>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-green-400 to-blue-500 rounded-2xl h-96 flex items-center justify-center text-white text-center p-8">
+              <div>
+                <p className="text-lg mb-2">高质量绿色相关图片</p>
+                <p className="text-sm opacity-80">光伏电站 × 可持续发展</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Oracle Data Panel */}
+      <section className="py-12 bg-white border-y border-gray-200">
+        <div className="container max-w-6xl">
+          <h2 className="text-2xl font-bold text-gray-900 mb-8">实时数据面板</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {oracleData.map((item, index) => (
+              <Card key={index} className="border-2 border-green-200 hover:shadow-lg transition-shadow">
+                <CardContent className="pt-6">
+                  <p className="text-sm text-gray-600 mb-2">{item.label}</p>
+                  <p className="text-3xl font-bold text-green-600">{item.value}</p>
+                  <p className="text-xs text-gray-500 mt-1">{item.unit}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Dual Token Section */}
+      <section className="py-16">
+        <div className="container max-w-6xl">
+          <h2 className="text-2xl font-bold text-gray-900 mb-8">双代币介绍</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* PV-Coin */}
+            <Card className="border-2 border-green-200 bg-gradient-to-br from-green-50 to-white">
+              <CardHeader className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-t-lg">
+                <CardTitle>PV-Coin</CardTitle>
+                <CardDescription className="text-green-100">收益权代币</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6 space-y-4">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">年化收益</p>
+                  <p className="text-2xl font-bold text-green-600">13.72%</p>
+                </div>
+                <div className="border-t pt-4">
+                  <p className="text-sm text-gray-600 mb-1">分红方式</p>
+                  <p className="text-lg font-semibold text-gray-900">月度分红</p>
+                </div>
+                <Button 
+                  className="w-full bg-green-600 hover:bg-green-700 mt-4"
+                  onClick={() => navigate("/buy")}
+                >
+                  购买 PV-Coin
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* C2-Coin */}
+            <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-white">
+              <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-t-lg">
+                <CardTitle>C2-Coin</CardTitle>
+                <CardDescription className="text-blue-100">碳额排代币</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6 space-y-4">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">质押收益</p>
+                  <p className="text-2xl font-bold text-blue-600">质押增强收益</p>
+                </div>
+                <div className="border-t pt-4">
+                  <p className="text-sm text-gray-600 mb-1">回购机制</p>
+                  <p className="text-lg font-semibold text-gray-900">回购销毁机制</p>
+                </div>
+                <Button 
+                  className="w-full bg-blue-600 hover:bg-blue-700 mt-4"
+                  onClick={() => navigate("/stake")}
+                >
+                  质押 C2-Coin
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Asset Overview */}
+      <section className="py-16 bg-gray-50">
+        <div className="container max-w-6xl">
+          <h2 className="text-2xl font-bold text-gray-900 mb-8">电站资产介绍</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b-2 border-gray-300 bg-gray-100">
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700">电站名称</th>
+                  <th className="text-center py-3 px-4 font-semibold text-gray-700">容量</th>
+                  <th className="text-center py-3 px-4 font-semibold text-gray-700">位置</th>
+                  <th className="text-right py-3 px-4 font-semibold text-gray-700">发电量</th>
+                  <th className="text-right py-3 px-4 font-semibold text-gray-700">收入</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stations.map((station, index) => (
+                  <tr key={index} className="border-b border-gray-200 hover:bg-white transition-colors">
+                    <td className="py-3 px-4 text-gray-900 font-semibold">{station.name}</td>
+                    <td className="py-3 px-4 text-center text-gray-600">{station.capacity}</td>
+                    <td className="py-3 px-4 text-center text-gray-600">{station.location}</td>
+                    <td className="py-3 px-4 text-right text-gray-900">{station.generation} kWh</td>
+                    <td className="py-3 px-4 text-right text-gray-900 font-semibold">{station.revenue} RMB</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      {/* Token Distribution */}
+      <section className="py-16">
+        <div className="container max-w-6xl">
+          <h2 className="text-2xl font-bold text-gray-900 mb-8">代币分布</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+            <div>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={tokenDistribution}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, value }) => `${name}: ${value}%`}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {tokenDistribution.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => `${value}%`} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="space-y-4">
+              {tokenDistribution.map((item, index) => (
+                <div key={index} className="flex items-center gap-4">
+                  <div 
+                    className="w-4 h-4 rounded-full" 
+                    style={{ backgroundColor: item.color }}
+                  ></div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-gray-900">{item.name}</p>
+                    <p className="text-sm text-gray-600">{item.value}%</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="py-16 bg-gray-50">
+        <div className="container max-w-6xl">
+          <h2 className="text-2xl font-bold text-gray-900 mb-8">常见问题</h2>
+          <div className="space-y-4">
+            {faqs.map((faq, index) => (
+              <Card key={index} className="hover:shadow-lg transition-shadow">
+                <CardHeader className="cursor-pointer hover:bg-gray-50">
+                  <CardTitle className="text-lg text-gray-900">{faq.q}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-600">{faq.a}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
