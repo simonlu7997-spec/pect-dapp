@@ -70,10 +70,6 @@ export default function Home() {
             </div>
             <div className="relative rounded-2xl h-96 flex items-center justify-center text-white text-center p-8 overflow-hidden bg-cover bg-center" style={{backgroundImage: "url('https://d2xsxph8kpxj0f.cloudfront.net/310519663279243720/8stZafG66C8pumsuGH6Z2q/solar-farm-hero-nGwzt2hTC5h7FqfYLRJBo4.webp')"}}>
               <div className="absolute inset-0 bg-black opacity-30"></div>
-              <div className="relative z-10">
-                <p className="text-lg mb-2 font-semibold">光伏电站实时照片</p>
-                <p className="text-sm opacity-90">点击查看实时视频</p>
-              </div>
             </div>
           </div>
         </div>
@@ -93,19 +89,6 @@ export default function Home() {
                 </CardContent>
               </Card>
             ))}
-          </div>
-          
-          {/* Station Selection Buttons */}
-          <div className="flex gap-4 justify-center flex-wrap">
-            <Button className="bg-green-600 hover:bg-green-700" onClick={() => navigate("/analytics?station=A")}>
-              电站 A
-            </Button>
-            <Button className="bg-green-600 hover:bg-green-700" onClick={() => navigate("/analytics?station=B")}>
-              电站 B
-            </Button>
-            <Button className="bg-green-600 hover:bg-green-700" onClick={() => navigate("/analytics?station=C")}>
-              电站 C
-            </Button>
           </div>
         </div>
       </section>
@@ -280,11 +263,6 @@ export default function Home() {
             </div>
             <div className="relative rounded-2xl h-80 flex items-center justify-center text-white text-center p-8 overflow-hidden bg-cover bg-center" style={{backgroundImage: "url('https://d2xsxph8kpxj0f.cloudfront.net/310519663279243720/8stZafG66C8pumsuGH6Z2q/solar-panels-close-up-D7cJ4smjxvFPxqXkYhcs2m.webp')"}}>
               <div className="absolute inset-0 bg-black opacity-25"></div>
-              <div className="relative z-10">
-                <p className="text-2xl font-bold mb-2">光伏电站</p>
-                <p className="text-lg font-semibold mb-2">绿色投资机会</p>
-                <p className="text-sm opacity-90">点击了解更多详情</p>
-              </div>
             </div>
           </div>
         </div>
