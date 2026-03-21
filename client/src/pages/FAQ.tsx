@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronDown } from "lucide-react";
+import walletConnectionGuide from "@/data/walletGuide";
 
 interface FAQItem {
   category: string;
@@ -100,7 +101,7 @@ const faqData: FAQItem[] = [
       },
       {
         q: "如何连接钱包？",
-        a: "点击 DApp 右上角的连接钱包按钮，选择钱包类型（MetaMask、WalletConnect 等），按照提示完成连接。"
+        a: "点击 DApp 右上角的连接钱包按钮，选择钱包类型（MetaMask、WalletConnect 等），按照提示完成连接。详细指南请查看文档页面的钱包连接指南。"
       },
       {
         q: "需要支付 Gas 费吗？",
@@ -132,6 +133,13 @@ const faqData: FAQItem[] = [
         a: "我们严格遵守数据保护法规，所有个人信息都经过加密存储。我们不会将用户信息分享给第三方。"
       }
     ]
+  },
+  {
+    category: "钱包连接",
+    items: (walletConnectionGuide.sections.find(s => s.id === "faq")?.faqs || []).map(faq => ({
+      q: faq.question,
+      a: faq.answer
+    }))
   }
 ];
 

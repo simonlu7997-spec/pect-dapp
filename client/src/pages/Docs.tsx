@@ -1,9 +1,23 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, FileText } from "lucide-react";
+import { Download, FileText, Wallet } from "lucide-react";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import walletConnectionGuide from "@/data/walletGuide";
 
 export default function Docs() {
+  const [showWalletGuide, setShowWalletGuide] = useState(false);
+  const [selectedSection, setSelectedSection] = useState("overview");
+
   const documents = [
+    {
+      title: "钱包连接指南",
+      description: "详细的多平台钱包连接说明，包括 iOS、Android 和桌面用户指南",
+      icon: "💼",
+      isGuide: true,
+      version: "Latest"
+    },
     {
       title: "PECT 白皮书（中文版）",
       description: "详细介绍 PECT 项目的技术架构、代币经济学和发展路线图",
@@ -33,6 +47,20 @@ export default function Docs() {
       version: "v1.0"
     }
   ];
+
+  const renderGuideContent = () => {
+    const section = walletConnectionGuide.sections.find(s => s.id === selectedSection);
+    if (!section) return null;
+
+    return (
+      <div className="space-y-4">
+        <h3 className="text-lg font-bold text-gray-900">{section.title}</h3>
+        <div className="text-gray-700 whitespace-pre-wrap text-sm leading-relaxed">
+          {section.content}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 py-20">
@@ -64,16 +92,28 @@ export default function Docs() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-gray-600 text-sm">{doc.description}</p>
-                <Button 
-                  className="w-full bg-green-600 hover:bg-green-700"
-                  onClick={() => {
-                    // 实现下载逻辑
-                    alert("文档下载功能即将推出");
-                  }}
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  下载文档
-                </Button>
+                {doc.isGuide ? (
+                  <Button 
+                    className="w-full bg-emerald-600 hover:bg-emerald-700"
+                    onClick={() => {
+                      setSelectedSection("overview");
+                      setShowWalletGuide(true);
+                    }}
+                  >
+                    <Wallet className="w-4 h-4 mr-2" />
+                    查看指南
+                  </Button>
+                ) : (
+                  <Button 
+                    className="w-full bg-green-600 hover:bg-green-700"
+                    onClick={() => {
+                      alert("文档下载功能即将推出");
+                    }}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    下载文档
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ))}
@@ -118,6 +158,50 @@ export default function Docs() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Wallet Connection Guide Dialog */}
+      <Dialog open={showWalletGuide} onOpenChange={setShowWalletGuide}>
+        <DialogContent className="max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>{walletConnectionGuide.title}</DialogTitle>
+            <DialogDescription>
+              {walletConnectionGuide.description}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex gap-4 h-[60vh]">
+            {/* Navigation */}
+            <div className="w-40 border-r border-gray-200">
+              <ScrollArea className="h-full">
+                <div className="space-y-2 p-4">
+                  {walletConnectionGuide.sections.map((section) => (
+                    <button
+                      key={section.id}
+                      onClick={() => setSelectedSection(section.id)}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                        selectedSection === section.id
+                          ? "bg-emerald-100 text-emerald-900 font-medium"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      {section.title}
+                    </button>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1">
+              <ScrollArea className="h-full">
+                <div className="pr-4">
+                  {renderGuideContent()}
+                </div>
+              </ScrollArea>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
