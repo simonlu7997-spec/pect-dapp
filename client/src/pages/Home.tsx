@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
-import { useWallet } from "@/contexts/WalletContext";
+import { useWalletContext } from "@/contexts/WalletContext";
 import { useLocation } from "wouter";
 
 const tokenDistribution = [
@@ -32,7 +32,7 @@ const faqs = [
 ];
 
 export default function Home() {
-  const { isConnected } = useWallet();
+  const { isConnected } = useWalletContext();
   const [, navigate] = useLocation();
 
   return (
@@ -121,6 +121,13 @@ export default function Home() {
                 >
                   购买 PV-Coin
                 </Button>
+                <Button 
+                  className="w-full bg-emerald-500 hover:bg-emerald-600 mt-2"
+                  variant="outline"
+                  onClick={() => navigate("/whitelist")}
+                >
+                  加入白名单
+                </Button>
               </CardContent>
             </Card>
 
@@ -144,6 +151,13 @@ export default function Home() {
                   onClick={() => navigate("/stake")}
                 >
                   质押 C2-Coin
+                </Button>
+                <Button 
+                  className="w-full bg-emerald-500 hover:bg-emerald-600 mt-2"
+                  variant="outline"
+                  onClick={() => navigate("/whitelist")}
+                >
+                  加入白名单
                 </Button>
               </CardContent>
             </Card>
@@ -221,6 +235,54 @@ export default function Home() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Whitelist CTA Section */}
+      <section className="py-16 bg-gradient-to-r from-emerald-50 to-teal-50 border-y border-emerald-200">
+        <div className="container max-w-6xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+            <div className="space-y-6">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+                加入白名单
+              </h2>
+              <p className="text-lg text-gray-600 leading-relaxed">
+                填写白名单表单，完成 KYC 认证，即可获得优先购买权和专属权益。我们的白名单成员将享受：
+              </p>
+              <ul className="space-y-3">
+                <li className="flex items-start gap-3">
+                  <span className="text-emerald-600 font-bold text-xl">✓</span>
+                  <span className="text-gray-700">优先购买 PV-Coin 和 C2-Coin</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-emerald-600 font-bold text-xl">✓</span>
+                  <span className="text-gray-700">专属投资者社区和资讯</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-emerald-600 font-bold text-xl">✓</span>
+                  <span className="text-gray-700">更高的初始分配比例</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-emerald-600 font-bold text-xl">✓</span>
+                  <span className="text-gray-700">定期收益报告和市场分析</span>
+                </li>
+              </ul>
+              <Button 
+                size="lg"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-6 text-lg w-full md:w-auto"
+                onClick={() => navigate("/whitelist")}
+              >
+                立即填写白名单
+              </Button>
+            </div>
+            <div className="bg-gradient-to-br from-emerald-400 to-teal-500 rounded-2xl h-80 flex items-center justify-center text-white text-center p-8">
+              <div>
+                <p className="text-2xl font-bold mb-2">🎯</p>
+                <p className="text-lg font-semibold mb-2">成为 PECT 投资者</p>
+                <p className="text-sm opacity-90">获得优先购买权和专属权益</p>
+              </div>
             </div>
           </div>
         </div>
