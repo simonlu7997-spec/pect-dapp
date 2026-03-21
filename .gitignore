@@ -109,3 +109,4 @@ temp/
 .webdev/
 
 .vercel
+.env*.local
