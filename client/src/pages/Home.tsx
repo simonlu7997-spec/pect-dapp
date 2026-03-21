@@ -66,6 +66,14 @@ export default function Home() {
               >
                 了解更多
               </Button>
+              <Button 
+                size="lg"
+                variant="outline"
+                className="border-2 border-blue-600 text-blue-600 hover:bg-blue-50 px-8 py-6 text-lg"
+                onClick={() => navigate("/live-video")}
+              >
+                实时视频
+              </Button>
               </div>
             </div>
             <div className="relative rounded-2xl h-96 flex items-center justify-center text-white text-center p-8 overflow-hidden bg-cover bg-center" style={{backgroundImage: "url('https://d2xsxph8kpxj0f.cloudfront.net/310519663279243720/8stZafG66C8pumsuGH6Z2q/solar-farm-hero-nGwzt2hTC5h7FqfYLRJBo4.webp')"}}>

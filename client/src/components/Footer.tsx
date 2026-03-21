@@ -3,19 +3,7 @@ import { Mail, Github, Twitter } from "lucide-react";
 export default function Footer() {
   const currentYear = new Date().getFullYear();
 
-  const handleProductClick = (path: string) => {
-    // 显示钱包连接提示
-    alert('请先连接钱包');
-    // 可选：跳转到页面
-    // navigate(path);
-  };
 
-  const handleResourceClick = (path: string) => {
-    // 显示钱包连接提示
-    alert('请先连接钱包');
-    // 可选：跳转到页面
-    // navigate(path);
-  };
 
   return (
     <footer className="bg-gray-900 text-gray-300 py-12 mt-20">
@@ -38,9 +26,9 @@ export default function Footer() {
           <div>
             <h4 className="font-semibold text-white mb-4">产品</h4>
             <ul className="space-y-2 text-sm">
-              <li><button onClick={() => handleProductClick('/buy')} className="hover:text-emerald-400 transition-colors bg-none border-none p-0 cursor-pointer text-left">代币购买</button></li>
-              <li><button onClick={() => handleProductClick('/portfolio')} className="hover:text-emerald-400 transition-colors bg-none border-none p-0 cursor-pointer text-left">收益分红</button></li>
-              <li><button onClick={() => handleProductClick('/stake')} className="hover:text-emerald-400 transition-colors bg-none border-none p-0 cursor-pointer text-left">质押奖励</button></li>
+              <li><a href="/buy" className="hover:text-emerald-400 transition-colors">代币购买</a></li>
+              <li><a href="/portfolio" className="hover:text-emerald-400 transition-colors">收益分红</a></li>
+              <li><a href="/stake" className="hover:text-emerald-400 transition-colors">质押奖励</a></li>
             </ul>
           </div>
 
@@ -48,9 +36,9 @@ export default function Footer() {
           <div>
             <h4 className="font-semibold text-white mb-4">资源</h4>
             <ul className="space-y-2 text-sm">
-              <li><button onClick={() => handleResourceClick('/docs')} className="hover:text-emerald-400 transition-colors bg-none border-none p-0 cursor-pointer text-left">文档</button></li>
-              <li><button onClick={() => handleResourceClick('/faq')} className="hover:text-emerald-400 transition-colors bg-none border-none p-0 cursor-pointer text-left">常见问题</button></li>
-              <li><button onClick={() => handleResourceClick('/contact')} className="hover:text-emerald-400 transition-colors bg-none border-none p-0 cursor-pointer text-left">联系我们</button></li>
+              <li><a href="/docs" className="hover:text-emerald-400 transition-colors">文档</a></li>
+              <li><a href="/faq" className="hover:text-emerald-400 transition-colors">常见问题</a></li>
+              <li><a href="/contact" className="hover:text-emerald-400 transition-colors">联系我们</a></li>
             </ul>
           </div>
 
