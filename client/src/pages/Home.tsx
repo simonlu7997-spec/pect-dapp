@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import { useWalletContext } from "@/contexts/WalletContext";
 import { useLocation } from "wouter";
+import WalletConnectionGuide from "@/components/WalletConnectionGuide";
 
 const tokenDistribution = [
   { name: "私募（进行中）", value: 20, color: "#10b981" },
@@ -37,6 +38,13 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50">
+      {/* Wallet Connection Guide */}
+      <div className="bg-white border-b border-gray-200 py-4">
+        <div className="container max-w-6xl">
+          <WalletConnectionGuide />
+        </div>
+      </div>
+
       {/* Hero Section */}
       <section className="relative py-20 overflow-hidden">
         <div className="container max-w-6xl">

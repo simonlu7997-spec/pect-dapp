@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { ethers } from 'ethers';
+import { EthereumProvider } from '@walletconnect/ethereum-provider';
 
 interface WalletContextType {
   account: string | null;
@@ -9,8 +10,10 @@ interface WalletContextType {
   isConnecting: boolean;
   shortAddress: string | null;
   connectWallet: () => Promise<void>;
+  connectWalletConnect: () => Promise<void>;
   disconnectWallet: () => void;
   balance: string;
+  connectionMethod: 'metamask' | 'walletconnect' | null;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -21,7 +24,68 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [signer, setSigner] = useState<ethers.Signer | null>(null);
   const [balance, setBalance] = useState('0');
   const [isConnecting, setIsConnecting] = useState(false);
+  const [connectionMethod, setConnectionMethod] = useState<'metamask' | 'walletconnect' | null>(null);
 
+  // 从 localStorage 恢复连接状态
+  useEffect(() => {
+    const savedMethod = localStorage.getItem('walletConnectionMethod') as 'metamask' | 'walletconnect' | null;
+    if (savedMethod === 'walletconnect') {
+      restoreWalletConnectConnection();
+    } else if (savedMethod === 'metamask' && window.ethereum) {
+      restoreMetaMaskConnection();
+    }
+  }, []);
+
+  // 恢复 MetaMask 连接
+  const restoreMetaMaskConnection = async () => {
+    try {
+      if (!window.ethereum) return;
+      const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+      if (accounts.length > 0) {
+        const newProvider = new ethers.BrowserProvider(window.ethereum);
+        const newSigner = await newProvider.getSigner();
+        setAccount(accounts[0]);
+        setProvider(newProvider);
+        setSigner(newSigner);
+        setConnectionMethod('metamask');
+        
+        const balance = await newProvider.getBalance(accounts[0]);
+        setBalance(ethers.formatEther(balance));
+      }
+    } catch (error) {
+      console.error('恢复 MetaMask 连接失败:', error);
+    }
+  };
+
+  // 恢复 WalletConnect 连接
+  const restoreWalletConnectConnection = async () => {
+    try {
+      const provider = await EthereumProvider.init({
+        projectId: import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || 'YOUR_PROJECT_ID',
+        chains: [1, 137, 56], // Ethereum, Polygon, BSC
+        showQrModal: false,
+      });
+
+      if (provider.connected) {
+        const accounts = provider.accounts;
+        if (accounts.length > 0) {
+          const ethersProvider = new ethers.BrowserProvider(provider);
+          const signer = await ethersProvider.getSigner();
+          setAccount(accounts[0]);
+          setProvider(ethersProvider);
+          setSigner(signer);
+          setConnectionMethod('walletconnect');
+
+          const balance = await ethersProvider.getBalance(accounts[0]);
+          setBalance(ethers.formatEther(balance));
+        }
+      }
+    } catch (error) {
+      console.error('恢复 WalletConnect 连接失败:', error);
+    }
+  };
+
+  // MetaMask 连接
   const connectWallet = async () => {
     try {
       setIsConnecting(true);
@@ -38,12 +102,52 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setAccount(address);
       setProvider(newProvider);
       setSigner(newSigner);
+      setConnectionMethod('metamask');
+      localStorage.setItem('walletConnectionMethod', 'metamask');
 
       // 获取余额
       const balance = await newProvider.getBalance(address);
       setBalance(ethers.formatEther(balance));
     } catch (error) {
-      console.error('连接钱包失败:', error);
+      console.error('连接 MetaMask 失败:', error);
+      alert('连接 MetaMask 失败，请重试');
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  // WalletConnect 连接
+  const connectWalletConnect = async () => {
+    try {
+      setIsConnecting(true);
+      const provider = await EthereumProvider.init({
+        projectId: import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || 'YOUR_PROJECT_ID',
+        chains: [1, 137, 56], // Ethereum, Polygon, BSC
+        showQrModal: true,
+      });
+
+      await provider.connect();
+
+      const accounts = provider.accounts;
+      if (accounts.length > 0) {
+        const ethersProvider = new ethers.BrowserProvider(provider);
+        const signer = await ethersProvider.getSigner();
+        
+        setAccount(accounts[0]);
+        setProvider(ethersProvider);
+        setSigner(signer);
+        setConnectionMethod('walletconnect');
+        localStorage.setItem('walletConnectionMethod', 'walletconnect');
+
+        // 获取余额
+        const balance = await ethersProvider.getBalance(accounts[0]);
+        setBalance(ethers.formatEther(balance));
+      }
+    } catch (error) {
+      console.error('连接 WalletConnect 失败:', error);
+      if ((error as any).code !== 'USER_REJECTED_REQUEST') {
+        alert('连接 WalletConnect 失败，请重试');
+      }
     } finally {
       setIsConnecting(false);
     }
@@ -55,6 +159,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setSigner(null);
     setBalance('0');
     setIsConnecting(false);
+    setConnectionMethod(null);
+    localStorage.removeItem('walletConnectionMethod');
   };
 
   /**
@@ -76,8 +182,10 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         isConnecting,
         shortAddress: getShortAddress(account),
         connectWallet,
+        connectWalletConnect,
         disconnectWallet,
         balance,
+        connectionMethod,
       }}
     >
       {children}
