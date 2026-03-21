@@ -50,6 +50,7 @@ export default function Navbar() {
     { label: "资产", href: "/portfolio" },
     { label: "质押", href: "/stake" },
     { label: "数据分析", href: "/analytics" },
+    { label: "白名单", href: "/whitelist" },
   ];
 
   const isActive = (href: string) => location === href;

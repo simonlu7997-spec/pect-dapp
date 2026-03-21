@@ -69,16 +69,16 @@ export const CONTRACTS = {
   /**
    * PVCoin - 光伏币
    * 用途：光伏电站收益分配
-   * 精度：6 位小数
+   * 精度：18 位小数
    */
-  PVCoin: process.env.VITE_PV_COIN_ADDRESS || '0x60F1E9deA2cBE622Bc86562f2bb62e2A9A479D0D',
+  PVCoin: import.meta.env.VITE_PV_COIN_ADDRESS || '0x0000000000000000000000000000000000000000',
 
   /**
    * C2Coin - 碳信用币
    * 用途：碳信用交易和奖励
-   * 精度：6 位小数
+   * 精度：18 位小数
    */
-  C2Coin: process.env.VITE_C2_COIN_ADDRESS || '0x8e71a6131C391963E562e8593905b4513f5B5278',
+  C2Coin: import.meta.env.VITE_C2_COIN_ADDRESS || '0x0000000000000000000000000000000000000000',
 
   // ====================================================================
   // 业务合约
@@ -88,19 +88,19 @@ export const CONTRACTS = {
    * RevenueDistributor - 收益分配合约
    * 用途：分配光伏电站收益给 PVCoin 持有者
    */
-  RevenueDistributor: process.env.VITE_REVENUE_DISTRIBUTOR_ADDRESS || '0x40434E74aF82225451d06C664FDF28229c53b8f1',
+  RevenueDistributor: import.meta.env.VITE_REVENUE_DISTRIBUTOR_ADDRESS || '0x0000000000000000000000000000000000000000',
 
   /**
    * StakingManager - 质押管理合约
    * 用途：管理 C2Coin 质押和奖励
    */
-  StakingManager: process.env.VITE_STAKING_MANAGER_ADDRESS || '0xD5Fd44eC8737858466bE7DBb827A6d97cd066c82',
+  StakingManager: import.meta.env.VITE_STAKING_MANAGER_ADDRESS || '0x0000000000000000000000000000000000000000',
 
   /**
    * C2CoinBuyback - C2Coin 回购合约
    * 用途：定期回购 C2Coin，支持 Uniswap V2/V3
    */
-  C2CoinBuyback: process.env.VITE_C2_COIN_BUYBACK_ADDRESS || '0x4E52a6065421B1f4bc6aa04252Edff3Ea54597bc',
+  C2CoinBuyback: import.meta.env.VITE_C2_COIN_BUYBACK_ADDRESS || '0x0000000000000000000000000000000000000000',
 
   // ====================================================================
   // 销售合约
@@ -111,14 +111,14 @@ export const CONTRACTS = {
    * 用途：PVCoin 私募销售
    * 初始汇率：1 USDT = 10 PVCoin
    */
-  PrivateSale: process.env.VITE_PRIVATE_SALE_ADDRESS || '0x81D5B063cF16FF7EC56491596b379314C8f28411',
+  PrivateSale: import.meta.env.VITE_PRIVATE_SALE_ADDRESS || '0x0000000000000000000000000000000000000000',
 
   /**
    * PublicSale - 公募销售合约
    * 用途：PVCoin 公募销售
    * 初始汇率：1 USDT = 10 PVCoin
    */
-  PublicSale: process.env.VITE_PUBLIC_SALE_ADDRESS || '0xF350c772fF2c8672F1F271a296545c4cEef6EaFd',
+  PublicSale: import.meta.env.VITE_PUBLIC_SALE_ADDRESS || '0x0000000000000000000000000000000000000000',
 
   // ====================================================================
   // 预言机合约
@@ -133,7 +133,7 @@ export const CONTRACTS = {
    *   - PVCoin 价格: Chainlink Data Feeds
    *   - 发电量和收入: 预言机节点 (Any API)
    */
-  ElectricityPriceOracle: process.env.VITE_ORACLE_ADDRESS || '0x56f5eb47F737451ecE54123768b38e8e2f667b94',
+  ElectricityPriceOracle: import.meta.env.VITE_ORACLE_ADDRESS || '0x0000000000000000000000000000000000000000',
 } as const;
 
 // ====================================================================
@@ -154,7 +154,7 @@ export const RPC_CONFIG = {
    * RPC 端点 URL
    * 默认：Polygon Amoy 测试网
    */
-  url: process.env.VITE_RPC_URL || 'https://rpc-amoy.polygon.technology',
+  url: import.meta.env.VITE_RPC_URL || 'https://rpc-amoy.polygon.technology',
 
   /**
    * 链 ID
@@ -162,17 +162,17 @@ export const RPC_CONFIG = {
    * 137 = Polygon 主网
    * 31337 = Localhost
    */
-  chainId: parseInt(process.env.VITE_CHAIN_ID || '80002', 10),
+  chainId: parseInt(import.meta.env.VITE_CHAIN_ID || '80002', 10),
 
   /**
    * 网络名称
    */
-  networkName: process.env.VITE_NETWORK_NAME || 'Polygon Amoy',
+  networkName: import.meta.env.VITE_NETWORK_NAME || 'Polygon Amoy',
 
   /**
    * 区块浏览器 URL
    */
-  explorerUrl: process.env.VITE_EXPLORER_URL || 'https://amoy.polygonscan.com',
+  explorerUrl: import.meta.env.VITE_EXPLORER_URL || 'https://amoy.polygonscan.com',
 } as const;
 
 // ====================================================================
@@ -198,7 +198,7 @@ export const CHAINLINK_CONFIG = {
    * ElectricityPriceOracle 合约地址
    * 用于获取链上数据
    */
-  oracleAddress: process.env.VITE_CHAINLINK_ORACLE_ADDRESS || '0x56f5eb47F737451ecE54123768b38e8e2f667b94',
+  oracleAddress: import.meta.env.VITE_CHAINLINK_ORACLE_ADDRESS || '0x0000000000000000000000000000000000000000',
 
   /**
    * Chainlink 数据源地址（Polygon Amoy）
@@ -211,19 +211,19 @@ export const CHAINLINK_CONFIG = {
      * RMB/USDT 汇率数据源
      * 精度：6 位小数
      */
-    rmbUsdt: process.env.VITE_CHAINLINK_RMB_USDT_FEED || '0x8a422a194ED336C55C9Ea1A1495DD87407777Dba',
+    rmbUsdt: import.meta.env.VITE_CHAINLINK_RMB_USDT_FEED || '0x0000000000000000000000000000000000000000',
 
     /**
      * C2Coin/USDT 价格数据源
      * 精度：6 位小数
      */
-    c2Coin: process.env.VITE_CHAINLINK_C2COIN_FEED || '0x6B6Eae9619C266202c014C0F01C2c5A8348b4c08',
+    c2Coin: import.meta.env.VITE_CHAINLINK_C2COIN_FEED || '0x0000000000000000000000000000000000000000',
 
     /**
      * PVCoin/USDT 价格数据源
      * 精度：6 位小数
      */
-    pvCoin: process.env.VITE_CHAINLINK_PVCOIN_FEED || '0xDBFbc402765a123764232487F14d31c5cF9756DF',
+    pvCoin: import.meta.env.VITE_CHAINLINK_PVCOIN_FEED || '0x0000000000000000000000000000000000000000',
   },
 
   /**
@@ -261,7 +261,7 @@ export const TOKEN_CONFIG = {
   PVCoin: {
     name: 'PVCoin',
     symbol: 'PV',
-    decimals: 6,
+    decimals: 18,
     address: CONTRACTS.PVCoin,
   },
 
@@ -271,7 +271,7 @@ export const TOKEN_CONFIG = {
   C2Coin: {
     name: 'C2Coin',
     symbol: 'C2',
-    decimals: 6,
+    decimals: 18,
     address: CONTRACTS.C2Coin,
   },
 
@@ -282,7 +282,7 @@ export const TOKEN_CONFIG = {
     name: 'Tether USD',
     symbol: 'USDT',
     decimals: 6,
-    address: process.env.VITE_USDT_ADDRESS || '0xf889dfa134E8fa22562fC40119e1B3CD2376aD94',
+    address: import.meta.env.VITE_USDT_ADDRESS || '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
   },
 } as const;
 
@@ -299,17 +299,17 @@ export const UNISWAP_CONFIG = {
   /**
    * Uniswap V2 Router 地址（Polygon）
    */
-  v2Router: process.env.VITE_UNISWAP_V2_ROUTER || '0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff',
+  v2Router: import.meta.env.VITE_UNISWAP_V2_ROUTER || '0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff',
 
   /**
    * Uniswap V3 Router 地址（Polygon）
    */
-  v3Router: process.env.VITE_UNISWAP_V3_ROUTER || '0x71819D7210f12cf6d14D6460C00eC60aC5e4D0e8',
+  v3Router: import.meta.env.VITE_UNISWAP_V3_ROUTER || '0xE592427A0AEce92De3Edee1F18E0157C05861564',
 
   /**
    * Uniswap V3 Factory 地址（Polygon）
    */
-  v3Factory: process.env.VITE_UNISWAP_V3_FACTORY || '0x1F98431c8aD98523631AE4a59f267346ea31F984',
+  v3Factory: import.meta.env.VITE_UNISWAP_V3_FACTORY || '0x1F98431c8aD98523631AE4a59f267346ea31F984',
 
   /**
    * 默认费用等级（万分之几）

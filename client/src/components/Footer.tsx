@@ -3,6 +3,8 @@ import { Mail, Github, Twitter } from "lucide-react";
 export default function Footer() {
   const currentYear = new Date().getFullYear();
 
+
+
   return (
     <footer className="bg-gray-900 text-gray-300 py-12 mt-20">
       <div className="container">
@@ -24,9 +26,9 @@ export default function Footer() {
           <div>
             <h4 className="font-semibold text-white mb-4">产品</h4>
             <ul className="space-y-2 text-sm">
-              <li><a href="#" className="hover:text-emerald-400 transition-colors">收益分红</a></li>
-              <li><a href="#" className="hover:text-emerald-400 transition-colors">质押奖励</a></li>
-              <li><a href="#" className="hover:text-emerald-400 transition-colors">代币销售</a></li>
+              <li><a href="/buy" className="hover:text-emerald-400 transition-colors">代币购买</a></li>
+              <li><a href="/portfolio" className="hover:text-emerald-400 transition-colors">收益分红</a></li>
+              <li><a href="/stake" className="hover:text-emerald-400 transition-colors">质押奖励</a></li>
             </ul>
           </div>
 
@@ -34,9 +36,9 @@ export default function Footer() {
           <div>
             <h4 className="font-semibold text-white mb-4">资源</h4>
             <ul className="space-y-2 text-sm">
-              <li><a href="#" className="hover:text-emerald-400 transition-colors">文档</a></li>
-              <li><a href="#" className="hover:text-emerald-400 transition-colors">常见问题</a></li>
-              <li><a href="#" className="hover:text-emerald-400 transition-colors">联系我们</a></li>
+              <li><a href="/docs" className="hover:text-emerald-400 transition-colors">文档</a></li>
+              <li><a href="/faq" className="hover:text-emerald-400 transition-colors">常见问题</a></li>
+              <li><a href="/contact" className="hover:text-emerald-400 transition-colors">联系我们</a></li>
             </ul>
           </div>
 
