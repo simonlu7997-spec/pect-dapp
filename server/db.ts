@@ -1,5 +1,6 @@
-import { eq, desc } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import { eq, desc, sql } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import {
   InsertUser,
   users,
@@ -18,7 +19,8 @@ let _db: ReturnType<typeof drizzle> | null = null;
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      const client = postgres(process.env.DATABASE_URL, { ssl: "require" });
+      _db = drizzle(client);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -39,47 +41,30 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   }
 
   try {
+    const now = new Date();
     const values: InsertUser = {
       openId: user.openId,
-    };
-    const updateSet: Record<string, unknown> = {};
-
-    const textFields = ["name", "email", "loginMethod"] as const;
-    type TextField = (typeof textFields)[number];
-
-    const assignNullable = (field: TextField) => {
-      const value = user[field];
-      if (value === undefined) return;
-      const normalized = value ?? null;
-      values[field] = normalized;
-      updateSet[field] = normalized;
+      name: user.name ?? null,
+      email: user.email ?? null,
+      loginMethod: user.loginMethod ?? null,
+      role: user.role ?? (user.openId === ENV.ownerOpenId ? 'admin' : 'user'),
+      lastSignedIn: user.lastSignedIn ?? now,
+      updatedAt: now,
     };
 
-    textFields.forEach(assignNullable);
-
-    if (user.lastSignedIn !== undefined) {
-      values.lastSignedIn = user.lastSignedIn;
-      updateSet.lastSignedIn = user.lastSignedIn;
-    }
-    if (user.role !== undefined) {
-      values.role = user.role;
-      updateSet.role = user.role;
-    } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
-    }
-
-    if (!values.lastSignedIn) {
-      values.lastSignedIn = new Date();
-    }
-
-    if (Object.keys(updateSet).length === 0) {
-      updateSet.lastSignedIn = new Date();
-    }
-
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
-      set: updateSet,
-    });
+    await db
+      .insert(users)
+      .values(values)
+      .onConflictDoUpdate({
+        target: users.openId,
+        set: {
+          name: values.name,
+          email: values.email,
+          loginMethod: values.loginMethod,
+          lastSignedIn: values.lastSignedIn,
+          updatedAt: now,
+        },
+      });
   } catch (error) {
     console.error("[Database] Failed to upsert user:", error);
     throw error;
@@ -125,14 +110,21 @@ export async function updateKycStatus(
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.update(kycApplications).set({ status, ...opts }).where(eq(kycApplications.id, id));
+  await db
+    .update(kycApplications)
+    .set({ status, updatedAt: new Date(), ...opts })
+    .where(eq(kycApplications.id, id));
 }
 
 export async function listKycApplications(status?: "pending" | "approved" | "rejected") {
   const db = await getDb();
   if (!db) return [];
   if (status) {
-    return db.select().from(kycApplications).where(eq(kycApplications.status, status)).orderBy(desc(kycApplications.createdAt));
+    return db
+      .select()
+      .from(kycApplications)
+      .where(eq(kycApplications.status, status))
+      .orderBy(desc(kycApplications.createdAt));
   }
   return db.select().from(kycApplications).orderBy(desc(kycApplications.createdAt));
 }
@@ -163,7 +155,10 @@ export async function updateTransactionStatus(
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.update(transactions).set({ status, ...opts }).where(eq(transactions.txHash, txHash));
+  await db
+    .update(transactions)
+    .set({ status, ...opts })
+    .where(eq(transactions.txHash, txHash));
 }
 
 // ---- Wallet Bindings ----
@@ -171,11 +166,21 @@ export async function updateTransactionStatus(
 export async function bindWallet(data: InsertWalletBinding) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.insert(walletBindings).values(data).onDuplicateKeyUpdate({ set: { userId: data.userId } });
+  await db
+    .insert(walletBindings)
+    .values(data)
+    .onConflictDoUpdate({
+      target: walletBindings.walletAddress,
+      set: { userId: data.userId },
+    });
 }
 
 export async function getWalletsByUserId(userId: number) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(walletBindings).where(eq(walletBindings.userId, userId)).orderBy(desc(walletBindings.createdAt));
+  return db
+    .select()
+    .from(walletBindings)
+    .where(eq(walletBindings.userId, userId))
+    .orderBy(desc(walletBindings.createdAt));
 }

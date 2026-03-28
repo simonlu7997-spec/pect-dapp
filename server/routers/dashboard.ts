@@ -82,7 +82,7 @@ export const dashboardRouter = router({
       await bindWallet({
         userId: ctx.user.id,
         walletAddress: input.walletAddress.toLowerCase(),
-        isPrimary: input.isPrimary ? "yes" : "no",
+        isPrimary: input.isPrimary ?? false,
       });
       return { success: true };
     }),
