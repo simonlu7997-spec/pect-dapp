@@ -1,6 +1,15 @@
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import {
+  InsertUser,
+  users,
+  kycApplications,
+  InsertKycApplication,
+  transactions,
+  InsertTransaction,
+  walletBindings,
+  InsertWalletBinding,
+} from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +98,84 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+// ---- KYC Applications ----
+
+export async function createKycApplication(data: InsertKycApplication) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(kycApplications).values(data);
+}
+
+export async function getKycByWallet(walletAddress: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db
+    .select()
+    .from(kycApplications)
+    .where(eq(kycApplications.walletAddress, walletAddress.toLowerCase()))
+    .orderBy(desc(kycApplications.createdAt))
+    .limit(1);
+  return result[0] ?? undefined;
+}
+
+export async function updateKycStatus(
+  id: number,
+  status: "pending" | "approved" | "rejected",
+  opts?: { txHashKyc?: string; txHashSender?: string; reviewNote?: string }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(kycApplications).set({ status, ...opts }).where(eq(kycApplications.id, id));
+}
+
+export async function listKycApplications(status?: "pending" | "approved" | "rejected") {
+  const db = await getDb();
+  if (!db) return [];
+  if (status) {
+    return db.select().from(kycApplications).where(eq(kycApplications.status, status)).orderBy(desc(kycApplications.createdAt));
+  }
+  return db.select().from(kycApplications).orderBy(desc(kycApplications.createdAt));
+}
+
+// ---- Transactions ----
+
+export async function recordTransaction(data: InsertTransaction) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(transactions).values(data);
+}
+
+export async function getTransactionsByWallet(walletAddress: string) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(transactions)
+    .where(eq(transactions.walletAddress, walletAddress.toLowerCase()))
+    .orderBy(desc(transactions.createdAt))
+    .limit(50);
+}
+
+export async function updateTransactionStatus(
+  txHash: string,
+  status: "pending" | "confirmed" | "failed",
+  opts?: { blockNumber?: number; gasUsed?: string; errorMessage?: string; confirmedAt?: Date }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(transactions).set({ status, ...opts }).where(eq(transactions.txHash, txHash));
+}
+
+// ---- Wallet Bindings ----
+
+export async function bindWallet(data: InsertWalletBinding) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(walletBindings).values(data).onDuplicateKeyUpdate({ set: { userId: data.userId } });
+}
+
+export async function getWalletsByUserId(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(walletBindings).where(eq(walletBindings.userId, userId)).orderBy(desc(walletBindings.createdAt));
+}

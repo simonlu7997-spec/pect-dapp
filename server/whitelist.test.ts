@@ -1,4 +1,19 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+// Mock 数据库（避免真实 DB 调用影响测试结果）
+vi.mock("./db", () => ({
+  createKycApplication: vi.fn().mockResolvedValue({ insertId: 1 }),
+  getKycByWallet: vi.fn().mockResolvedValue(undefined), // 默认无记录
+  updateKycStatus: vi.fn().mockResolvedValue(undefined),
+  listKycApplications: vi.fn().mockResolvedValue([]),
+  recordTransaction: vi.fn().mockResolvedValue(undefined),
+  getTransactionsByWallet: vi.fn().mockResolvedValue([]),
+  updateTransactionStatus: vi.fn().mockResolvedValue(undefined),
+  bindWallet: vi.fn().mockResolvedValue(undefined),
+  getWalletsByUserId: vi.fn().mockResolvedValue([]),
+  upsertUser: vi.fn().mockResolvedValue(undefined),
+  getUserByOpenId: vi.fn().mockResolvedValue(null),
+}));
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 
