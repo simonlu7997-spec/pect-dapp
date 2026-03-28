@@ -4,6 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import { whitelistRouter } from "./routers/whitelist";
 import { dashboardRouter } from "./routers/dashboard";
+import { siweAuthRouter } from "./routers/siweAuth";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -19,6 +20,8 @@ export const appRouter = router({
     }),
   }),
 
+  // SIWE 钱包签名认证路由
+  siweAuth: siweAuthRouter,
   // 白名单路由（后端使用部署者私钥调用合约）
   whitelist: whitelistRouter,
   // 用户仪表盘：交易记录、钱包绑定
