@@ -182,26 +182,24 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // 1. 获取 nonce
       const { nonce } = await getNonceMutation.mutateAsync({ address: account });
 
-      // 2. 构建 SIWE 消息
-      const domain = window.location.host;
-      const origin = window.location.origin;
-      const statement = '欢迎登录 PECT DApp — 光伏电站收益与碳信用管理平台';
-      // EIP-55 校验和格式（siwe@3.0.0 要求地址必须是 checksum 格式）
+      // 2. 构建 SIWE 消息（使用 SiweMessage 对象生成标准 EIP-4361 格式）
+      // 注意：siwe@3.0.0 的 ABNF 解析器不支持中文字符，statement 必须使用英文
+      const { SiweMessage } = await import('siwe');
       const checksumAddress = ethers.getAddress(account);
-      const message = [
-        `${domain} wants you to sign in with your Ethereum account:`,
-        checksumAddress,
-        '',
-        statement,
-        '',
-        `URI: ${origin}`,
-        'Version: 1',
-        'Chain ID: 80002',
-        `Nonce: ${nonce}`,
-        `Issued At: ${new Date().toISOString()}`,
-      ].join('\n');
+      const issuedAt = new Date().toISOString();
+      const siweMsg = new SiweMessage({
+        domain: window.location.host,
+        address: checksumAddress,
+        statement: 'Sign in to PECT DApp - Solar Power Revenue & Carbon Credit Platform',
+        uri: window.location.origin,
+        version: '1',
+        chainId: 80002,
+        nonce,
+        issuedAt,
+      });
+      const message = siweMsg.prepareMessage();
 
-      // 3. 请求钱包签名
+      // 3. 请求钉包签名
       const signature = await signer.signMessage(message);
 
       // 4. 后端验证签名并签发 JWT
