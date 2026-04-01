@@ -1,12 +1,10 @@
 {
   "version": 2,
-  "framework": "vite",
   "installCommand": "npm install --legacy-peer-deps --include=dev",
-  "buildCommand": "npm run vercel-build",
+  "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "src": "/health", "dest": "/api/health" },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
