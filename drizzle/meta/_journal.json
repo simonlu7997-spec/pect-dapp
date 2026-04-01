@@ -8,6 +8,13 @@
       "when": 1774698829749,
       "tag": "0000_rainy_mariko_yashida",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1775065519257,
+      "tag": "0001_talented_skaar",
+      "breakpoints": true
     }
   ]
 }

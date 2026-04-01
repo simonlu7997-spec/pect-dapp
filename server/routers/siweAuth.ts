@@ -122,14 +122,14 @@ export const siweAuthRouter = router({
               .set({ lastSignedIn: new Date() })
               .where(eq(users.openId, address));
           } else {
-            // 新用户注册
+            // 新用户注册（MySQL 用 .$returningId() 获取插入的 ID）
             const insertResult = await db.insert(users).values({
               openId: address,
               name: `${address.slice(0, 6)}...${address.slice(-4)}`,
               loginMethod: "siwe",
               lastSignedIn: new Date(),
-            });
-            userId = (insertResult as any)[0]?.insertId || 0;
+            }).$returningId();
+            userId = insertResult[0]?.id || 0;
             userName = `${address.slice(0, 6)}...${address.slice(-4)}`;
           }
         } else {

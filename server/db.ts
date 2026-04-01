@@ -1,6 +1,7 @@
-import { eq, desc, sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
+import { eq, desc } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/mysql2";
+import type { MySql2Database } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
 import {
   InsertUser,
   users,
@@ -13,14 +14,25 @@ import {
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
-let _db: ReturnType<typeof drizzle> | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _db: MySql2Database<any> | null = null;
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      const client = postgres(process.env.DATABASE_URL, { ssl: "require" });
-      _db = drizzle(client);
+      const url = new URL(process.env.DATABASE_URL);
+      const pool = mysql.createPool({
+        host: url.hostname,
+        port: parseInt(url.port) || 4000,
+        user: decodeURIComponent(url.username),
+        password: decodeURIComponent(url.password),
+        database: url.pathname.slice(1),
+        ssl: { rejectUnauthorized: false },
+        waitForConnections: true,
+        connectionLimit: 10,
+      });
+      _db = drizzle(pool);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -55,8 +67,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     await db
       .insert(users)
       .values(values)
-      .onConflictDoUpdate({
-        target: users.openId,
+      .onDuplicateKeyUpdate({
         set: {
           name: values.name,
           email: values.email,
@@ -169,8 +180,7 @@ export async function bindWallet(data: InsertWalletBinding) {
   await db
     .insert(walletBindings)
     .values(data)
-    .onConflictDoUpdate({
-      target: walletBindings.walletAddress,
+    .onDuplicateKeyUpdate({
       set: { userId: data.userId },
     });
 }
