@@ -4,6 +4,13 @@ export { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 export const getLoginUrl = () => {
   const oauthPortalUrl = import.meta.env.VITE_OAUTH_PORTAL_URL;
   const appId = import.meta.env.VITE_APP_ID;
+
+  // Guard: if env vars are missing, return a safe fallback to avoid TypeError: Invalid URL
+  if (!oauthPortalUrl || !appId) {
+    console.warn('[Auth] VITE_OAUTH_PORTAL_URL or VITE_APP_ID is not configured.');
+    return window.location.href;
+  }
+
   const redirectUri = `${window.location.origin}/api/oauth/callback`;
   const state = btoa(redirectUri);
 

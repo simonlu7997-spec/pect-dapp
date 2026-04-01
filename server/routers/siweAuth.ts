@@ -5,23 +5,8 @@ import { SignJWT, jwtVerify } from "jose";
 import { publicProcedure, router } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
-import { users } from "../../drizzle/schema";
-import { eq } from "drizzle-orm";
-
-// 内存存储 nonce（生产环境建议用 Redis 或数据库）
-const nonceStore = new Map<string, { nonce: string; expiresAt: number }>();
-
-// 清理过期 nonce
-function cleanExpiredNonces() {
-  const now = Date.now();
-  const keysToDelete: string[] = [];
-  nonceStore.forEach((value, key) => {
-    if (value.expiresAt < now) {
-      keysToDelete.push(key);
-    }
-  });
-  keysToDelete.forEach(key => nonceStore.delete(key));
-}
+import { users, siweNonces } from "../../drizzle/schema";
+import { eq, lt, and } from "drizzle-orm";
 
 // 获取 JWT 密钥
 function getJwtSecret() {
@@ -33,14 +18,22 @@ export const siweAuthRouter = router({
   // 生成 nonce（前端请求签名前先获取）
   getNonce: publicProcedure
     .input(z.object({ address: z.string() }))
-    .mutation(async ({ input }) => {
-      cleanExpiredNonces();
+    .mutation(async () => {
       const nonce = uuidv4().replace(/-/g, "");
-      const sessionKey = input.address.toLowerCase();
-      nonceStore.set(sessionKey, {
-        nonce,
-        expiresAt: Date.now() + 5 * 60 * 1000, // 5 分钟有效期
-      });
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 分钟有效期
+
+      const db = await getDb();
+      if (db) {
+        // 清理过期 nonce
+        await db.delete(siweNonces).where(lt(siweNonces.expiresAt, new Date()));
+        // 存储新 nonce 到数据库（持久化，解决 Vercel Serverless 无状态问题）
+        await db.insert(siweNonces).values({
+          address: "pending", // address 在 getNonce 时未知，用 nonce 本身作为 key
+          nonce,
+          expiresAt,
+        });
+      }
+
       return { nonce };
     }),
 
@@ -55,28 +48,38 @@ export const siweAuthRouter = router({
     .mutation(async ({ ctx, input }) => {
       try {
         console.log('[SIWE] Verify request received');
-        console.log('[SIWE] Message:', input.message);
-        console.log('[SIWE] Signature:', input.signature.slice(0, 20) + '...');
-        
+
         // 解析 SIWE 消息
         const siweMessage = new SiweMessage(input.message);
         const address = siweMessage.address.toLowerCase();
         console.log('[SIWE] Parsed address:', address);
-        console.log('[SIWE] Message domain:', siweMessage.domain);
         console.log('[SIWE] Message nonce:', siweMessage.nonce);
 
-        // 检查 nonce 是否有效
-        const stored = nonceStore.get(address);
-        if (!stored || stored.expiresAt < Date.now()) {
+        // 从数据库查找 nonce（不依赖内存，解决 Vercel Serverless 无状态问题）
+        const db = await getDb();
+        if (!db) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "数据库连接失败",
+          });
+        }
+
+        const stored = await db
+          .select()
+          .from(siweNonces)
+          .where(
+            and(
+              eq(siweNonces.nonce, siweMessage.nonce),
+              // 只查未过期的
+              // lt(new Date(), siweNonces.expiresAt) -- drizzle 语法不同，用 JS 过滤
+            )
+          )
+          .limit(1);
+
+        if (stored.length === 0 || stored[0].expiresAt < new Date()) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
             message: "Nonce 已过期，请重新获取",
-          });
-        }
-        if (stored.nonce !== siweMessage.nonce) {
-          throw new TRPCError({
-            code: "UNAUTHORIZED",
-            message: "Nonce 不匹配，请重新签名",
           });
         }
 
@@ -88,7 +91,8 @@ export const siweAuthRouter = router({
           nonce: siweMessage.nonce,
           time: siweMessage.issuedAt,
         });
-        console.log('[SIWE] Verification result:', result);
+        console.log('[SIWE] Verification result:', result.success);
+
         if (!result.success) {
           console.error('[SIWE] Verification failed:', result.error);
           throw new TRPCError({
@@ -96,45 +100,39 @@ export const siweAuthRouter = router({
             message: `签名验证失败: ${result.error?.type || '未知错误'}`,
           });
         }
+
+        // 删除已使用的 nonce（防止重放攻击）
+        await db.delete(siweNonces).where(eq(siweNonces.nonce, siweMessage.nonce));
+
         console.log('[SIWE] Signature verified successfully');
 
-        // 清除已使用的 nonce
-        nonceStore.delete(address);
-
         // 查找或创建用户
-        const db = await getDb();
         let userId: number;
         let userName: string | null = null;
 
-        if (db) {
-          const existing = await db
-            .select()
-            .from(users)
-            .where(eq(users.openId, address))
-            .limit(1);
+        const existing = await db
+          .select()
+          .from(users)
+          .where(eq(users.openId, address))
+          .limit(1);
 
-          if (existing.length > 0) {
-            userId = existing[0].id;
-            userName = existing[0].name;
-            // 更新最后登录时间
-            await db
-              .update(users)
-              .set({ lastSignedIn: new Date() })
-              .where(eq(users.openId, address));
-          } else {
-            // 新用户注册（MySQL 用 .$returningId() 获取插入的 ID）
-            const insertResult = await db.insert(users).values({
-              openId: address,
-              name: `${address.slice(0, 6)}...${address.slice(-4)}`,
-              loginMethod: "siwe",
-              lastSignedIn: new Date(),
-            }).$returningId();
-            userId = insertResult[0]?.id || 0;
-            userName = `${address.slice(0, 6)}...${address.slice(-4)}`;
-          }
+        if (existing.length > 0) {
+          userId = existing[0].id;
+          userName = existing[0].name;
+          // 更新最后登录时间
+          await db
+            .update(users)
+            .set({ lastSignedIn: new Date() })
+            .where(eq(users.openId, address));
         } else {
-          // 无数据库时使用地址作为 ID
-          userId = 0;
+          // 新用户注册
+          const insertResult = await db.insert(users).values({
+            openId: address,
+            name: `${address.slice(0, 6)}...${address.slice(-4)}`,
+            loginMethod: "siwe",
+            lastSignedIn: new Date(),
+          }).$returningId();
+          userId = insertResult[0]?.id || 0;
           userName = `${address.slice(0, 6)}...${address.slice(-4)}`;
         }
 

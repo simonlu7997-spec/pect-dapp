@@ -102,3 +102,17 @@ export const walletBindings = mysqlTable("wallet_bindings", {
 
 export type WalletBinding = typeof walletBindings.$inferSelect;
 export type InsertWalletBinding = typeof walletBindings.$inferInsert;
+
+/**
+ * SIWE nonce 存储表（解决 Vercel Serverless 无状态问题）
+ */
+export const siweNonces = mysqlTable("siwe_nonces", {
+  id: serial("id").primaryKey(),
+  address: varchar("address", { length: 42 }).notNull(),
+  nonce: varchar("nonce", { length: 64 }).notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type SiweNonce = typeof siweNonces.$inferSelect;
+export type InsertSiweNonce = typeof siweNonces.$inferInsert;
