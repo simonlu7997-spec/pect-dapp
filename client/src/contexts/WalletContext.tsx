@@ -186,9 +186,11 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const domain = window.location.host;
       const origin = window.location.origin;
       const statement = '欢迎登录 PECT DApp — 光伏电站收益与碳信用管理平台';
+      // EIP-55 校验和格式（siwe@3.0.0 要求地址必须是 checksum 格式）
+      const checksumAddress = ethers.getAddress(account);
       const message = [
         `${domain} wants you to sign in with your Ethereum account:`,
-        account,
+        checksumAddress,
         '',
         statement,
         '',
