@@ -48,9 +48,13 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  // In production (dist/index.js), import.meta.dirname is the dist/ directory
-  // The public/ directory is inside dist/
-  const distPath = path.resolve(import.meta.dirname, "public");
+  // In production:
+  // - Manus: dist/index.js → import.meta.dirname = dist/ → public = dist/public/
+  // - Vercel: api/index.js → import.meta.dirname = api/ → public = dist/public/ (../dist/public)
+  const isVercel = process.env.VERCEL === "1";
+  const distPath = isVercel
+    ? path.resolve(import.meta.dirname, "..", "dist", "public")
+    : path.resolve(import.meta.dirname, "public");
   if (!fs.existsSync(distPath)) {
     console.error(
       `Could not find the build directory: ${distPath}, make sure to build the client first`
