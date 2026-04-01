@@ -74,11 +74,16 @@ export const siweAuthRouter = router({
         }
 
         // 验证签名
-        const result = await siweMessage.verify({ signature: input.signature });
+        const result = await siweMessage.verify({
+          signature: input.signature,
+          domain: siweMessage.domain,
+          nonce: siweMessage.nonce,
+          time: siweMessage.issuedAt,
+        });
         if (!result.success) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
-            message: "签名验证失败",
+            message: `签名验证失败: ${result.error?.type || '未知错误'}`,
           });
         }
 
