@@ -54,9 +54,16 @@ export const siweAuthRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       try {
+        console.log('[SIWE] Verify request received');
+        console.log('[SIWE] Message:', input.message);
+        console.log('[SIWE] Signature:', input.signature.slice(0, 20) + '...');
+        
         // 解析 SIWE 消息
         const siweMessage = new SiweMessage(input.message);
         const address = siweMessage.address.toLowerCase();
+        console.log('[SIWE] Parsed address:', address);
+        console.log('[SIWE] Message domain:', siweMessage.domain);
+        console.log('[SIWE] Message nonce:', siweMessage.nonce);
 
         // 检查 nonce 是否有效
         const stored = nonceStore.get(address);
@@ -74,18 +81,22 @@ export const siweAuthRouter = router({
         }
 
         // 验证签名
+        console.log('[SIWE] Starting signature verification...');
         const result = await siweMessage.verify({
           signature: input.signature,
           domain: siweMessage.domain,
           nonce: siweMessage.nonce,
           time: siweMessage.issuedAt,
         });
+        console.log('[SIWE] Verification result:', result);
         if (!result.success) {
+          console.error('[SIWE] Verification failed:', result.error);
           throw new TRPCError({
             code: "UNAUTHORIZED",
             message: `签名验证失败: ${result.error?.type || '未知错误'}`,
           });
         }
+        console.log('[SIWE] Signature verified successfully');
 
         // 清除已使用的 nonce
         nonceStore.delete(address);
@@ -154,6 +165,7 @@ export const siweAuthRouter = router({
           name: userName,
         };
       } catch (error) {
+        console.error('[SIWE] Error:', error);
         if (error instanceof TRPCError) throw error;
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
