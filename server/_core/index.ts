@@ -28,6 +28,41 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
   throw new Error(`No available port found starting from ${startPort}`);
 }
 
+// Create and configure the Express app (without starting the server)
+// This is exported for Vercel serverless deployment
+export function createApp() {
+  const app = express();
+
+  // Configure body parser with larger size limit for file uploads
+  app.use(express.json({ limit: "50mb" }));
+  app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+  // Cookie parser for reading/writing cookies
+  app.use(cookieParser());
+
+  // OAuth callback under /api/oauth/callback
+  registerOAuthRoutes(app);
+
+  // tRPC API
+  app.use(
+    "/api/trpc",
+    createExpressMiddleware({
+      router: appRouter,
+      createContext,
+    })
+  );
+
+  // In production (Vercel), serve static files
+  if (process.env.NODE_ENV !== "development") {
+    serveStatic(app);
+  }
+
+  return app;
+}
+
+// Export the app as default for Vercel serverless deployment
+export default createApp();
+
 async function startServer() {
   const app = express();
   const server = createServer(app);
@@ -65,4 +100,7 @@ async function startServer() {
   });
 }
 
-startServer().catch(console.error);
+// Only start the server when not in Vercel serverless environment
+if (process.env.VERCEL !== "1") {
+  startServer().catch(console.error);
+}
