@@ -3,6 +3,7 @@ import { z } from "zod";
 import { ethers } from "ethers";
 import { TRPCError } from "@trpc/server";
 import { notifyOwner } from "../_core/notification";
+import { sendApprovedEmail, sendRejectedEmail } from "../email";
 import {
   createKycApplication,
   getKycByWallet,
@@ -187,6 +188,15 @@ export const whitelistRouter = router({
           reviewNote: input.reviewNote || "管理员审核通过",
         });
 
+        // 发送审核通过邮件通知（异步，不阻塞响应）
+        sendApprovedEmail({
+          to: kyc.email,
+          fullName: kyc.fullName,
+          walletAddress: kyc.walletAddress,
+          txHashKyc,
+          txHashSender,
+        }).catch((err) => console.error("[Email] Failed to send approved email:", err));
+
         return {
           success: true,
           message: "审核通过，已成功添加到链上白名单",
@@ -221,6 +231,15 @@ export const whitelistRouter = router({
       if (!kyc) throw new TRPCError({ code: "NOT_FOUND", message: "申请记录不存在" });
 
       await updateKycStatus(input.id, "rejected", { reviewNote: input.reviewNote });
+
+      // 发送拒绝邮件通知（异步，不阻塞响应）
+      sendRejectedEmail({
+        to: kyc.email,
+        fullName: kyc.fullName,
+        walletAddress: kyc.walletAddress,
+        reviewNote: input.reviewNote,
+      }).catch((err) => console.error("[Email] Failed to send rejected email:", err));
+
       return { success: true, message: "已拒绝该申请" };
     }),
 });

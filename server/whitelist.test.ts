@@ -124,6 +124,6 @@ describe("whitelist router", () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.message).toContain("成功");
+    expect(result.message).toContain("申请已提交");
   });
 });
