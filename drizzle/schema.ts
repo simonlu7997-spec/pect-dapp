@@ -138,3 +138,44 @@ export const revenueRecords = mysqlTable("revenue_records", {
 });
 export type RevenueRecord = typeof revenueRecords.$inferSelect;
 export type InsertRevenueRecord = typeof revenueRecords.$inferInsert;
+
+/**
+ * 电站资产表（管理员动态维护）
+ */
+export const stations = mysqlTable("stations", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 128 }).notNull(),
+  capacity: varchar("capacity", { length: 32 }).notNull(),           // e.g. "100kW"
+  location: varchar("location", { length: 128 }).notNull(),
+  annualGeneration: decimal("annualGeneration", { precision: 18, scale: 2 }).notNull().default("0"), // kWh/year
+  annualRevenue: decimal("annualRevenue", { precision: 18, scale: 2 }).notNull().default("0"),       // RMB/year
+  description: text("description"),
+  isActive: boolean("isActive").default(true).notNull(),
+  sortOrder: int("sortOrder").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+export type Station = typeof stations.$inferSelect;
+export type InsertStation = typeof stations.$inferInsert;
+
+/**
+ * 链上操作记录表（分红发放、质押奖励发放等管理员操作）
+ */
+const adminTxTypeValues = ["distribute_revenue", "distribute_staking_reward"] as const;
+const adminTxStatusValues = ["pending", "confirmed", "failed"] as const;
+
+export const adminTransactions = mysqlTable("admin_transactions", {
+  id: serial("id").primaryKey(),
+  txType: mysqlEnum("txType", adminTxTypeValues).notNull(),
+  txHash: varchar("txHash", { length: 66 }).notNull().unique(),
+  amount: decimal("amount", { precision: 36, scale: 6 }),            // USDT amount
+  status: mysqlEnum("status", adminTxStatusValues).default("pending").notNull(),
+  blockNumber: bigint("blockNumber", { mode: "number" }),
+  errorMessage: text("errorMessage"),
+  note: text("note"),
+  createdBy: varchar("createdBy", { length: 66 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  confirmedAt: timestamp("confirmedAt"),
+});
+export type AdminTransaction = typeof adminTransactions.$inferSelect;
+export type InsertAdminTransaction = typeof adminTransactions.$inferInsert;

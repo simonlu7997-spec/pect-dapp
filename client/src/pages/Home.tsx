@@ -24,11 +24,7 @@ const ORACLE_FALLBACK = [
   { label: "最新汇率", value: "--", unit: "RMB/USDT" },
 ];
 
-const stations = [
-  { name: "电站 A", capacity: "100kW", location: "浙江", generation: "45,000", revenue: "180,000" },
-  { name: "电站 B", capacity: "150kW", location: "江苏", generation: "67,500", revenue: "270,000" },
-  { name: "电站 C", capacity: "120kW", location: "安徽", generation: "54,000", revenue: "216,000" },
-];
+// 电站数据现在从后端动态获取，此处移除静态数据
 
 const faqs = [
   { q: "PV-Coin 如何分红？", a: "PV-Coin 持有者每月可获得电站收益的分红，分红金额根据持仓比例计算。" },
@@ -43,6 +39,10 @@ export default function Home() {
 
   const { isConnected } = useWalletContext();
   const [, navigate] = useLocation();
+
+  // 从后端获取电站列表（公开接口，仅返回已启用电站）
+  const { data: stationsData, isLoading: stationsLoading } = trpc.stations.list.useQuery();
+  const stationList = stationsData?.stations ?? [];
 
   // 从后端获取 Oracle 统计数据（每 60 秒刷新一次）
   const { data: oracleStats, isLoading: oracleLoading } = trpc.oracle.getStats.useQuery(
@@ -249,15 +249,32 @@ export default function Home() {
                 </tr>
               </thead>
               <tbody>
-                {stations.map((station, index) => (
-                  <tr key={index} className="border-b border-gray-200 hover:bg-white transition-colors">
-                    <td className="py-3 px-4 text-gray-900 font-semibold">{station.name}</td>
-                    <td className="py-3 px-4 text-center text-gray-600">{station.capacity}</td>
-                    <td className="py-3 px-4 text-center text-gray-600">{station.location}</td>
-                    <td className="py-3 px-4 text-right text-gray-900">{station.generation} kWh</td>
-                    <td className="py-3 px-4 text-right text-gray-900 font-semibold">{station.revenue} RMB</td>
+                {stationsLoading ? (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-gray-400">
+                      <Loader2 className="w-5 h-5 animate-spin inline-block mr-2" />
+                      加载中...
+                    </td>
                   </tr>
-                ))}
+                ) : stationList.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-gray-400">暂无电站数据</td>
+                  </tr>
+                ) : (
+                  stationList.map((station) => (
+                    <tr key={station.id} className="border-b border-gray-200 hover:bg-white transition-colors">
+                      <td className="py-3 px-4 text-gray-900 font-semibold">{station.name}</td>
+                      <td className="py-3 px-4 text-center text-gray-600">{station.capacity}</td>
+                      <td className="py-3 px-4 text-center text-gray-600">{station.location}</td>
+                      <td className="py-3 px-4 text-right text-gray-900">
+                        {parseFloat(station.annualGeneration).toLocaleString()} kWh
+                      </td>
+                      <td className="py-3 px-4 text-right text-gray-900 font-semibold">
+                        {parseFloat(station.annualRevenue).toLocaleString()} RMB
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

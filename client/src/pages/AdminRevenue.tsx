@@ -37,6 +37,10 @@ import {
   RefreshCw,
   BarChart3,
   Users,
+  Send,
+  Gift,
+  ExternalLink,
+  Loader2,
 } from "lucide-react";
 
 export default function AdminRevenue() {
@@ -49,6 +53,14 @@ export default function AdminRevenue() {
   const isAdmin = user?.role === "admin" || siweUser?.role === "admin";
   const [, navigate] = useLocation();
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  // 链上操作对话框状态
+  const [distributeDialogOpen, setDistributeDialogOpen] = useState(false);
+  const [stakingRewardDialogOpen, setStakingRewardDialogOpen] = useState(false);
+  const [distributeAmount, setDistributeAmount] = useState("");
+  const [stakingRewardAmount, setStakingRewardAmount] = useState("");
+  const [distributeNote, setDistributeNote] = useState("");
+  const [stakingRewardNote, setStakingRewardNote] = useState("");
 
   // 表单状态
   const [form, setForm] = useState({
@@ -79,6 +91,10 @@ export default function AdminRevenue() {
   const { data: stakingHistory, isLoading: loadingStakingHistory } =
     trpc.adminRevenue.getStakingHistory.useQuery(undefined, { enabled: isAdmin });
 
+  // 查询管理员链上操作历史
+  const { data: adminTxHistory, isLoading: loadingAdminTx, refetch: refetchAdminTx } =
+    trpc.adminRevenue.getAdminTxHistory.useQuery(undefined, { enabled: isAdmin });
+
   // 录入分红数据
   const createMutation = trpc.adminRevenue.create.useMutation({
     onSuccess: (data) => {
@@ -99,6 +115,34 @@ export default function AdminRevenue() {
     },
     onError: (err) => {
       toast.error(`录入失败：${err.message}`);
+    },
+  });
+
+  // 一键触发链上分红
+  const distributeMutation = trpc.adminRevenue.triggerDistributeRevenue.useMutation({
+    onSuccess: (data) => {
+      toast.success(`链上分红已发起！交易哈希: ${data.txHash.slice(0, 10)}...`);
+      setDistributeDialogOpen(false);
+      setDistributeAmount("");
+      setDistributeNote("");
+      refetchAdminTx();
+    },
+    onError: (err) => {
+      toast.error(`链上分红失败：${err.message}`);
+    },
+  });
+
+  // 一键发放质押奖励
+  const stakingRewardMutation = trpc.adminRevenue.triggerDistributeStakingReward.useMutation({
+    onSuccess: (data) => {
+      toast.success(`质押奖励已发放！交易哈希: ${data.txHash.slice(0, 10)}...`);
+      setStakingRewardDialogOpen(false);
+      setStakingRewardAmount("");
+      setStakingRewardNote("");
+      refetchAdminTx();
+    },
+    onError: (err) => {
+      toast.error(`质押奖励发放失败：${err.message}`);
     },
   });
 
@@ -148,6 +192,7 @@ export default function AdminRevenue() {
   }
 
   const records = recordsData?.records ?? [];
+  const adminTxRecords = adminTxHistory?.records ?? [];
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -170,124 +215,315 @@ export default function AdminRevenue() {
               分红数据管理
             </h1>
           </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-green-600 hover:bg-green-700 text-white">
-                <Plus className="w-4 h-4 mr-2" />
-                录入新期数据
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-lg">
-              <DialogHeader>
-                <DialogTitle className="text-white">录入分红期数据</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-gray-300">年份</Label>
-                    <Input
-                      type="number"
-                      value={form.periodYear}
-                      onChange={e => setForm(f => ({ ...f, periodYear: parseInt(e.target.value) || f.periodYear }))}
-                      className="bg-gray-800 border-gray-600 text-white"
-                      min={2020} max={2100}
-                    />
+          <div className="flex items-center gap-2">
+            {/* 一键触发链上分红 */}
+            <Dialog open={distributeDialogOpen} onOpenChange={setDistributeDialogOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="border-green-700 text-green-400 hover:bg-green-900/30 hover:text-green-300"
+                >
+                  <Send className="w-4 h-4 mr-2" />
+                  一键触发分红
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="text-white flex items-center gap-2">
+                    <Send className="w-5 h-5 text-green-400" />
+                    触发链上分红
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-2">
+                  <div className="bg-yellow-900/20 border border-yellow-800/50 rounded-lg p-3">
+                    <p className="text-yellow-400 text-sm font-medium">⚠️ 注意</p>
+                    <p className="text-yellow-300/80 text-xs mt-1">
+                      此操作将使用部署者私钥调用 RevenueDistributor 合约的 distributeRevenue 函数，
+                      向所有 PV-Coin 持有者发放 USDT 分红。请确认金额无误后再执行。
+                    </p>
                   </div>
                   <div>
-                    <Label className="text-gray-300">月份</Label>
+                    <Label className="text-gray-300">分红金额（USDT）</Label>
                     <Input
-                      type="number"
-                      value={form.periodMonth}
-                      onChange={e => setForm(f => ({ ...f, periodMonth: parseInt(e.target.value) || f.periodMonth }))}
-                      className="bg-gray-800 border-gray-600 text-white"
-                      min={1} max={12}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-gray-300">总发电量（kWh）</Label>
-                  <Input
-                    value={form.totalGeneration}
-                    onChange={e => setForm(f => ({ ...f, totalGeneration: e.target.value }))}
-                    placeholder="例如：487884.5"
-                    className="bg-gray-800 border-gray-600 text-white"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label className="text-gray-300">总电费收入（RMB）</Label>
-                  <Input
-                    value={form.totalRevenue}
-                    onChange={e => setForm(f => ({ ...f, totalRevenue: e.target.value }))}
-                    placeholder="例如：541412.00"
-                    className="bg-gray-800 border-gray-600 text-white"
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-gray-300">分红池（USDT）</Label>
-                    <Input
-                      value={form.dividendPool}
-                      onChange={e => setForm(f => ({ ...f, dividendPool: e.target.value }))}
+                      value={distributeAmount}
+                      onChange={e => setDistributeAmount(e.target.value)}
                       placeholder="例如：45700.00"
+                      className="bg-gray-800 border-gray-600 text-white mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-gray-300">备注（可选）</Label>
+                    <Textarea
+                      value={distributeNote}
+                      onChange={e => setDistributeNote(e.target.value)}
+                      placeholder="例如：2026-03 期分红"
+                      className="bg-gray-800 border-gray-600 text-white resize-none mt-1"
+                      rows={2}
+                    />
+                  </div>
+                  <div className="flex gap-3 justify-end pt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setDistributeDialogOpen(false)}
+                      className="border-gray-600 text-gray-300"
+                    >
+                      取消
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                          disabled={!distributeAmount || distributeMutation.isPending}
+                        >
+                          {distributeMutation.isPending ? (
+                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" />发送中...</>
+                          ) : (
+                            <><Send className="w-4 h-4 mr-2" />确认发送</>
+                          )}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="bg-gray-900 border-gray-700">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="text-white">确认触发链上分红</AlertDialogTitle>
+                          <AlertDialogDescription className="text-gray-400">
+                            即将向链上发送 <span className="text-green-400 font-semibold">{distributeAmount} USDT</span> 分红。
+                            此操作不可撤销，确认继续？
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="border-gray-600 text-gray-300">取消</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => distributeMutation.mutate({
+                              amount: distributeAmount,
+                              note: distributeNote || undefined,
+                            })}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            确认发送
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* 一键发放质押奖励 */}
+            <Dialog open={stakingRewardDialogOpen} onOpenChange={setStakingRewardDialogOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="border-blue-700 text-blue-400 hover:bg-blue-900/30 hover:text-blue-300"
+                >
+                  <Gift className="w-4 h-4 mr-2" />
+                  发放质押奖励
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="text-white flex items-center gap-2">
+                    <Gift className="w-5 h-5 text-blue-400" />
+                    发放质押奖励
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-2">
+                  <div className="bg-yellow-900/20 border border-yellow-800/50 rounded-lg p-3">
+                    <p className="text-yellow-400 text-sm font-medium">⚠️ 注意</p>
+                    <p className="text-yellow-300/80 text-xs mt-1">
+                      此操作将使用部署者私钥调用 StakingManager 合约的 distributeRewards 函数，
+                      向所有 C2-Coin 质押者发放奖励。请确认金额无误后再执行。
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-gray-300">奖励金额（C2-Coin）</Label>
+                    <Input
+                      value={stakingRewardAmount}
+                      onChange={e => setStakingRewardAmount(e.target.value)}
+                      placeholder="例如：1000.00"
+                      className="bg-gray-800 border-gray-600 text-white mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-gray-300">备注（可选）</Label>
+                    <Textarea
+                      value={stakingRewardNote}
+                      onChange={e => setStakingRewardNote(e.target.value)}
+                      placeholder="例如：2026-03 期质押奖励"
+                      className="bg-gray-800 border-gray-600 text-white resize-none mt-1"
+                      rows={2}
+                    />
+                  </div>
+                  <div className="flex gap-3 justify-end pt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setStakingRewardDialogOpen(false)}
+                      className="border-gray-600 text-gray-300"
+                    >
+                      取消
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                          disabled={!stakingRewardAmount || stakingRewardMutation.isPending}
+                        >
+                          {stakingRewardMutation.isPending ? (
+                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" />发送中...</>
+                          ) : (
+                            <><Gift className="w-4 h-4 mr-2" />确认发放</>
+                          )}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="bg-gray-900 border-gray-700">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="text-white">确认发放质押奖励</AlertDialogTitle>
+                          <AlertDialogDescription className="text-gray-400">
+                            即将向链上发送 <span className="text-blue-400 font-semibold">{stakingRewardAmount} C2-Coin</span> 质押奖励。
+                            此操作不可撤销，确认继续？
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="border-gray-600 text-gray-300">取消</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => stakingRewardMutation.mutate({
+                              amount: stakingRewardAmount,
+                              note: stakingRewardNote || undefined,
+                            })}
+                            className="bg-blue-600 hover:bg-blue-700"
+                          >
+                            确认发放
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* 录入新期数据 */}
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-green-600 hover:bg-green-700 text-white">
+                  <Plus className="w-4 h-4 mr-2" />
+                  录入新期数据
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-lg">
+                <DialogHeader>
+                  <DialogTitle className="text-white">录入分红期数据</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-gray-300">年份</Label>
+                      <Input
+                        type="number"
+                        value={form.periodYear}
+                        onChange={e => setForm(f => ({ ...f, periodYear: parseInt(e.target.value) || f.periodYear }))}
+                        className="bg-gray-800 border-gray-600 text-white"
+                        min={2020} max={2100}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-gray-300">月份</Label>
+                      <Input
+                        type="number"
+                        value={form.periodMonth}
+                        onChange={e => setForm(f => ({ ...f, periodMonth: parseInt(e.target.value) || f.periodMonth }))}
+                        className="bg-gray-800 border-gray-600 text-white"
+                        min={1} max={12}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-gray-300">总发电量（kWh）</Label>
+                    <Input
+                      value={form.totalGeneration}
+                      onChange={e => setForm(f => ({ ...f, totalGeneration: e.target.value }))}
+                      placeholder="例如：487884.5"
                       className="bg-gray-800 border-gray-600 text-white"
                       required
                     />
                   </div>
                   <div>
-                    <Label className="text-gray-300">汇率（RMB/USDT）</Label>
+                    <Label className="text-gray-300">总电费收入（RMB）</Label>
                     <Input
-                      value={form.exchangeRate}
-                      onChange={e => setForm(f => ({ ...f, exchangeRate: e.target.value }))}
-                      placeholder="例如：7.2"
+                      value={form.totalRevenue}
+                      onChange={e => setForm(f => ({ ...f, totalRevenue: e.target.value }))}
+                      placeholder="例如：541412.00"
                       className="bg-gray-800 border-gray-600 text-white"
                       required
                     />
                   </div>
-                </div>
-                <div>
-                  <Label className="text-gray-300">快照区块号（可选）</Label>
-                  <Input
-                    type="number"
-                    value={form.snapshotBlock}
-                    onChange={e => setForm(f => ({ ...f, snapshotBlock: e.target.value }))}
-                    placeholder="链上快照区块号"
-                    className="bg-gray-800 border-gray-600 text-white"
-                  />
-                </div>
-                <div>
-                  <Label className="text-gray-300">链上交易哈希（可选）</Label>
-                  <Input
-                    value={form.txHash}
-                    onChange={e => setForm(f => ({ ...f, txHash: e.target.value }))}
-                    placeholder="0x..."
-                    className="bg-gray-800 border-gray-600 text-white"
-                  />
-                </div>
-                <div>
-                  <Label className="text-gray-300">备注（可选）</Label>
-                  <Textarea
-                    value={form.note}
-                    onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
-                    placeholder="本期特殊情况说明..."
-                    className="bg-gray-800 border-gray-600 text-white resize-none"
-                    rows={2}
-                  />
-                </div>
-                <div className="flex gap-3 justify-end pt-2">
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}
-                    className="border-gray-600 text-gray-300">
-                    取消
-                  </Button>
-                  <Button type="submit" disabled={createMutation.isPending}
-                    className="bg-green-600 hover:bg-green-700">
-                    {createMutation.isPending ? "保存中..." : "保存"}
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-gray-300">分红池（USDT）</Label>
+                      <Input
+                        value={form.dividendPool}
+                        onChange={e => setForm(f => ({ ...f, dividendPool: e.target.value }))}
+                        placeholder="例如：45700.00"
+                        className="bg-gray-800 border-gray-600 text-white"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-gray-300">汇率（RMB/USDT）</Label>
+                      <Input
+                        value={form.exchangeRate}
+                        onChange={e => setForm(f => ({ ...f, exchangeRate: e.target.value }))}
+                        placeholder="例如：7.2"
+                        className="bg-gray-800 border-gray-600 text-white"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-gray-300">快照区块号（可选）</Label>
+                    <Input
+                      type="number"
+                      value={form.snapshotBlock}
+                      onChange={e => setForm(f => ({ ...f, snapshotBlock: e.target.value }))}
+                      placeholder="链上快照区块号"
+                      className="bg-gray-800 border-gray-600 text-white"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-gray-300">链上交易哈希（可选）</Label>
+                    <Input
+                      value={form.txHash}
+                      onChange={e => setForm(f => ({ ...f, txHash: e.target.value }))}
+                      placeholder="0x..."
+                      className="bg-gray-800 border-gray-600 text-white"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-gray-300">备注（可选）</Label>
+                    <Textarea
+                      value={form.note}
+                      onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
+                      placeholder="本期特殊情况说明..."
+                      className="bg-gray-800 border-gray-600 text-white resize-none"
+                      rows={2}
+                    />
+                  </div>
+                  <div className="flex gap-3 justify-end pt-2">
+                    <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}
+                      className="border-gray-600 text-gray-300">
+                      取消
+                    </Button>
+                    <Button type="submit" className="bg-green-600 hover:bg-green-700 text-white"
+                      disabled={createMutation.isPending}>
+                      {createMutation.isPending ? "保存中..." : "保存"}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
       </div>
 
@@ -448,6 +684,96 @@ export default function AdminRevenue() {
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* 链上操作历史（分红发放 + 质押奖励发放） */}
+        <Card className="bg-gray-900 border-gray-800">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-white text-base flex items-center gap-2">
+              <Send className="w-4 h-4 text-green-400" />
+              链上操作历史（最近 20 条）
+            </CardTitle>
+            <Button variant="ghost" size="sm" onClick={() => refetchAdminTx()}
+              className="text-gray-400 hover:text-white">
+              <RefreshCw className="w-4 h-4" />
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {loadingAdminTx ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-green-400" />
+              </div>
+            ) : adminTxRecords.length === 0 ? (
+              <div className="text-center py-12">
+                <Send className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                <p className="text-gray-400">暂无链上操作记录</p>
+                <p className="text-gray-600 text-sm mt-1">点击「一键触发分红」或「发放质押奖励」开始操作</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-800">
+                      <th className="text-left py-3 px-2 text-gray-400 font-medium">操作类型</th>
+                      <th className="text-right py-3 px-2 text-gray-400 font-medium">金额</th>
+                      <th className="text-center py-3 px-2 text-gray-400 font-medium">状态</th>
+                      <th className="text-left py-3 px-2 text-gray-400 font-medium">交易哈希</th>
+                      <th className="text-left py-3 px-2 text-gray-400 font-medium">备注</th>
+                      <th className="text-right py-3 px-2 text-gray-400 font-medium">时间</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {adminTxRecords.map((tx) => (
+                      <tr key={tx.id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
+                        <td className="py-3 px-2">
+                          <Badge className={
+                            tx.txType === "distribute_revenue"
+                              ? "bg-green-900/50 text-green-400 border-green-800"
+                              : "bg-blue-900/50 text-blue-400 border-blue-800"
+                          }>
+                            {tx.txType === "distribute_revenue" ? "链上分红" : "质押奖励"}
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-2 text-right text-gray-200 font-semibold">
+                          {tx.amount
+                            ? `${parseFloat(tx.amount).toLocaleString()} ${tx.txType === "distribute_revenue" ? "USDT" : "C2"}`
+                            : "—"}
+                        </td>
+                        <td className="py-3 px-2 text-center">
+                          <Badge className={
+                            tx.status === "confirmed"
+                              ? "bg-green-900/50 text-green-400 border-green-800"
+                              : tx.status === "failed"
+                              ? "bg-red-900/50 text-red-400 border-red-800"
+                              : "bg-yellow-900/50 text-yellow-400 border-yellow-800"
+                          }>
+                            {tx.status === "confirmed" ? "已确认" : tx.status === "failed" ? "失败" : "待确认"}
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-2 font-mono text-gray-500 text-xs">
+                          <a
+                            href={`${import.meta.env.VITE_EXPLORER_URL}/tx/${tx.txHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                          >
+                            {tx.txHash.slice(0, 10)}...
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </td>
+                        <td className="py-3 px-2 text-gray-400 text-xs max-w-[160px] truncate">
+                          {tx.note ?? "—"}
+                        </td>
+                        <td className="py-3 px-2 text-right text-gray-500 text-xs">
+                          {new Date(tx.createdAt).toLocaleString()}
                         </td>
                       </tr>
                     ))}

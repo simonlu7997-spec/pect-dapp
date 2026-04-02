@@ -1,4 +1,4 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, asc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
@@ -14,6 +14,12 @@ import {
   revenueRecords,
   InsertRevenueRecord,
   type RevenueRecord,
+  stations,
+  InsertStation,
+  type Station,
+  adminTransactions,
+  InsertAdminTransaction,
+  type AdminTransaction,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -281,4 +287,65 @@ export async function getWalletsByUserId(userId: number) {
     .from(walletBindings)
     .where(eq(walletBindings.userId, userId))
     .orderBy(desc(walletBindings.createdAt));
+}
+
+// ─── Stations ────────────────────────────────────────────────────────────────
+
+export async function listStations(activeOnly = false): Promise<Station[]> {
+  const db = await getDb();
+  if (!db) return [];
+  if (activeOnly) {
+    return db.select().from(stations).where(eq(stations.isActive, true)).orderBy(asc(stations.sortOrder), asc(stations.id));
+  }
+  return db.select().from(stations).orderBy(asc(stations.sortOrder), asc(stations.id));
+}
+
+export async function createStation(data: InsertStation) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(stations).values(data);
+}
+
+export async function updateStation(id: number, data: Partial<InsertStation>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(stations).set({ ...data, updatedAt: new Date() }).where(eq(stations.id, id));
+}
+
+export async function deleteStation(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(stations).where(eq(stations.id, id));
+}
+
+// ─── AdminTransactions ───────────────────────────────────────────────────────
+
+export async function recordAdminTransaction(data: InsertAdminTransaction) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(adminTransactions).values(data);
+}
+
+export async function listAdminTransactions(limit = 50): Promise<AdminTransaction[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(adminTransactions).orderBy(desc(adminTransactions.createdAt)).limit(limit);
+}
+
+export async function updateAdminTransactionStatus(
+  txHash: string,
+  status: "confirmed" | "failed",
+  blockNumber?: number,
+  errorMessage?: string
+) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(adminTransactions)
+    .set({
+      status,
+      blockNumber: blockNumber ?? null,
+      errorMessage: errorMessage ?? null,
+      confirmedAt: status === "confirmed" ? new Date() : null,
+    })
+    .where(eq(adminTransactions.txHash, txHash));
 }

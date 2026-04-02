@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Menu, X, Wallet, LogOut, QrCode, CheckCircle, UserCircle, ChevronDown, Copy, ExternalLink, ShieldCheck, Users, BarChart3 } from "lucide-react";
+import { Menu, X, Wallet, LogOut, QrCode, CheckCircle, UserCircle, ChevronDown, Copy, ExternalLink, ShieldCheck, Users, BarChart3, Zap } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -340,6 +340,17 @@ export default function Navbar() {
                         <BarChart3 className="w-4 h-4 text-gray-400" />
                         分红管理
                       </button>
+                      <button
+                        onClick={() => { setLocation("/admin/stations"); setShowAdminMenu(false); }}
+                        className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 transition-colors ${
+                          location === "/admin/stations"
+                            ? "bg-violet-50 text-violet-800 font-medium"
+                            : "text-gray-700 hover:bg-gray-50"
+                        }`}
+                      >
+                        <Zap className="w-4 h-4 text-gray-400" />
+                        电站管理
+                      </button>
                     </div>
                   </div>
                 )}
@@ -400,6 +411,17 @@ export default function Navbar() {
                 >
                   <BarChart3 className="w-4 h-4" />
                   分红管理
+                </button>
+                <button
+                  onClick={() => { setLocation("/admin/stations"); setIsOpen(false); }}
+                  className={`w-full flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    location === "/admin/stations"
+                      ? "bg-violet-100 text-violet-900"
+                      : "text-violet-700 hover:bg-violet-50"
+                  }`}
+                >
+                  <Zap className="w-4 h-4" />
+                  电站管理
                 </button>
               </>
             )}

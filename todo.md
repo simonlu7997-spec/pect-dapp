@@ -27,3 +27,8 @@
 - [x] 首页 Oracle 数据动态化：从 revenue_records 读取真实分红数据
 - [x] 修复管理后台菜单不显示：SIWE 登录用户的 role 字段未传递到前端
 - [x] 修复管理后台页面权限检查：同时支持 SIWE 钱包 admin 用户访问（前端 AdminKyc/AdminRevenue + 后端 context.ts SIWE fallback）
+- [x] 管理后台：电站管理页面（/admin/stations）- 动态维护电站名称、容量、位置、发电量
+- [x] 首页电站表格动态化：从数据库读取电站数据（stationsPublic.list 路由）
+- [x] 分红管理页面：一键触发链上分红按钮（triggerDistributeRevenue，调用 RevenueDistributor 合约）
+- [x] 分红管理页面：一键发放质押奖励按钮（triggerDistributeStakingReward，调用 StakingManager 合约）
+- [x] 链上操作历史表格：记录并展示所有管理员发起的链上操作（交易哈希、状态、金额、备注）

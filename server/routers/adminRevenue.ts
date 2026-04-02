@@ -6,6 +6,9 @@ import {
   listRevenueRecords,
   getRevenueRecordByPeriod,
   deleteRevenueRecord,
+  recordAdminTransaction,
+  listAdminTransactions,
+  updateAdminTransactionStatus,
 } from "../db";
 import { ethers } from "ethers";
 import { ENV } from "../_core/env";
@@ -16,6 +19,13 @@ const RevenueDistributorABI = [
   "function totalDistributed() external view returns (uint256)",
   "function getClaimableAmount(address user) external view returns (uint256)",
   "function totalStakers() external view returns (uint256)",
+];
+
+// StakingManager 合约 ABI（管理员发放奖励函数）
+const StakingManagerABI = [
+  "function distributeRewards(uint256 amount) external",
+  "function totalStaked() external view returns (uint256)",
+  "function stakerCount() external view returns (uint256)",
 ];
 
 // 管理员权限检查中间件
@@ -130,11 +140,6 @@ export const adminRevenueRouter = router({
       };
     }
 
-    const StakingManagerABI = [
-      "function totalStaked() external view returns (uint256)",
-      "function stakerCount() external view returns (uint256)",
-    ];
-
     try {
       const provider = new ethers.JsonRpcProvider(ENV.blockchainRpcUrl);
       const contract = new ethers.Contract(stakingAddr, StakingManagerABI, provider);
@@ -183,5 +188,186 @@ export const adminRevenueRouter = router({
         .limit(input?.limit ?? 50);
 
       return { transactions: rows };
+    }),
+
+  // ─── 链上操作记录查询 ─────────────────────────────────────────────────────
+
+  // 查询管理员链上操作历史
+  getAdminTxHistory: adminProcedure
+    .input(z.object({ limit: z.number().min(1).max(100).default(20) }).optional())
+    .query(async ({ input }) => {
+      const records = await listAdminTransactions(input?.limit ?? 20);
+      return { records };
+    }),
+
+  // ─── 一键触发链上分红 ─────────────────────────────────────────────────────
+
+  /**
+   * 使用部署者私钥调用 RevenueDistributor.distributeRevenue(amount)
+   * amount 为 USDT 数量（6 位小数）
+   */
+  triggerDistributeRevenue: adminProcedure
+    .input(
+      z.object({
+        amount: z.string().regex(/^\d+(\.\d+)?$/, "请输入有效的 USDT 金额"),
+        note: z.string().max(500).optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const contractAddr = ENV.revenueDistributorAddress;
+      const privateKey = ENV.deployerPrivateKey;
+      const rpcUrl = ENV.blockchainRpcUrl;
+
+      if (!contractAddr || !privateKey || !rpcUrl) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "合约地址或部署者私钥未配置，请检查环境变量",
+        });
+      }
+
+      try {
+        const provider = new ethers.JsonRpcProvider(rpcUrl);
+        const signer = new ethers.Wallet(privateKey, provider);
+        const contract = new ethers.Contract(contractAddr, RevenueDistributorABI, signer);
+
+        // amount 转为 USDT 最小单位（6 位小数）
+        const amountWei = ethers.parseUnits(input.amount, 6);
+
+        console.log(`[AdminRevenue] Triggering distributeRevenue: amount=${input.amount} USDT`);
+        const tx = await contract.distributeRevenue(amountWei);
+
+        // 先记录为 pending 状态
+        await recordAdminTransaction({
+          txType: "distribute_revenue",
+          txHash: tx.hash,
+          amount: input.amount,
+          status: "pending",
+          note: input.note ?? `发放分红 ${input.amount} USDT`,
+          createdBy: ctx.user.openId,
+        });
+
+        // 等待确认（最多等 2 个区块）
+        const receipt = await tx.wait(2);
+
+        // 更新为 confirmed
+        await updateAdminTransactionStatus(
+          tx.hash,
+          "confirmed",
+          receipt?.blockNumber ?? undefined,
+        );
+
+        return {
+          success: true,
+          txHash: tx.hash,
+          blockNumber: receipt?.blockNumber ?? null,
+          amount: input.amount,
+        };
+      } catch (err: unknown) {
+        const errMsg = (err as Error).message ?? "未知错误";
+        console.error("[AdminRevenue] distributeRevenue failed:", errMsg);
+
+        // 如果已有 txHash，更新为 failed
+        if (typeof err === "object" && err !== null && "transaction" in err) {
+          const txErr = err as { transaction?: { hash?: string } };
+          if (txErr.transaction?.hash) {
+            await updateAdminTransactionStatus(
+              txErr.transaction.hash,
+              "failed",
+              undefined,
+              errMsg,
+            ).catch(() => {});
+          }
+        }
+
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `链上分红失败: ${errMsg}`,
+        });
+      }
+    }),
+
+  // ─── 一键发放质押奖励 ─────────────────────────────────────────────────────
+
+  /**
+   * 使用部署者私钥调用 StakingManager.distributeRewards(amount)
+   * amount 为 C2-Coin 数量（18 位小数）
+   */
+  triggerDistributeStakingReward: adminProcedure
+    .input(
+      z.object({
+        amount: z.string().regex(/^\d+(\.\d+)?$/, "请输入有效的 C2-Coin 数量"),
+        note: z.string().max(500).optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const contractAddr = ENV.stakingManagerAddress;
+      const privateKey = ENV.deployerPrivateKey;
+      const rpcUrl = ENV.blockchainRpcUrl;
+
+      if (!contractAddr || !privateKey || !rpcUrl) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "质押合约地址或部署者私钥未配置，请检查环境变量",
+        });
+      }
+
+      try {
+        const provider = new ethers.JsonRpcProvider(rpcUrl);
+        const signer = new ethers.Wallet(privateKey, provider);
+        const contract = new ethers.Contract(contractAddr, StakingManagerABI, signer);
+
+        // amount 转为 C2-Coin 最小单位（18 位小数）
+        const amountWei = ethers.parseUnits(input.amount, 18);
+
+        console.log(`[AdminRevenue] Triggering distributeRewards: amount=${input.amount} C2`);
+        const tx = await contract.distributeRewards(amountWei);
+
+        // 先记录为 pending 状态
+        await recordAdminTransaction({
+          txType: "distribute_staking_reward",
+          txHash: tx.hash,
+          amount: input.amount,
+          status: "pending",
+          note: input.note ?? `发放质押奖励 ${input.amount} C2`,
+          createdBy: ctx.user.openId,
+        });
+
+        // 等待确认（最多等 2 个区块）
+        const receipt = await tx.wait(2);
+
+        // 更新为 confirmed
+        await updateAdminTransactionStatus(
+          tx.hash,
+          "confirmed",
+          receipt?.blockNumber ?? undefined,
+        );
+
+        return {
+          success: true,
+          txHash: tx.hash,
+          blockNumber: receipt?.blockNumber ?? null,
+          amount: input.amount,
+        };
+      } catch (err: unknown) {
+        const errMsg = (err as Error).message ?? "未知错误";
+        console.error("[AdminRevenue] distributeRewards failed:", errMsg);
+
+        if (typeof err === "object" && err !== null && "transaction" in err) {
+          const txErr = err as { transaction?: { hash?: string } };
+          if (txErr.transaction?.hash) {
+            await updateAdminTransactionStatus(
+              txErr.transaction.hash,
+              "failed",
+              undefined,
+              errMsg,
+            ).catch(() => {});
+          }
+        }
+
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `发放质押奖励失败: ${errMsg}`,
+        });
+      }
     }),
 });
