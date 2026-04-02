@@ -127,6 +127,17 @@ export async function updateKycStatus(
     .where(eq(kycApplications.id, id));
 }
 
+export async function getKycById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db
+    .select()
+    .from(kycApplications)
+    .where(eq(kycApplications.id, id))
+    .limit(1);
+  return result[0] ?? undefined;
+}
+
 export async function listKycApplications(status?: "pending" | "approved" | "rejected") {
   const db = await getDb();
   if (!db) return [];
