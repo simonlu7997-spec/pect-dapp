@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Menu, X, Wallet, LogOut, QrCode, CheckCircle, UserCircle, ChevronDown, Copy, ExternalLink } from "lucide-react";
+import { Menu, X, Wallet, LogOut, QrCode, CheckCircle, UserCircle, ChevronDown, Copy, ExternalLink, ShieldCheck, Users } from "lucide-react";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useWalletContext } from "@/contexts/WalletContext";
 import {
@@ -219,6 +220,20 @@ function WalletButton() {
 export default function Navbar() {
   const [location, setLocation] = useLocation();
   const [isOpen, setIsOpen] = useState(false);
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+  const [showAdminMenu, setShowAdminMenu] = useState(false);
+  const adminMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (adminMenuRef.current && !adminMenuRef.current.contains(e.target as Node)) {
+        setShowAdminMenu(false);
+      }
+    }
+    if (showAdminMenu) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showAdminMenu]);
   const {
     isConnected,
     isSignedIn,
@@ -271,6 +286,48 @@ export default function Navbar() {
                 {item.label}
               </button>
             ))}
+
+            {/* 管理员后台入口 */}
+            {isAdmin && (
+              <div className="relative" ref={adminMenuRef}>
+                <button
+                  onClick={() => setShowAdminMenu(!showAdminMenu)}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all font-medium text-sm ${
+                    location.startsWith("/admin")
+                      ? "bg-violet-100 text-violet-900"
+                      : "text-violet-700 hover:text-violet-900 hover:bg-violet-50"
+                  }`}
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  管理后台
+                  <ChevronDown className={`w-3 h-3 transition-transform ${showAdminMenu ? "rotate-180" : ""}`} />
+                </button>
+
+                {showAdminMenu && (
+                  <div className="absolute left-0 mt-2 w-44 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden">
+                    <div className="px-3 py-2 bg-violet-50 border-b border-violet-100">
+                      <p className="text-xs font-semibold text-violet-700 flex items-center gap-1">
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        管理员面板
+                      </p>
+                    </div>
+                    <div className="py-1">
+                      <button
+                        onClick={() => { setLocation("/admin/kyc"); setShowAdminMenu(false); }}
+                        className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 transition-colors ${
+                          location === "/admin/kyc"
+                            ? "bg-violet-50 text-violet-800 font-medium"
+                            : "text-gray-700 hover:bg-gray-50"
+                        }`}
+                      >
+                        <Users className="w-4 h-4 text-gray-400" />
+                        KYC 审核
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Right Side */}
@@ -301,6 +358,21 @@ export default function Navbar() {
                 {item.label}
               </button>
             ))}
+
+            {/* 移动端管理员入口 */}
+            {isAdmin && (
+              <button
+                onClick={() => { setLocation("/admin/kyc"); setIsOpen(false); }}
+                className={`w-full flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                  location === "/admin/kyc"
+                    ? "bg-violet-100 text-violet-900"
+                    : "text-violet-700 hover:bg-violet-50"
+                }`}
+              >
+                <ShieldCheck className="w-4 h-4" />
+                KYC 审核管理
+              </button>
+            )}
 
             <div className="pt-2 border-t border-gray-100 space-y-2">
               {isConnected ? (
