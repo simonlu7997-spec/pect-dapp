@@ -58,9 +58,9 @@ export function serveStatic(app: Express) {
     return;
   }
 
-  // In Manus/local production (api/index.js), import.meta.dirname is the api/ directory
-  // The frontend is built to dist/public/ which is at ../dist/public relative to api/
-  const distPath = path.resolve(import.meta.dirname, "..", "dist", "public");
+  // In Manus production (dist/index.js), import.meta.dirname is the dist/ directory
+  // The frontend is built to dist/public/ which is at ./public relative to dist/
+  const distPath = path.resolve(import.meta.dirname, "public");
   if (!fs.existsSync(distPath)) {
     console.error(
       `Could not find the build directory: ${distPath}, make sure to build the client first`
