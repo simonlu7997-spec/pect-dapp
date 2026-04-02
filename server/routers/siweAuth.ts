@@ -172,17 +172,43 @@ export const siweAuthRouter = router({
       }
     }),
 
-  // 获取当前登录用户信息
+  // 获取当前登录用户信息（含 role 字段，用于管理后台权限判断）
   me: publicProcedure.query(async ({ ctx }) => {
     const token = ctx.req.cookies?.siwe_token;
     if (!token) return null;
 
     try {
       const { payload } = await jwtVerify(token, getJwtSecret());
+      const address = payload.address as string;
+      const userId = payload.userId as number;
+      const name = payload.name as string;
+
+      // 从数据库查询完整用户信息（含 role 字段）
+      const db = await getDb();
+      if (db) {
+        const userRecord = await db
+          .select()
+          .from(users)
+          .where(eq(users.openId, address))
+          .limit(1);
+        if (userRecord.length > 0) {
+          return {
+            address,
+            name: userRecord[0].name ?? name,
+            userId,
+            role: userRecord[0].role,
+            email: userRecord[0].email,
+          };
+        }
+      }
+
+      // fallback：数据库不可用时返回基本信息
       return {
-        address: payload.address as string,
-        name: payload.name as string,
-        userId: payload.userId as number,
+        address,
+        name,
+        userId,
+        role: 'user' as const,
+        email: null,
       };
     } catch {
       return null;

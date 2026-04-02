@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Menu, X, Wallet, LogOut, QrCode, CheckCircle, UserCircle, ChevronDown, Copy, ExternalLink, ShieldCheck, Users, BarChart3 } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { useWalletContext } from "@/contexts/WalletContext";
 import {
@@ -221,7 +222,12 @@ export default function Navbar() {
   const [location, setLocation] = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
+  // 同时检查 SIWE 登录用户的 role（钉包登录用户不经过 Manus OAuth）
+  const { data: siweUser } = trpc.siweAuth.me.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+  const isAdmin = user?.role === "admin" || siweUser?.role === "admin";
   const [showAdminMenu, setShowAdminMenu] = useState(false);
   const adminMenuRef = useRef<HTMLDivElement>(null);
 
