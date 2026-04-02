@@ -48,9 +48,19 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  // In production (dist/index.js), import.meta.dirname is the dist/ directory
-  // The public/ directory is inside dist/
-  const distPath = path.resolve(import.meta.dirname, "public");
+  // In Vercel serverless environment, static files are served by Vercel CDN
+  // The Express server only needs to handle API routes
+  if (process.env.VERCEL === "1") {
+    console.log("[Static] Running on Vercel - static files served by CDN");
+    // On Vercel, all non-API routes are handled by the filesystem (CDN)
+    // The routes config in vercel.json handles this with { handle: 'filesystem' }
+    // We still need a catch-all for SPA routing (handled by vercel.json routes)
+    return;
+  }
+
+  // In Manus/local production (api/index.js), import.meta.dirname is the api/ directory
+  // The frontend is built to dist/public/ which is at ../dist/public relative to api/
+  const distPath = path.resolve(import.meta.dirname, "..", "dist", "public");
   if (!fs.existsSync(distPath)) {
     console.error(
       `Could not find the build directory: ${distPath}, make sure to build the client first`
