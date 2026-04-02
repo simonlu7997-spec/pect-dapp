@@ -247,20 +247,20 @@ export default function Portfolio() {
               icon={<TrendingUp className="w-3.5 h-3.5" />}
             />
             <StatCard
-              label="待领取质押奖励"
-              value={formatAmount(stakingInfo?.pendingReward, 2)}
-              unit="USDT"
-              loading={stakingLoading}
-              highlight={parseFloat(stakingInfo?.pendingReward || "0") > 0}
-              icon={<Zap className="w-3.5 h-3.5" />}
-            />
-            <StatCard
               label="可领取空投"
               value={formatAmount(airdropInfo?.claimableAmount, 2)}
               unit="C2C"
               loading={airdropLoading}
               highlight={parseFloat(airdropInfo?.claimableAmount || "0") > 0}
               icon={<Gift className="w-3.5 h-3.5" />}
+            />
+            <StatCard
+              label="待领取质押奖励"
+              value={formatAmount(stakingInfo?.pendingReward, 2)}
+              unit="USDT"
+              loading={stakingLoading}
+              highlight={parseFloat(stakingInfo?.pendingReward || "0") > 0}
+              icon={<Zap className="w-3.5 h-3.5" />}
             />
           </div>
         </div>
@@ -281,6 +281,17 @@ export default function Portfolio() {
               icon={<TrendingUp className="w-5 h-5 text-emerald-600" />}
             />
             <ActionCard
+              title="领取 C2 空投"
+              description="符合条件的地址可免费领取 C2-Coin"
+              amount={airdropInfo?.claimableAmount || "0"}
+              unit="C2C"
+              loading={airdropLoading}
+              buttonLabel="去领取"
+              onClick={() => navigate("/airdrop")}
+              color="border-purple-300"
+              icon={<Gift className="w-5 h-5 text-purple-600" />}
+            />
+            <ActionCard
               title="领取质押奖励"
               description="C2-Coin 质押奖励，每月结算"
               amount={stakingInfo?.pendingReward || "0"}
@@ -291,17 +302,6 @@ export default function Portfolio() {
               color="border-blue-300"
               icon={<Zap className="w-5 h-5 text-blue-600" />}
             />
-            <ActionCard
-              title="领取 C2 空投"
-              description="符合条件的地址可免费领取 C2-Coin"
-              amount={airdropInfo?.claimableAmount || "0"}
-              unit="C2C"
-              loading={airdropLoading}
-              buttonLabel="去领取"
-              onClick={() => navigate("/staking")}
-              color="border-purple-300"
-              icon={<Gift className="w-5 h-5 text-purple-600" />}
-            />
           </div>
         </div>
 
@@ -311,7 +311,10 @@ export default function Portfolio() {
             <ShoppingCart className="w-4 h-4" />购买 PVC
           </Button>
           <Button onClick={() => navigate("/staking")} variant="outline" className="gap-2">
-            <BarChart3 className="w-4 h-4" />质押 / 空投
+            <BarChart3 className="w-4 h-4" />质押 C2C
+          </Button>
+          <Button onClick={() => navigate("/airdrop")} variant="outline" className="gap-2">
+            <Gift className="w-4 h-4" />C2 空投
           </Button>
           <Button onClick={() => navigate("/revenue")} variant="outline" className="gap-2">
             <TrendingUp className="w-4 h-4" />分红管理
