@@ -1,4 +1,5 @@
 import { router, publicProcedure } from "../_core/trpc";
+import { notifyOwner } from "../_core/notification";
 import { z } from "zod";
 import { ethers } from "ethers";
 import { recordTransaction, getTransactionsByWallet } from "../db";
@@ -129,6 +130,18 @@ export const stakingRouter = router({
           tokenSymbol: input.tokenSymbol,
           status: "pending",
         });
+        // 推送运营通知
+        const actionLabel = input.txType === "stake" ? "质押" : input.txType === "unstake" ? "解除质押" : "领取质押奖励";
+        notifyOwner({
+          title: `📊 用户${actionLabel} C2-Coin`,
+          content: [
+            `钱包：${input.walletAddress}`,
+            `操作：${actionLabel}`,
+            `金额：${input.amount} ${input.tokenSymbol}`,
+            `交易哈希：${input.txHash}`,
+            `时间：${new Date().toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" })}`,
+          ].join("\n"),
+        }).catch((e) => console.warn("[Staking] notifyOwner failed:", e));
         return { success: true };
       } catch (error) {
         console.error("[Staking] 记录质押交易失败:", error);

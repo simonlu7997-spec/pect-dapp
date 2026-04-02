@@ -52,112 +52,15 @@ const emptyForm: StationForm = {
   sortOrder: 0,
 };
 
-export default function AdminStations() {
-  const { user, loading } = useAuth();
-  const { data: siweUser, isLoading: siweLoading } = trpc.siweAuth.me.useQuery(undefined, {
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
-  const isAdmin = user?.role === "admin" || siweUser?.role === "admin";
-  const [, navigate] = useLocation();
-
-  const [createOpen, setCreateOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<{ id: number } & StationForm | null>(null);
-  const [form, setForm] = useState<StationForm>(emptyForm);
-
-  const { data, refetch, isLoading } = trpc.adminStations.list.useQuery(undefined, {
-    enabled: isAdmin,
-  });
-
-  const createMutation = trpc.adminStations.create.useMutation({
-    onSuccess: () => {
-      toast.success("电站已添加");
-      setCreateOpen(false);
-      setForm(emptyForm);
-      refetch();
-    },
-    onError: (err) => toast.error(`添加失败：${err.message}`),
-  });
-
-  const updateMutation = trpc.adminStations.update.useMutation({
-    onSuccess: () => {
-      toast.success("电站信息已更新");
-      setEditTarget(null);
-      refetch();
-    },
-    onError: (err) => toast.error(`更新失败：${err.message}`),
-  });
-
-  const deleteMutation = trpc.adminStations.delete.useMutation({
-    onSuccess: () => {
-      toast.success("电站已删除");
-      refetch();
-    },
-    onError: (err) => toast.error(`删除失败：${err.message}`),
-  });
-
-  const handleCreate = (e: React.FormEvent) => {
-    e.preventDefault();
-    createMutation.mutate(form);
-  };
-
-  const handleUpdate = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editTarget) return;
-    updateMutation.mutate({ id: editTarget.id, ...form });
-  };
-
-  type StationItem = {
-    id: number;
-    name: string;
-    capacity: string;
-    location: string;
-    annualGeneration: string;
-    annualRevenue: string;
-    description: string | null;
-    isActive: boolean;
-    sortOrder: number;
-    createdAt: Date;
-    updatedAt: Date;
-  };
-
-  const openEdit = (station: StationItem) => {
-    const newForm: StationForm = {
-      name: station.name,
-      capacity: station.capacity,
-      location: station.location,
-      annualGeneration: station.annualGeneration,
-      annualRevenue: station.annualRevenue,
-      description: station.description ?? "",
-      isActive: station.isActive,
-      sortOrder: station.sortOrder,
-    };
-    setForm(newForm);
-    setEditTarget({ id: station.id, ...newForm });
-  };
-
-  if (loading || siweLoading) {
-    return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-green-400" />
-      </div>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-400 text-lg mb-4">无权限访问</p>
-          <Button variant="outline" onClick={() => navigate("/")}>返回首页</Button>
-        </div>
-      </div>
-    );
-  }
-
-  const stationList = data?.stations ?? [];
-
-  const StationFormFields = ({ value, onChange }: { value: StationForm; onChange: (v: StationForm) => void }) => (
+// ── 提取为模块级组件，避免每次渲染重新创建导致输入框失焦 ──────────────
+function StationFormFields({
+  value,
+  onChange,
+}: {
+  value: StationForm;
+  onChange: (v: StationForm) => void;
+}) {
+  return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
@@ -239,6 +142,112 @@ export default function AdminStations() {
       </div>
     </div>
   );
+}
+
+export default function AdminStations() {
+  const { user, loading } = useAuth();
+  const { data: siweUser, isLoading: siweLoading } = trpc.siweAuth.me.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+  const isAdmin = user?.role === "admin" || siweUser?.role === "admin";
+  const [, navigate] = useLocation();
+
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<{ id: number } | null>(null);
+  const [form, setForm] = useState<StationForm>(emptyForm);
+
+  const { data, refetch, isLoading } = trpc.adminStations.list.useQuery(undefined, {
+    enabled: isAdmin,
+  });
+
+  const createMutation = trpc.adminStations.create.useMutation({
+    onSuccess: () => {
+      toast.success("电站已添加");
+      setCreateOpen(false);
+      setForm(emptyForm);
+      refetch();
+    },
+    onError: (err) => toast.error(`添加失败：${err.message}`),
+  });
+
+  const updateMutation = trpc.adminStations.update.useMutation({
+    onSuccess: () => {
+      toast.success("电站信息已更新");
+      setEditTarget(null);
+      refetch();
+    },
+    onError: (err) => toast.error(`更新失败：${err.message}`),
+  });
+
+  const deleteMutation = trpc.adminStations.delete.useMutation({
+    onSuccess: () => {
+      toast.success("电站已删除");
+      refetch();
+    },
+    onError: (err) => toast.error(`删除失败：${err.message}`),
+  });
+
+  const handleCreate = (e: React.FormEvent) => {
+    e.preventDefault();
+    createMutation.mutate(form);
+  };
+
+  const handleUpdate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editTarget) return;
+    updateMutation.mutate({ id: editTarget.id, ...form });
+  };
+
+  type StationItem = {
+    id: number;
+    name: string;
+    capacity: string;
+    location: string;
+    annualGeneration: string;
+    annualRevenue: string;
+    description: string | null;
+    isActive: boolean;
+    sortOrder: number;
+    createdAt: Date;
+    updatedAt: Date;
+  };
+
+  const openEdit = (station: StationItem) => {
+    const newForm: StationForm = {
+      name: station.name,
+      capacity: station.capacity,
+      location: station.location,
+      annualGeneration: station.annualGeneration,
+      annualRevenue: station.annualRevenue,
+      description: station.description ?? "",
+      isActive: station.isActive,
+      sortOrder: station.sortOrder,
+    };
+    setForm(newForm);
+    setEditTarget({ id: station.id });
+  };
+
+  if (loading || siweLoading) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-green-400" />
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-400 text-lg mb-4">无权限访问</p>
+          <Button variant="outline" onClick={() => navigate("/")}>返回首页</Button>
+        </div>
+      </div>
+    );
+  }
+
+  const stationList = data?.stations ?? [];
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -255,7 +264,7 @@ export default function AdminStations() {
               <h1 className="text-lg font-bold">电站资产管理</h1>
             </div>
           </div>
-          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+          <Dialog open={createOpen} onOpenChange={(open) => { setCreateOpen(open); if (!open) setForm(emptyForm); }}>
             <DialogTrigger asChild>
               <Button className="bg-green-600 hover:bg-green-700 text-white">
                 <Plus className="w-4 h-4 mr-1" />
@@ -302,7 +311,7 @@ export default function AdminStations() {
                 <div>
                   <p className="text-sm text-gray-400">年总发电量</p>
                   <p className="text-2xl font-bold text-white">
-                    {stationList.filter(s => s.isActive).reduce((sum, s) => sum + parseFloat(s.annualGeneration), 0).toLocaleString()} kWh
+                    {stationList.filter(s => s.isActive).reduce((sum, s) => sum + parseFloat(s.annualGeneration || "0"), 0).toLocaleString()} kWh
                   </p>
                 </div>
               </div>
@@ -357,10 +366,10 @@ export default function AdminStations() {
                         <td className="py-3 px-3 text-center text-gray-300">{station.capacity}</td>
                         <td className="py-3 px-3 text-center text-gray-300">{station.location}</td>
                         <td className="py-3 px-3 text-right text-gray-300">
-                          {parseFloat(station.annualGeneration).toLocaleString()} kWh
+                          {parseFloat(station.annualGeneration || "0").toLocaleString()} kWh
                         </td>
                         <td className="py-3 px-3 text-right text-green-400 font-semibold">
-                          {parseFloat(station.annualRevenue).toLocaleString()} RMB
+                          {parseFloat(station.annualRevenue || "0").toLocaleString()} RMB
                         </td>
                         <td className="py-3 px-3 text-center">
                           <Badge className={station.isActive ? "bg-green-900/50 text-green-400 border-green-700" : "bg-gray-800 text-gray-500 border-gray-700"}>

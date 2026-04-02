@@ -1,4 +1,5 @@
 import { router, publicProcedure } from "../_core/trpc";
+import { notifyOwner } from "../_core/notification";
 import { z } from "zod";
 import { ethers } from "ethers";
 import { recordTransaction, getTransactionsByWallet } from "../db";
@@ -184,6 +185,16 @@ export const revenueRouter = router({
           tokenSymbol: "USDT",
           status: "pending",
         });
+        // 推送运营通知
+        notifyOwner({
+          title: input.claimType === "dividend" ? "💰 用户领取分红" : "💰 用户领取质押奖励",
+          content: [
+            `钱包：${input.walletAddress}`,
+            `金额：${input.usdtAmount} USDT`,
+            `交易哈希：${input.txHash}`,
+            `时间：${new Date().toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" })}`,
+          ].join("\n"),
+        }).catch((e) => console.warn("[Revenue] notifyOwner failed:", e));
         return { success: true };
       } catch (error) {
         console.error("[Revenue] 记录领取交易失败:", error);

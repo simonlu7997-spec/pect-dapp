@@ -1,4 +1,5 @@
 import { router, publicProcedure } from "../_core/trpc";
+import { notifyOwner } from "../_core/notification";
 import { z } from "zod";
 import { ethers } from "ethers";
 import { recordTransaction, getTransactionsByWallet } from "../db";
@@ -155,6 +156,16 @@ export const airdropRouter = router({
           tokenSymbol: "C2C",
           status: "pending",
         });
+        // 推送运营通知
+        notifyOwner({
+          title: "🎁 用户领取 C2-Coin 空投",
+          content: [
+            `钱包：${input.walletAddress}`,
+            `金额：${input.c2Amount} C2C`,
+            `交易哈希：${input.txHash}`,
+            `时间：${new Date().toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" })}`,
+          ].join("\n"),
+        }).catch((e) => console.warn("[Airdrop] notifyOwner failed:", e));
         return { success: true };
       } catch (error) {
         console.error("[Airdrop] 记录空投领取失败:", error);

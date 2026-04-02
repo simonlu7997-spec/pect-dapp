@@ -36,3 +36,8 @@
 - [x] 修复 Navbar：添加分红页面（/revenue）和空投页面（/airdrop）导航入口
 - [x] 公募购买功能：后端添加 getPublicSaleInfo 路由，前端 Buy.tsx 公募 Tab 实现完整购买流程
 - [x] C2-Coin 空投：新增空投领取和查询功能（后端路由 + 前端页面 /airdrop）
+- [x] 修复电站管理新增表格输入限制（只能填一个字母）
+- [x] Portfolio 页面整合 PV-Coin/C2-Coin/分红/质押汇总视图及近期操作状态
+- [x] 空投页与质押页合并为单一页面（/staking）
+- [x] 管理员链上操作成功后推送 notifyOwner 通知（金额、交易哈希、时间）
+- [x] 用户购买/领取分红/质押奖励后推送 notifyOwner 通知，Portfolio 展示近期操作状态

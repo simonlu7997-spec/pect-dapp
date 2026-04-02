@@ -1,4 +1,5 @@
 import { router, publicProcedure } from "../_core/trpc";
+import { notifyOwner } from "../_core/notification";
 import { z } from "zod";
 import { ethers } from "ethers";
 import { recordTransaction, getTransactionsByWallet } from "../db";
@@ -210,6 +211,17 @@ export const purchaseRouter = router({
           tokenSymbol: "USDT",
           status: "pending",
         });
+        // 推送运营通知
+        notifyOwner({
+          title: `🛒 新代币购买（${input.saleType === "private" ? "私募" : "公募"}）`,
+          content: [
+            `钱包：${input.walletAddress}`,
+            `支付 USDT：${input.usdtAmount}`,
+            `获得 PVC：${input.pvcAmount}`,
+            `交易哈希：${input.txHash}`,
+            `时间：${new Date().toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" })}`,
+          ].join("\n"),
+        }).catch((e) => console.warn("[Purchase] notifyOwner failed:", e));
         return { success: true };
       } catch (error) {
         console.error("[Purchase] 记录交易失败:", error);

@@ -1,4 +1,5 @@
 import { router, protectedProcedure } from "../_core/trpc";
+import { notifyOwner } from "../_core/notification";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import {
@@ -256,6 +257,19 @@ export const adminRevenueRouter = router({
           receipt?.blockNumber ?? undefined,
         );
 
+        // 推送 notifyOwner 通知
+        await notifyOwner({
+          title: "✅ 链上分红已发放",
+          content: [
+            `金额：${input.amount} USDT`,
+            `交易哈希：${tx.hash}`,
+            `区块：${receipt?.blockNumber ?? "待确认"}`,
+            `操作人：${ctx.user.openId}`,
+            `时间：${new Date().toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" })}`,
+            input.note ? `备注：${input.note}` : "",
+          ].filter(Boolean).join("\n"),
+        }).catch((e) => console.warn("[AdminRevenue] notifyOwner failed:", e));
+
         return {
           success: true,
           txHash: tx.hash,
@@ -341,6 +355,19 @@ export const adminRevenueRouter = router({
           "confirmed",
           receipt?.blockNumber ?? undefined,
         );
+
+        // 推送 notifyOwner 通知
+        await notifyOwner({
+          title: "✅ 质押奖励已发放",
+          content: [
+            `金额：${input.amount} C2-Coin`,
+            `交易哈希：${tx.hash}`,
+            `区块：${receipt?.blockNumber ?? "待确认"}`,
+            `操作人：${ctx.user.openId}`,
+            `时间：${new Date().toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" })}`,
+            input.note ? `备注：${input.note}` : "",
+          ].filter(Boolean).join("\n"),
+        }).catch((e) => console.warn("[AdminRevenue] notifyOwner failed:", e));
 
         return {
           success: true,
