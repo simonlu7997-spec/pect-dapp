@@ -173,6 +173,17 @@ export async function getTransactionsByWallet(walletAddress: string) {
     .limit(50);
 }
 
+export async function listPendingTransactions() {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(transactions)
+    .where(eq(transactions.status, "pending"))
+    .orderBy(transactions.createdAt)
+    .limit(100);
+}
+
 export async function updateTransactionStatus(
   txHash: string,
   status: "pending" | "confirmed" | "failed",
@@ -219,6 +230,34 @@ export async function deleteRevenueRecord(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.delete(revenueRecords).where(eq(revenueRecords.id, id));
+}
+
+export async function getLatestRevenueRecord(): Promise<RevenueRecord | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db
+    .select()
+    .from(revenueRecords)
+    .orderBy(desc(revenueRecords.periodYear), desc(revenueRecords.periodMonth))
+    .limit(1);
+  return result[0] ?? undefined;
+}
+
+export async function getRevenueStats() {
+  const db = await getDb();
+  if (!db) return { totalGeneration: "0", totalRevenue: "0", totalDividendPool: "0", latestExchangeRate: "7.2", recordCount: 0 };
+  const records = await db.select().from(revenueRecords);
+  const totalGeneration = records.reduce((sum, r) => sum + parseFloat(r.totalGeneration), 0);
+  const totalRevenue = records.reduce((sum, r) => sum + parseFloat(r.totalRevenue), 0);
+  const totalDividendPool = records.reduce((sum, r) => sum + parseFloat(r.dividendPool), 0);
+  const latest = records.sort((a, b) => b.periodYear - a.periodYear || b.periodMonth - a.periodMonth)[0];
+  return {
+    totalGeneration: totalGeneration.toFixed(0),
+    totalRevenue: totalRevenue.toFixed(0),
+    totalDividendPool: totalDividendPool.toFixed(0),
+    latestExchangeRate: latest?.exchangeRate ?? "7.2",
+    recordCount: records.length,
+  };
 }
 
 // ---- Wallet Bindings ----

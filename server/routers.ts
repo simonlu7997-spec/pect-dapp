@@ -9,6 +9,7 @@ import { purchaseRouter } from "./routers/purchase";
 import { revenueRouter } from "./routers/revenue";
 import { stakingRouter } from "./routers/staking";
 import { adminRevenueRouter } from "./routers/adminRevenue";
+import { oracleRouter } from "./routers/oracle";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -38,6 +39,8 @@ export const appRouter = router({
   staking: stakingRouter,
   // 管理后台：分红数据管理 + 质押统计
   adminRevenue: adminRevenueRouter,
+  // 首页 Oracle 数据（发电量、收入、分红池汇总）
+  oracle: oracleRouter,
 });
 
 export type AppRouter = typeof appRouter;

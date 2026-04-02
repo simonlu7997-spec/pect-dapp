@@ -1,10 +1,12 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useWalletContext } from "@/contexts/WalletContext";
 import { useLocation } from "wouter";
 import WalletConnectionGuide from "@/components/WalletConnectionGuide";
+import { trpc } from "@/lib/trpc";
+import { Loader2 } from "lucide-react";
 
 const tokenDistribution = [
   { name: "私募（进行中）", value: 20, color: "#10b981" },
@@ -14,11 +16,12 @@ const tokenDistribution = [
   { name: "项目方储备", value: 15, color: "#8b5cf6" },
 ];
 
-const oracleData = [
-  { label: "总发电量（2026 年）", value: "487,884", unit: "kWh" },
-  { label: "总电费收入（2026 年）", value: "541,412", unit: "RMB" },
-  { label: "分红池（2026 年）", value: "329,244", unit: "RMB" },
-  { label: "汇率", value: "7.2", unit: "RMB/USDT" },
+// Oracle 数据现在从后端动态获取，此处保留 fallback 默认值
+const ORACLE_FALLBACK = [
+  { label: "累计发电量", value: "--", unit: "kWh" },
+  { label: "累计电费收入", value: "--", unit: "RMB" },
+  { label: "累计分红池", value: "--", unit: "USDT" },
+  { label: "最新汇率", value: "--", unit: "RMB/USDT" },
 ];
 
 const stations = [
@@ -40,6 +43,42 @@ export default function Home() {
 
   const { isConnected } = useWalletContext();
   const [, navigate] = useLocation();
+
+  // 从后端获取 Oracle 统计数据（每 60 秒刷新一次）
+  const { data: oracleStats, isLoading: oracleLoading } = trpc.oracle.getStats.useQuery(
+    undefined,
+    { refetchInterval: 60_000 }
+  );
+
+  // 构建动态 Oracle 数据
+  const oracleData = oracleStats
+    ? [
+        {
+          label: "累计发电量",
+          value: Number(oracleStats.totalGeneration).toLocaleString(),
+          unit: "kWh",
+          hasData: oracleStats.recordCount > 0,
+        },
+        {
+          label: "累计电费收入",
+          value: Number(oracleStats.totalRevenue).toLocaleString(),
+          unit: "RMB",
+          hasData: oracleStats.recordCount > 0,
+        },
+        {
+          label: "累计分红池",
+          value: Number(oracleStats.totalDividendPool).toLocaleString(),
+          unit: "USDT",
+          hasData: oracleStats.recordCount > 0,
+        },
+        {
+          label: "最新汇率",
+          value: oracleStats.latestExchangeRate,
+          unit: "RMB/USDT",
+          hasData: oracleStats.recordCount > 0,
+        },
+      ]
+    : ORACLE_FALLBACK.map(d => ({ ...d, hasData: false }));
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50">
@@ -99,13 +138,37 @@ export default function Home() {
       {/* Oracle Data Panel */}
       <section className="py-12 bg-white border-y border-gray-200">
         <div className="container max-w-6xl">
-          <h2 className="text-2xl font-bold text-gray-900 mb-8">实时数据面板</h2>
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl font-bold text-gray-900">实时数据面板</h2>
+            {oracleLoading && (
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>数据加载中...</span>
+              </div>
+            )}
+            {oracleStats && oracleStats.recordCount === 0 && (
+              <span className="text-xs text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
+                暂无录入数据，管理员可在后台录入
+              </span>
+            )}
+            {oracleStats && oracleStats.recordCount > 0 && (
+              <span className="text-xs text-green-600 bg-green-50 px-3 py-1 rounded-full border border-green-200">
+                已录入 {oracleStats.recordCount} 期数据
+              </span>
+            )}
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {oracleData.map((item, index) => (
               <Card key={index} className="border-2 border-green-200 hover:shadow-lg transition-shadow">
                 <CardContent className="pt-6">
                   <p className="text-sm text-gray-600 mb-2">{item.label}</p>
-                  <p className="text-3xl font-bold text-green-600">{item.value}</p>
+                  {oracleLoading ? (
+                    <div className="h-9 w-24 bg-gray-100 rounded animate-pulse" />
+                  ) : (
+                    <p className={`text-3xl font-bold ${'hasData' in item && item.hasData ? 'text-green-600' : 'text-gray-400'}`}>
+                      {'hasData' in item && item.hasData ? item.value : '--'}
+                    </p>
+                  )}
                   <p className="text-xs text-gray-500 mt-1">{item.unit}</p>
                 </CardContent>
               </Card>

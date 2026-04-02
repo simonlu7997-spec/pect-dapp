@@ -22,4 +22,6 @@
 ## 待完成
 
 - [ ] 绑定自定义域名 pect-dapp.io
-- [ ] 交易确认状态自动轮询（后端定时任务，pending → confirmed/failed）
+- [x] 交易确认状态自动轮询（后端定时任务，pending → confirmed/failed，每 60 秒）
+- [x] 后端定时轮询任务：pending 交易自动更新为 confirmed/failed（每 60 秒）
+- [x] 首页 Oracle 数据动态化：从 revenue_records 读取真实分红数据
