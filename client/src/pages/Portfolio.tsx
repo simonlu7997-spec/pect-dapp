@@ -310,14 +310,14 @@ export default function Portfolio() {
           <Button onClick={() => navigate("/buy")} className="bg-emerald-600 hover:bg-emerald-700 gap-2">
             <ShoppingCart className="w-4 h-4" />购买 PVC
           </Button>
-          <Button onClick={() => navigate("/staking")} variant="outline" className="gap-2">
-            <BarChart3 className="w-4 h-4" />质押 C2C
+          <Button onClick={() => navigate("/revenue")} variant="outline" className="gap-2">
+            <TrendingUp className="w-4 h-4" />分红管理
           </Button>
           <Button onClick={() => navigate("/airdrop")} variant="outline" className="gap-2">
             <Gift className="w-4 h-4" />C2 空投
           </Button>
-          <Button onClick={() => navigate("/revenue")} variant="outline" className="gap-2">
-            <TrendingUp className="w-4 h-4" />分红管理
+          <Button onClick={() => navigate("/staking")} variant="outline" className="gap-2">
+            <BarChart3 className="w-4 h-4" />质押 C2C
           </Button>
         </div>
 
