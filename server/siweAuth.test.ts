@@ -1,11 +1,34 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock 数据库
-vi.mock("./db", () => ({
-  getDb: vi.fn().mockResolvedValue(null), // 无数据库时也能正常工作
-  upsertUser: vi.fn().mockResolvedValue(undefined),
-  getUserByOpenId: vi.fn().mockResolvedValue(null),
-}));
+// 使用内存存储模拟 nonce 和用户数据
+vi.mock("./db", () => {
+  const mockNonces: Array<{ nonce: string; address: string; expiresAt: Date }> = [];
+  const mockDb = {
+    select: vi.fn().mockReturnThis(),
+    from: vi.fn().mockReturnThis(),
+    where: vi.fn().mockImplementation(() => ({
+      limit: vi.fn().mockImplementation(() => {
+        return Promise.resolve(mockNonces.filter(n => n.expiresAt > new Date()));
+      }),
+    })),
+    insert: vi.fn().mockReturnThis(),
+    values: vi.fn().mockImplementation((val: any) => {
+      if (val.nonce) {
+        mockNonces.push({ nonce: val.nonce, address: val.address || 'pending', expiresAt: val.expiresAt });
+      }
+      return Promise.resolve([{ id: 1 }]);
+    }),
+    delete: vi.fn().mockReturnThis(),
+    update: vi.fn().mockReturnThis(),
+    set: vi.fn().mockReturnThis(),
+  };
+  return {
+    getDb: vi.fn().mockResolvedValue(mockDb),
+    upsertUser: vi.fn().mockResolvedValue(undefined),
+    getUserByOpenId: vi.fn().mockResolvedValue(null),
+  };
+});
 
 // Mock siwe
 vi.mock("siwe", () => ({

@@ -41,6 +41,12 @@ import {
 
 export default function AdminRevenue() {
   const { user, loading } = useAuth();
+  // 同时检查 SIWE 钱包登录用户的 role（与 Navbar 逻辑保持一致）
+  const { data: siweUser, isLoading: siweLoading } = trpc.siweAuth.me.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+  const isAdmin = user?.role === "admin" || siweUser?.role === "admin";
   const [, navigate] = useLocation();
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -59,19 +65,19 @@ export default function AdminRevenue() {
 
   // 查询分红记录列表
   const { data: recordsData, refetch: refetchRecords, isLoading: loadingRecords } =
-    trpc.adminRevenue.list.useQuery(undefined, { enabled: !!user && user.role === "admin" });
+    trpc.adminRevenue.list.useQuery(undefined, { enabled: isAdmin });
 
   // 查询链上合约统计
   const { data: contractStats, isLoading: loadingStats } =
-    trpc.adminRevenue.getContractStats.useQuery(undefined, { enabled: !!user && user.role === "admin" });
+    trpc.adminRevenue.getContractStats.useQuery(undefined, { enabled: isAdmin });
 
   // 查询质押统计
   const { data: stakingStats, isLoading: loadingStaking } =
-    trpc.adminRevenue.getStakingStats.useQuery(undefined, { enabled: !!user && user.role === "admin" });
+    trpc.adminRevenue.getStakingStats.useQuery(undefined, { enabled: isAdmin });
 
   // 查询质押历史
   const { data: stakingHistory, isLoading: loadingStakingHistory } =
-    trpc.adminRevenue.getStakingHistory.useQuery(undefined, { enabled: !!user && user.role === "admin" });
+    trpc.adminRevenue.getStakingHistory.useQuery(undefined, { enabled: isAdmin });
 
   // 录入分红数据
   const createMutation = trpc.adminRevenue.create.useMutation({
@@ -122,7 +128,7 @@ export default function AdminRevenue() {
     });
   };
 
-  if (loading) {
+  if (loading || siweLoading) {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-green-400" />
@@ -130,7 +136,7 @@ export default function AdminRevenue() {
     );
   }
 
-  if (!user || user.role !== "admin") {
+  if (!isAdmin) {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
         <div className="text-center">

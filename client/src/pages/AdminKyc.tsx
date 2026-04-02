@@ -187,6 +187,12 @@ function KycRow({ kyc, onApprove, onReject }: {
 
 export default function AdminKyc() {
   const { user, loading } = useAuth();
+  // 同时检查 SIWE 钱包登录用户的 role（与 Navbar 逻辑保持一致）
+  const { data: siweUser, isLoading: siweLoading } = trpc.siweAuth.me.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+  const isAdmin = user?.role === 'admin' || siweUser?.role === 'admin';
   const [, navigate] = useLocation();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -199,7 +205,7 @@ export default function AdminKyc() {
   // 查询申请列表
   const { data: applications, isLoading, refetch } = trpc.whitelist.listApplications.useQuery(
     { status: statusFilter === 'all' ? undefined : statusFilter },
-    { enabled: !!user && user.role === 'admin' }
+    { enabled: isAdmin }
   );
 
   // 审核通过
@@ -229,7 +235,7 @@ export default function AdminKyc() {
   });
 
   // 权限检查
-  if (loading) {
+  if (loading || siweLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
@@ -237,7 +243,7 @@ export default function AdminKyc() {
     );
   }
 
-  if (!user || user.role !== 'admin') {
+  if (!isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
