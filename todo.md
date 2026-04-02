@@ -30,9 +30,12 @@
 
 - [x] 导航栏为管理员角色添加后台入口下拉菜单- [x] 接入 Resend 邮件服务，审核通过/拒绝名后自动发送邮件通知申请人
 
-- [ ] PV-Coin 分红查询页面
-- [ ] C2-Coin 质押功能
+- [x] PV-Coin 分红查询页面
+- [x] C2-Coin 质押功能
 - [x] 私募轮代币购买流程：USDT 授权 + PrivateSale 合约调用 + 交易状态追踪
 - [ ] 绑定自定义域名 pect-dapp.io
 - [ ] 管理后台：分红数据管理
 - [ ] 管理后台：质押数据管理
+- [x] PV-Coin 分红查询与一键领取（RevenueDistributor.claim）
+- [x] 资产页完善购买历史列表（USDT 金额、PVC 数量、交易哈希、确认状态）
+- [x] C2-Coin 质押/解质押功能（StakingManager 合约接入）

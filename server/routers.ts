@@ -6,6 +6,8 @@ import { whitelistRouter } from "./routers/whitelist";
 import { dashboardRouter } from "./routers/dashboard";
 import { siweAuthRouter } from "./routers/siweAuth";
 import { purchaseRouter } from "./routers/purchase";
+import { revenueRouter } from "./routers/revenue";
+import { stakingRouter } from "./routers/staking";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -29,6 +31,10 @@ export const appRouter = router({
   dashboard: dashboardRouter,
   // 代币购买：私募/公募轮信息查询、交易记录
   purchase: purchaseRouter,
+  // PV-Coin 分红查询和领取
+  revenue: revenueRouter,
+  // C2-Coin 质押管理
+  staking: stakingRouter,
 });
 
 export type AppRouter = typeof appRouter;
