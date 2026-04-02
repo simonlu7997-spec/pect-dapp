@@ -16,6 +16,7 @@ import Docs from "./pages/Docs";
 import FAQ from "./pages/FAQ";
 import Contact from "./pages/Contact";
 import AdminKyc from "./pages/AdminKyc";
+import AdminRevenue from "./pages/AdminRevenue";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 function Router() {
@@ -32,6 +33,7 @@ function Router() {
       <Route path={"/faq"} component={FAQ} />
       <Route path={"/contact"} component={Contact} />
       <Route path={"/admin/kyc"} component={AdminKyc} />
+      <Route path={"/admin/revenue"} component={AdminRevenue} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Menu, X, Wallet, LogOut, QrCode, CheckCircle, UserCircle, ChevronDown, Copy, ExternalLink, ShieldCheck, Users } from "lucide-react";
+import { Menu, X, Wallet, LogOut, QrCode, CheckCircle, UserCircle, ChevronDown, Copy, ExternalLink, ShieldCheck, Users, BarChart3 } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useWalletContext } from "@/contexts/WalletContext";
@@ -323,6 +323,17 @@ export default function Navbar() {
                         <Users className="w-4 h-4 text-gray-400" />
                         KYC 审核
                       </button>
+                      <button
+                        onClick={() => { setLocation("/admin/revenue"); setShowAdminMenu(false); }}
+                        className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 transition-colors ${
+                          location === "/admin/revenue"
+                            ? "bg-violet-50 text-violet-800 font-medium"
+                            : "text-gray-700 hover:bg-gray-50"
+                        }`}
+                      >
+                        <BarChart3 className="w-4 h-4 text-gray-400" />
+                        分红管理
+                      </button>
                     </div>
                   </div>
                 )}
@@ -361,17 +372,30 @@ export default function Navbar() {
 
             {/* 移动端管理员入口 */}
             {isAdmin && (
-              <button
-                onClick={() => { setLocation("/admin/kyc"); setIsOpen(false); }}
-                className={`w-full flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  location === "/admin/kyc"
-                    ? "bg-violet-100 text-violet-900"
-                    : "text-violet-700 hover:bg-violet-50"
-                }`}
-              >
-                <ShieldCheck className="w-4 h-4" />
-                KYC 审核管理
-              </button>
+              <>
+                <button
+                  onClick={() => { setLocation("/admin/kyc"); setIsOpen(false); }}
+                  className={`w-full flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    location === "/admin/kyc"
+                      ? "bg-violet-100 text-violet-900"
+                      : "text-violet-700 hover:bg-violet-50"
+                  }`}
+                >
+                  <Users className="w-4 h-4" />
+                  KYC 审核
+                </button>
+                <button
+                  onClick={() => { setLocation("/admin/revenue"); setIsOpen(false); }}
+                  className={`w-full flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    location === "/admin/revenue"
+                      ? "bg-violet-100 text-violet-900"
+                      : "text-violet-700 hover:bg-violet-50"
+                  }`}
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  分红管理
+                </button>
+              </>
             )}
 
             <div className="pt-2 border-t border-gray-100 space-y-2">

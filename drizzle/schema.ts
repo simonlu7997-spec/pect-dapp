@@ -116,3 +116,25 @@ export const siweNonces = mysqlTable("siwe_nonces", {
 
 export type SiweNonce = typeof siweNonces.$inferSelect;
 export type InsertSiweNonce = typeof siweNonces.$inferInsert;
+
+/**
+ * 分红期数据表（管理员手动录入每期发电量和分红金额）
+ */
+export const revenueRecords = mysqlTable("revenue_records", {
+  id: serial("id").primaryKey(),
+  periodLabel: varchar("periodLabel", { length: 32 }).notNull(), // e.g. "2026-03"
+  periodYear: int("periodYear").notNull(),
+  periodMonth: int("periodMonth").notNull(),
+  totalGeneration: decimal("totalGeneration", { precision: 18, scale: 4 }).notNull(), // kWh
+  totalRevenue: decimal("totalRevenue", { precision: 18, scale: 4 }).notNull(),       // RMB
+  dividendPool: decimal("dividendPool", { precision: 18, scale: 4 }).notNull(),       // USDT
+  exchangeRate: decimal("exchangeRate", { precision: 10, scale: 4 }).notNull(),       // RMB/USDT
+  snapshotBlock: bigint("snapshotBlock", { mode: "number" }),
+  txHash: varchar("txHash", { length: 66 }),
+  note: text("note"),
+  createdBy: varchar("createdBy", { length: 42 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+export type RevenueRecord = typeof revenueRecords.$inferSelect;
+export type InsertRevenueRecord = typeof revenueRecords.$inferInsert;

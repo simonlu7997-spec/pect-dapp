@@ -7,4 +7,13 @@ export const ENV = {
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
+  // Blockchain
+  blockchainRpcUrl: process.env.BLOCKCHAIN_RPC_URL ?? "",
+  deployerPrivateKey: process.env.DEPLOYER_PRIVATE_KEY ?? "",
+  pvCoinAddress: process.env.PV_COIN_ADDRESS ?? "",
+  usdtAddress: process.env.USDT_ADDRESS ?? "",
+  privateSaleAddress: process.env.PRIVATE_SALE_ADDRESS ?? "",
+  stakingManagerAddress: process.env.VITE_STAKING_MANAGER_ADDRESS ?? "",
+  revenueDistributorAddress: process.env.VITE_REVENUE_DISTRIBUTOR_ADDRESS ?? "",
+  c2CoinAddress: process.env.VITE_C2_COIN_ADDRESS ?? "",
 };

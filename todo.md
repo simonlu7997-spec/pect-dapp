@@ -7,35 +7,19 @@
 - [x] 导航栏登录状态显示（钱包地址、登出按钮、下拉菜单）
 - [x] 首页（Hero、代币分布、Oracle 数据、电站列表、FAQ）
 - [x] KYC 白名单申请表单（用户端）
-  - [x] 字段验证（姓名、邮箱、电话、国家、投资金额、钱包地址）
-  - [x] 提交后显示审核状态（pending/approved/rejected）
-  - [x] 重复申请检测（已 pending 提示等待，已 rejected 允许重新申请）
-  - [x] 申请状态实时查询（含链上交易哈希链接）
-- [x] KYC 管理后台（/admin/kyc）
-  - [x] 申请列表（支持状态筛选、搜索）
-  - [x] 统计卡片（总数、待审核、已通过、已拒绝）
-  - [x] 展开查看申请详情
-  - [x] 审核通过（调用合约上链，addKyc + addSenderWhitelist）
-  - [x] 审核拒绝（填写拒绝原因）
-  - [x] 权限保护（仅 admin 角色可访问）
-- [x] 后端 API 重构
-  - [x] whitelist.submit：只写数据库（pending），不直接上链
-  - [x] whitelist.approve：管理员审核通过并调用合约
-  - [x] whitelist.reject：管理员拒绝并记录原因
-  - [x] whitelist.listApplications：管理员查看申请列表
-  - [x] whitelist.checkStatus：查询申请状态（含链上状态）
+- [x] KYC 管理后台（/admin/kyc）：申请列表、审核通过/拒绝、合约上链
+- [x] 后端 API 重构（submit 只写数据库，approve/reject 管理员操作）
 - [x] Manus 部署修复（dist/index.js 输出）
-
-## 待完成
-
-- [x] 导航栏为管理员角色添加后台入口下拉菜单- [x] 接入 Resend 邮件服务，审核通过/拒绝名后自动发送邮件通知申请人
-
-- [x] PV-Coin 分红查询页面
-- [x] C2-Coin 质押功能
+- [x] 导航栏为管理员角色添加后台入口下拉菜单（KYC 审核 + 分红管理）
+- [x] 接入 Resend 邮件服务，审核通过/拒绝后自动发送邮件通知申请人
 - [x] 私募轮代币购买流程：USDT 授权 + PrivateSale 合约调用 + 交易状态追踪
-- [ ] 绑定自定义域名 pect-dapp.io
-- [ ] 管理后台：分红数据管理
-- [ ] 管理后台：质押数据管理
 - [x] PV-Coin 分红查询与一键领取（RevenueDistributor.claim）
 - [x] 资产页完善购买历史列表（USDT 金额、PVC 数量、交易哈希、确认状态）
 - [x] C2-Coin 质押/解质押功能（StakingManager 合约接入）
+- [x] 配置合约地址环境变量（VITE_STAKING_MANAGER_ADDRESS、VITE_C2_COIN_ADDRESS、VITE_REVENUE_DISTRIBUTOR_ADDRESS）
+- [x] 管理后台：分红数据管理页面（/admin/revenue）含质押统计面板
+
+## 待完成
+
+- [ ] 绑定自定义域名 pect-dapp.io
+- [ ] 交易确认状态自动轮询（后端定时任务，pending → confirmed/failed）

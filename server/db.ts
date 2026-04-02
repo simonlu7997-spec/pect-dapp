@@ -11,6 +11,9 @@ import {
   InsertTransaction,
   walletBindings,
   InsertWalletBinding,
+  revenueRecords,
+  InsertRevenueRecord,
+  type RevenueRecord,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -181,6 +184,41 @@ export async function updateTransactionStatus(
     .update(transactions)
     .set({ status, ...opts })
     .where(eq(transactions.txHash, txHash));
+}
+
+// ---- Revenue Records ----
+
+export async function createRevenueRecord(data: InsertRevenueRecord) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(revenueRecords).values(data);
+}
+
+export async function listRevenueRecords(limit = 24): Promise<RevenueRecord[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(revenueRecords)
+    .orderBy(desc(revenueRecords.periodYear), desc(revenueRecords.periodMonth))
+    .limit(limit);
+}
+
+export async function getRevenueRecordByPeriod(year: number, month: number): Promise<RevenueRecord | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db
+    .select()
+    .from(revenueRecords)
+    .where(eq(revenueRecords.periodYear, year))
+    .limit(12);
+  return result.find(r => r.periodMonth === month);
+}
+
+export async function deleteRevenueRecord(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(revenueRecords).where(eq(revenueRecords.id, id));
 }
 
 // ---- Wallet Bindings ----
