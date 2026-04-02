@@ -23,6 +23,7 @@ const txTypeValues = [
   "purchase_public",
   "approve",
   "whitelist",
+  "airdrop_claim",
 ] as const;
 const txStatusValues = ["pending", "confirmed", "failed"] as const;
 

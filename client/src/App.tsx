@@ -9,7 +9,9 @@ import { WhitelistProvider } from "./contexts/WhitelistContext";
 import Home from "./pages/Home";
 import Buy from "./pages/Buy";
 import Portfolio from "./pages/Portfolio";
-import Stake from "./pages/Stake";
+import Staking from "./pages/Staking";
+import Revenue from "./pages/Revenue";
+import Airdrop from "./pages/Airdrop";
 import Analytics from "./pages/Analytics";
 import Whitelist from "./pages/Whitelist";
 import Docs from "./pages/Docs";
@@ -20,6 +22,7 @@ import AdminRevenue from "./pages/AdminRevenue";
 import AdminStations from "./pages/AdminStations";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+
 function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
@@ -27,7 +30,10 @@ function Router() {
       <Route path={"/"} component={Home} />
       <Route path={"/buy"} component={Buy} />
       <Route path={"/portfolio"} component={Portfolio} />
-      <Route path={"/stake"} component={Stake} />
+      <Route path={"/staking"} component={Staking} />
+      <Route path={"/stake"} component={Staking} />
+      <Route path={"/revenue"} component={Revenue} />
+      <Route path={"/airdrop"} component={Airdrop} />
       <Route path={"/analytics"} component={Analytics} />
       <Route path={"/whitelist"} component={Whitelist} />
       <Route path={"/docs"} component={Docs} />

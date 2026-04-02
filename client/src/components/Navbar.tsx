@@ -255,7 +255,9 @@ export default function Navbar() {
   const navItems = [
     { label: "购买", href: "/buy" },
     { label: "资产", href: "/portfolio" },
-    { label: "质押", href: "/stake" },
+    { label: "分红", href: "/revenue" },
+    { label: "空投", href: "/airdrop" },
+    { label: "质押", href: "/staking" },
     { label: "数据分析", href: "/analytics" },
     { label: "白名单", href: "/whitelist" },
   ];

@@ -1,0 +1,1 @@
+ALTER TABLE `transactions` MODIFY COLUMN `txType` enum('stake','unstake','claim_reward','claim_dividend','purchase_private','purchase_public','approve','whitelist','airdrop_claim') NOT NULL;

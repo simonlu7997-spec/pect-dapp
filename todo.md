@@ -32,3 +32,7 @@
 - [x] 分红管理页面：一键触发链上分红按钮（triggerDistributeRevenue，调用 RevenueDistributor 合约）
 - [x] 分红管理页面：一键发放质押奖励按钮（triggerDistributeStakingReward，调用 StakingManager 合约）
 - [x] 链上操作历史表格：记录并展示所有管理员发起的链上操作（交易哈希、状态、金额、备注）
+- [x] 修复路由注册：/stake 指向旧版 Stake.tsx，改为 Staking.tsx；注册 /revenue 和 /airdrop 路由
+- [x] 修复 Navbar：添加分红页面（/revenue）和空投页面（/airdrop）导航入口
+- [x] 公募购买功能：后端添加 getPublicSaleInfo 路由，前端 Buy.tsx 公募 Tab 实现完整购买流程
+- [x] C2-Coin 空投：新增空投领取和查询功能（后端路由 + 前端页面 /airdrop）
