@@ -3,12 +3,21 @@ import { TRPCError } from "@trpc/server";
 import { ENV } from "../_core/env";
 import { listAdminTransactions } from "../db";
 import { runMonthlyStakingReward, runMonthlyRevenue } from "../rewardScheduler";
+import { ethers } from "ethers";
+
+// StakingManager 最小 ABI（只需要读取链上累计奖励数据）
+const STAKING_MANAGER_MINIMAL_ABI = [
+  "function lastRewardMonth() view returns (uint256)",
+  "function getMonthlyRewardPool(uint256 month) view returns (uint256)",
+  "function getTotalStaked() view returns (uint256)",
+];
 
 /**
  * 管理员奖励路由
  * - triggerStakingReward: 手动触发月度质押奖励计算
  * - triggerRevenue: 手动触发月度分红计算
  * - getRewardHistory: 查询质押奖励/分红执行历史
+ * - getCumulativeStakingReward: 查询链上累计质押奖励总量
  */
 export const adminRewardRouter = router({
   /**
@@ -73,5 +82,93 @@ export const adminRewardRouter = router({
     return allTx.filter(
       (tx) => tx.txType === "distribute_staking_reward" || tx.txType === "distribute_revenue"
     );
+  }),
+
+  /**
+   * 查询链上累计质押奖励总量（仅管理员）
+   * 通过遍历 StakingManager 合约的历史月份 monthlyRewardPool 累加
+   */
+  getCumulativeStakingReward: protectedProcedure.query(async ({ ctx }) => {
+    if (ctx.user.role !== "admin") {
+      throw new TRPCError({ code: "FORBIDDEN", message: "仅管理员可查看" });
+    }
+    if (!ENV.blockchainRpcUrl || !ENV.stakingManagerAddress) {
+      return {
+        cumulativeRewardUsdt: "0",
+        lastRewardMonth: 0,
+        monthlyBreakdown: [] as { month: number; amountUsdt: string }[],
+        error: "区块链 RPC 或合约地址未配置",
+      };
+    }
+
+    try {
+      const provider = new ethers.JsonRpcProvider(ENV.blockchainRpcUrl);
+      const contract = new ethers.Contract(
+        ENV.stakingManagerAddress,
+        STAKING_MANAGER_MINIMAL_ABI,
+        provider
+      );
+
+      // 获取最近一次奖励月份（格式：YYYYMM，如 202603）
+      const lastMonthRaw: bigint = await contract.lastRewardMonth();
+      const lastMonth = Number(lastMonthRaw);
+
+      if (lastMonth === 0) {
+        return {
+          cumulativeRewardUsdt: "0",
+          lastRewardMonth: 0,
+          monthlyBreakdown: [] as { month: number; amountUsdt: string }[],
+          error: null,
+        };
+      }
+
+      // 解析 YYYYMM 格式，从合约部署起始月（2026年1月）遍历到最近奖励月
+      const startYear = 2026;
+      const startMonth = 1;
+      const lastYear = Math.floor(lastMonth / 100);
+      const lastMonthNum = lastMonth % 100;
+
+      const months: number[] = [];
+      let y = startYear;
+      let m = startMonth;
+      while (y < lastYear || (y === lastYear && m <= lastMonthNum)) {
+        months.push(y * 100 + m);
+        m++;
+        if (m > 12) { m = 1; y++; }
+      }
+
+      // 并发查询各月奖励池（USDT 6位精度）
+      const poolResults = await Promise.all(
+        months.map((month) =>
+          contract.getMonthlyRewardPool(month).catch(() => BigInt(0))
+        )
+      );
+
+      const monthlyBreakdown = months
+        .map((month, i) => ({
+          month,
+          amountUsdt: ethers.formatUnits(poolResults[i], 6),
+        }))
+        .filter((item) => parseFloat(item.amountUsdt) > 0);
+
+      const totalWei = poolResults.reduce((acc, v) => acc + v, BigInt(0));
+      const cumulativeRewardUsdt = ethers.formatUnits(totalWei, 6);
+
+      return {
+        cumulativeRewardUsdt,
+        lastRewardMonth: lastMonth,
+        monthlyBreakdown,
+        error: null,
+      };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[AdminReward] 查询链上累计质押奖励失败:", message);
+      return {
+        cumulativeRewardUsdt: "0",
+        lastRewardMonth: 0,
+        monthlyBreakdown: [] as { month: number; amountUsdt: string }[],
+        error: `链上查询失败：${message.slice(0, 100)}`,
+      };
+    }
   }),
 });

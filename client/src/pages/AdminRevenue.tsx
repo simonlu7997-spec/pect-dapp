@@ -174,6 +174,10 @@ export default function AdminRevenue() {
   const { data: rewardHistory, isLoading: loadingRewardHistory, refetch: refetchRewardHistory } =
     trpc.adminReward.getRewardHistory.useQuery(undefined, { enabled: isAdmin });
 
+  // 查询链上累计质押奖励
+  const { data: cumulativeReward, isLoading: loadingCumulativeReward } =
+    trpc.adminReward.getCumulativeStakingReward.useQuery(undefined, { enabled: isAdmin });
+
   // 删除分红数据
   const deleteMutation = trpc.adminRevenue.delete.useMutation({
     onSuccess: () => {
@@ -630,6 +634,45 @@ export default function AdminRevenue() {
                   </p>
                 </div>
                 <Zap className="w-8 h-8 text-amber-400/30" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gray-900 border-gray-800 md:col-span-2 lg:col-span-4">
+            <CardContent className="pt-5">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="text-gray-400 text-sm">累计质押奖励（链上）</p>
+                  {loadingCumulativeReward ? (
+                    <p className="text-2xl font-bold text-orange-400 mt-1">—</p>
+                  ) : cumulativeReward?.error ? (
+                    <p className="text-sm text-red-400 mt-1">{cumulativeReward.error}</p>
+                  ) : (
+                    <div className="flex items-baseline gap-3 mt-1 flex-wrap">
+                      <p className="text-2xl font-bold text-orange-400">
+                        {parseFloat(cumulativeReward?.cumulativeRewardUsdt ?? "0").toLocaleString()} USDT
+                      </p>
+                      {cumulativeReward?.lastRewardMonth ? (
+                        <span className="text-gray-500 text-xs">
+                          最近奖励月：{String(cumulativeReward.lastRewardMonth).replace(/(\d{4})(\d{2})/, "$1-$2")}
+                        </span>
+                      ) : null}
+                      {cumulativeReward?.monthlyBreakdown && cumulativeReward.monthlyBreakdown.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2 w-full">
+                          {cumulativeReward.monthlyBreakdown.map((item) => (
+                            <span
+                              key={item.month}
+                              className="text-xs bg-orange-400/10 text-orange-300 border border-orange-400/20 rounded px-2 py-0.5"
+                            >
+                              {String(item.month).replace(/(\d{4})(\d{2})/, "$1-$2")}: {parseFloat(item.amountUsdt).toLocaleString()} USDT
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <Gift className="w-8 h-8 text-orange-400/30 ml-4 shrink-0" />
               </div>
             </CardContent>
           </Card>

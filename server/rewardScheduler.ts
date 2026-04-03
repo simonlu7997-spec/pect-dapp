@@ -22,7 +22,9 @@ import {
   updateAdminTransactionStatus,
   getRevenueRecordByPeriod,
   getPvcHolderAddresses,
+  listAdminTransactions,
 } from "./db";
+import type { AdminTransaction } from "../drizzle/schema";
 import { STAKINGMANAGER_ABI } from "../client/src/contracts/StakingManager";
 import { REVENUEDISTRIBUTOR_ABI } from "../client/src/contracts/RevenueDistributor";
 
@@ -465,6 +467,48 @@ export function startRewardScheduler() {
   } else {
     console.warn("[RewardScheduler] 未配置 VITE_REVENUE_DISTRIBUTOR_ADDRESS，分红定时任务未启动");
   }
+
+  // 每月 1 日 00:20 UTC+8：推送月度执行摘要（质押奖励 + 分红均完成后汇总）
+  scheduleTask(
+    "月度执行摘要",
+    0, 20,
+    async () => {
+      const now = new Date().toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" });
+      const { year, month } = getLastMonth();
+      const periodLabel = `${year}-${String(month).padStart(2, "0")}`;
+
+      // 从数据库读取本月已执行的交易记录
+      const allTx: AdminTransaction[] = await listAdminTransactions(20);
+      const stakingTx = allTx.filter(
+        (tx: AdminTransaction) => tx.txType === "distribute_staking_reward" && tx.createdBy === "system"
+      );
+      const revenueTx = allTx.filter(
+        (tx: AdminTransaction) => tx.txType === "distribute_revenue" && tx.createdBy === "system"
+      );
+
+      const stakingSuccess = stakingTx.some((tx: AdminTransaction) => tx.status === "confirmed");
+      const revenueSuccess = revenueTx.some((tx: AdminTransaction) => tx.status === "confirmed");
+      const stakingAmount = stakingTx.find((tx: AdminTransaction) => tx.status === "confirmed")?.amount ?? "N/A";
+      const revenueAmount = revenueTx.find((tx: AdminTransaction) => tx.status === "confirmed")?.amount ?? "N/A";
+
+      const lines = [
+        `月份：${periodLabel}`,
+        `质押奖励：${stakingSuccess ? `✅ 已完成（${stakingAmount} USDT）` : "❌ 未成功或未执行"}`,
+        `分红：${revenueSuccess ? `✅ 已完成（${revenueAmount} USDT）` : "❌ 未成功或未执行"}`,
+        `空投：请到管理后台确认空投历史`,
+        `汇总时间：${now}`,
+      ];
+
+      const allOk = stakingSuccess && revenueSuccess;
+      await notifyOwner({
+        title: allOk ? "✅ 月度自动任务执行摘要" : "⚠️ 月度自动任务执行摘要（部分失败）",
+        content: lines.join("\n"),
+      }).catch(() => {});
+
+      console.log(`[RewardScheduler] 月度执行摘要已推送：${lines.join(" | ")}`);
+    },
+    { current: null }
+  );
 }
 
 /**
