@@ -131,12 +131,18 @@ export async function runMonthlyStakingReward(
       throw new Error(`未找到 ${year}-${String(month).padStart(2, "0")} 的分红记录，请先在管理后台录入电站收益数据`);
     }
     const dividendPool = parseFloat(revenueRecord.dividendPool);
-    const stakingRewardAmount = dividendPool * STAKING_REWARD_RATIO;
+    // 优先使用管理员单独配置的 stakingRewardAmount，为空时回退到 dividendPool * STAKING_REWARD_RATIO
+    const stakingRewardAmount = revenueRecord.stakingRewardAmount
+      ? parseFloat(revenueRecord.stakingRewardAmount)
+      : dividendPool * STAKING_REWARD_RATIO;
+    const stakingRewardSource = revenueRecord.stakingRewardAmount
+      ? `手动配置的 stakingRewardAmount`
+      : `分红池 ${dividendPool} USDT × ${STAKING_REWARD_RATIO * 100}%`;
     if (stakingRewardAmount <= 0) {
-      throw new Error(`计算出的质押奖励金额为 0，请检查分红记录（dividendPool=${dividendPool}）`);
+      throw new Error(`质押奖励金额为 0，请检查分红记录（dividendPool=${dividendPool}）`);
     }
     const amountWei = ethers.parseUnits(stakingRewardAmount.toFixed(6), 6); // USDT 6位精度
-    console.log(`[RewardScheduler] 质押奖励金额: ${stakingRewardAmount} USDT（来自 ${year}-${month} 分红池 ${dividendPool} USDT × ${STAKING_REWARD_RATIO * 100}%）`);
+    console.log(`[RewardScheduler] 质押奖励金额: ${stakingRewardAmount} USDT（来自 ${year}-${month} ${stakingRewardSource}）`);
 
     // 2. 调用 startMonthlyReward
     console.log(`[RewardScheduler] 调用 startMonthlyReward(${stakingRewardAmount} USDT)...`);

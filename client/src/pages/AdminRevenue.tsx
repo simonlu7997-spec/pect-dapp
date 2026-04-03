@@ -69,6 +69,7 @@ export default function AdminRevenue() {
     totalGeneration: "",
     totalRevenue: "",
     dividendPool: "",
+    stakingRewardAmount: "",
     exchangeRate: "7.2",
     snapshotBlock: "",
     txHash: "",
@@ -106,6 +107,7 @@ export default function AdminRevenue() {
         totalGeneration: "",
         totalRevenue: "",
         dividendPool: "",
+        stakingRewardAmount: "",
         exchangeRate: "7.2",
         snapshotBlock: "",
         txHash: "",
@@ -146,6 +148,32 @@ export default function AdminRevenue() {
     },
   });
 
+  // 自动化触发：质押奖励（从数据库读取金额，无需手动输入）
+  const autoStakingRewardMutation = trpc.adminReward.triggerStakingReward.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message);
+      setTimeout(() => refetchRewardHistory(), 3000);
+    },
+    onError: (err) => {
+      toast.error(`触发失败：${err.message}`);
+    },
+  });
+
+  // 自动化触发：分红（从数据库读取金额，无需手动输入）
+  const autoRevenueMutation = trpc.adminReward.triggerRevenue.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message);
+      setTimeout(() => refetchRewardHistory(), 3000);
+    },
+    onError: (err) => {
+      toast.error(`触发失败：${err.message}`);
+    },
+  });
+
+  // 查询自动化执行历史
+  const { data: rewardHistory, isLoading: loadingRewardHistory, refetch: refetchRewardHistory } =
+    trpc.adminReward.getRewardHistory.useQuery(undefined, { enabled: isAdmin });
+
   // 删除分红数据
   const deleteMutation = trpc.adminRevenue.delete.useMutation({
     onSuccess: () => {
@@ -165,6 +193,7 @@ export default function AdminRevenue() {
       totalGeneration: form.totalGeneration,
       totalRevenue: form.totalRevenue,
       dividendPool: form.dividendPool,
+      stakingRewardAmount: form.stakingRewardAmount || undefined,
       exchangeRate: form.exchangeRate,
       snapshotBlock: form.snapshotBlock ? parseInt(form.snapshotBlock) : undefined,
       txHash: form.txHash || undefined,
@@ -193,6 +222,7 @@ export default function AdminRevenue() {
 
   const records = recordsData?.records ?? [];
   const adminTxRecords = adminTxHistory?.records ?? [];
+  const rewardHistoryRecords = rewardHistory ?? [];
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -480,6 +510,18 @@ export default function AdminRevenue() {
                         required
                       />
                     </div>
+                  </div>
+                  <div>
+                    <Label className="text-gray-300">
+                      质押奖励金额（C2Coin，可选）
+                      <span className="ml-2 text-gray-500 text-xs font-normal">为空时自动使用分红池 × 10%</span>
+                    </Label>
+                    <Input
+                      value={form.stakingRewardAmount}
+                      onChange={e => setForm(f => ({ ...f, stakingRewardAmount: e.target.value }))}
+                      placeholder="例如：4570.00（不填则自动计算）"
+                      className="bg-gray-800 border-gray-600 text-white mt-1"
+                    />
                   </div>
                   <div>
                     <Label className="text-gray-300">快照区块号（可选）</Label>
@@ -854,6 +896,205 @@ export default function AdminRevenue() {
                               {tx.txHash.slice(0, 10)}...
                             </a>
                           ) : "—"}
+                        </td>
+                        <td className="py-3 px-2 text-right text-gray-500 text-xs">
+                          {new Date(tx.createdAt).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        {/* 自动化任务触发区域（不需手动输入金额，从数据库读取） */}
+        <Card className="bg-gray-900 border-gray-800">
+          <CardHeader>
+            <CardTitle className="text-white text-base flex items-center gap-2">
+              <Zap className="w-4 h-4 text-amber-400" />
+              自动化任务触发
+            </CardTitle>
+            <p className="text-gray-400 text-sm mt-1">
+              每月 1 日凌晨系统自动执行：
+              <span className="text-blue-400 font-mono">00:00</span> 质押奖励、
+              <span className="text-purple-400 font-mono">00:05</span> C2 空投、
+              <span className="text-green-400 font-mono">00:10</span> 分红。
+              若定时任务未正常执行，可在此手动补发。
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* 自动质押奖励 */}
+              <div className="bg-gray-800/50 rounded-xl p-5 border border-gray-700">
+                <div className="flex items-center gap-2 mb-3">
+                  <Gift className="w-5 h-5 text-blue-400" />
+                  <span className="text-white font-medium">自动质押奖励</span>
+                  <span className="ml-auto text-xs text-gray-500 font-mono">00:00 每月 1 日</span>
+                </div>
+                <p className="text-gray-400 text-sm mb-4">
+                  从数据库读取上月 <code className="bg-gray-700 px-1 rounded text-xs">stakingRewardAmount</code> 字段，
+                  调用 StakingManager 合约向所有质押者发放奖励。
+                </p>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                      disabled={autoStakingRewardMutation.isPending}
+                    >
+                      {autoStakingRewardMutation.isPending ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" />任务启动中...</>
+                      ) : (
+                        <><Send className="w-4 h-4 mr-2" />手动触发质押奖励</>
+                      )}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="bg-gray-900 border-gray-700">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="text-white">确认触发质押奖励</AlertDialogTitle>
+                      <AlertDialogDescription className="text-gray-400">
+                        系统将从数据库读取上月质押奖励金额，自动调用合约向所有质押者发放奖励。
+                        请确认本月尚未执行过质押奖励任务。
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel className="border-gray-600 text-gray-300">取消</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => autoStakingRewardMutation.mutate()}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        确认触发
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+
+              {/* 自动分红 */}
+              <div className="bg-gray-800/50 rounded-xl p-5 border border-gray-700">
+                <div className="flex items-center gap-2 mb-3">
+                  <DollarSign className="w-5 h-5 text-green-400" />
+                  <span className="text-white font-medium">自动分红</span>
+                  <span className="ml-auto text-xs text-gray-500 font-mono">00:10 每月 1 日</span>
+                </div>
+                <p className="text-gray-400 text-sm mb-4">
+                  从数据库读取上月 <code className="bg-gray-700 px-1 rounded text-xs">dividendPool</code> 字段，
+                  调用 RevenueDistributor 合约向所有 PVC 持有者发放 USDT 分红。
+                </p>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      className="w-full bg-green-600 hover:bg-green-700 text-white"
+                      disabled={autoRevenueMutation.isPending}
+                    >
+                      {autoRevenueMutation.isPending ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" />任务启动中...</>
+                      ) : (
+                        <><Send className="w-4 h-4 mr-2" />手动触发分红</>
+                      )}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="bg-gray-900 border-gray-700">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="text-white">确认触发分红</AlertDialogTitle>
+                      <AlertDialogDescription className="text-gray-400">
+                        系统将从数据库读取上月分红池金额，自动调用合约向所有 PVC 持有者发放 USDT 分红。
+                        请确认本月尚未执行过分红任务。
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel className="border-gray-600 text-gray-300">取消</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => autoRevenueMutation.mutate()}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        确认触发
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 自动化任务执行历史 */}
+        <Card className="bg-gray-900 border-gray-800">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-white text-base flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-amber-400" />
+              自动化任务执行历史（质押奖励 + 分红）
+            </CardTitle>
+            <Button variant="ghost" size="sm" onClick={() => refetchRewardHistory()}
+              className="text-gray-400 hover:text-white">
+              <RefreshCw className="w-4 h-4" />
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {loadingRewardHistory ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-amber-400" />
+              </div>
+            ) : rewardHistoryRecords.length === 0 ? (
+              <div className="text-center py-12">
+                <Zap className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                <p className="text-gray-400">暂无自动化任务执行记录</p>
+                <p className="text-gray-600 text-sm mt-1">系统将在每月 1 日自动执行，或点击上方按钮手动触发</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-800">
+                      <th className="text-left py-3 px-2 text-gray-400 font-medium">操作类型</th>
+                      <th className="text-right py-3 px-2 text-gray-400 font-medium">金额</th>
+                      <th className="text-center py-3 px-2 text-gray-400 font-medium">状态</th>
+                      <th className="text-left py-3 px-2 text-gray-400 font-medium">交易哈希</th>
+                      <th className="text-left py-3 px-2 text-gray-400 font-medium">备注</th>
+                      <th className="text-right py-3 px-2 text-gray-400 font-medium">时间</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rewardHistoryRecords.map((tx) => (
+                      <tr key={tx.id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
+                        <td className="py-3 px-2">
+                          <Badge className={
+                            tx.txType === "distribute_revenue"
+                              ? "bg-green-900/50 text-green-400 border-green-800"
+                              : "bg-blue-900/50 text-blue-400 border-blue-800"
+                          }>
+                            {tx.txType === "distribute_revenue" ? "自动分红" : "自动质押奖励"}
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-2 text-right text-gray-200 font-semibold">
+                          {tx.amount
+                            ? `${parseFloat(tx.amount).toLocaleString()} ${tx.txType === "distribute_revenue" ? "USDT" : "C2"}`
+                            : "—"}
+                        </td>
+                        <td className="py-3 px-2 text-center">
+                          <Badge className={
+                            tx.status === "confirmed"
+                              ? "bg-green-900/50 text-green-400 border-green-800"
+                              : tx.status === "failed"
+                              ? "bg-red-900/50 text-red-400 border-red-800"
+                              : "bg-yellow-900/50 text-yellow-400 border-yellow-800"
+                          }>
+                            {tx.status === "confirmed" ? "已确认" : tx.status === "failed" ? "失败" : "待确认"}
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-2 font-mono text-gray-500 text-xs">
+                          <a
+                            href={`${import.meta.env.VITE_EXPLORER_URL}/tx/${tx.txHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                          >
+                            {tx.txHash.slice(0, 10)}...
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </td>
+                        <td className="py-3 px-2 text-gray-400 text-xs max-w-[160px] truncate">
+                          {tx.note ?? "—"}
                         </td>
                         <td className="py-3 px-2 text-right text-gray-500 text-xs">
                           {new Date(tx.createdAt).toLocaleString()}

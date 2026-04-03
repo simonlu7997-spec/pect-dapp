@@ -320,6 +320,7 @@ export default function Navbar() {
                       {[
                         { href: "/admin/kyc", label: "KYC 审核", icon: Users },
                         { href: "/admin/revenue", label: "分红管理", icon: BarChart3 },
+                        { href: "/admin/airdrop", label: "空投管理", icon: Gift },
                         { href: "/admin/stations", label: "电站管理", icon: Zap },
                       ].map(({ href, label, icon: Icon }) => (
                         <button
@@ -441,6 +442,7 @@ export default function Navbar() {
                     {[
                       { href: "/admin/kyc", label: "KYC 审核", icon: Users },
                       { href: "/admin/revenue", label: "分红管理", icon: BarChart3 },
+                      { href: "/admin/airdrop", label: "空投管理", icon: Gift },
                       { href: "/admin/stations", label: "电站管理", icon: Zap },
                     ].map(({ href, label, icon: Icon }) => (
                       <button

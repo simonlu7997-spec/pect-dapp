@@ -129,6 +129,7 @@ export const revenueRecords = mysqlTable("revenue_records", {
   totalGeneration: decimal("totalGeneration", { precision: 18, scale: 4 }).notNull(), // kWh
   totalRevenue: decimal("totalRevenue", { precision: 18, scale: 4 }).notNull(),       // RMB
   dividendPool: decimal("dividendPool", { precision: 18, scale: 4 }).notNull(),       // USDT
+  stakingRewardAmount: decimal("stakingRewardAmount", { precision: 18, scale: 4 }),    // C2Coin 质押奖励金额（可空，为空时默认用 dividendPool * 10%）
   exchangeRate: decimal("exchangeRate", { precision: 10, scale: 4 }).notNull(),       // RMB/USDT
   snapshotBlock: bigint("snapshotBlock", { mode: "number" }),
   txHash: varchar("txHash", { length: 66 }),

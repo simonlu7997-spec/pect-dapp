@@ -20,6 +20,7 @@ import Contact from "./pages/Contact";
 import AdminKyc from "./pages/AdminKyc";
 import AdminRevenue from "./pages/AdminRevenue";
 import AdminStations from "./pages/AdminStations";
+import AdminAirdrop from "./pages/AdminAirdrop";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 
@@ -42,6 +43,7 @@ function Router() {
       <Route path={"/admin/kyc"} component={AdminKyc} />
       <Route path={"/admin/revenue"} component={AdminRevenue} />
       <Route path={"/admin/stations"} component={AdminStations} />
+      <Route path={"/admin/airdrop"} component={AdminAirdrop} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

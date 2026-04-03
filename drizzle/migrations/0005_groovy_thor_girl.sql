@@ -1,0 +1,1 @@
+ALTER TABLE `revenue_records` ADD `stakingRewardAmount` decimal(18,4);
