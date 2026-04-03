@@ -10,6 +10,7 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { startPoller } from "../poller";
 import { startAirdropScheduler } from "../airdropScheduler";
+import { startRewardScheduler } from "../rewardScheduler";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -101,8 +102,9 @@ async function startServer() {
     console.log(`Server running on http://localhost:${port}/`);
     // Start the transaction status poller after server is ready
     startPoller();
-    // Start the monthly C2Coin airdrop scheduler
-    startAirdropScheduler();
+    // Start monthly reward schedulers (staking: 00:00, airdrop: 00:05, revenue: 00:10)
+    startRewardScheduler(); // 质押奖励（00:00）和分红（00:10）
+    startAirdropScheduler(); // C2Coin 空投（00:05）
   });
 }
 
