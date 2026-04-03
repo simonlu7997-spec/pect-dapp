@@ -11,14 +11,11 @@ import {
   Gift, Wallet, RefreshCw, ExternalLink, CheckCircle2,
   AlertCircle, Clock, XCircle, History,
 } from "lucide-react";
-
-// ─── 合约 ABI ───────────────────────────────────────────────────────────────
-const AIRDROP_ABI = [
-  "function claimC2Coin(uint256 yearMonth) external",
-  "function getUserMonthlyReward(address user, uint256 yearMonth) external view returns (uint256)",
-];
-
-// ─── 环境变量 ────────────────────────────────────────────────────────────────
+import { C2COIN_ABI } from "@/contracts";
+// ─── 合约 ABI ────────────────────────────────────────────────────────────────────────────
+// ABI 别名（从合约仓库自动同步，勿手动修改）
+const AIRDROP_ABI = C2COIN_ABI;
+// ─── 环境变量 ────────────────────────────────────────────────────────────────────────────
 const EXPLORER_URL = import.meta.env.VITE_EXPLORER_URL || "https://amoy.polygonscan.com";
 const C2_COIN_ADDRESS = import.meta.env.VITE_C2_COIN_ADDRESS || "";
 

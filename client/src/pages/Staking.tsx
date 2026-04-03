@@ -14,22 +14,14 @@ import {
   BarChart3, Wallet, TrendingUp, RefreshCw, ExternalLink,
   CheckCircle2, AlertCircle, Coins, ArrowUpRight, ArrowDownLeft,
 } from "lucide-react";
-
-// ─── 合约 ABI ───────────────────────────────────────────────────────────────
+import { STAKINGMANAGER_ABI, C2COIN_ABI } from "@/contracts";
+// ─── 合约 ABI ────────────────────────────────────────────────────────────────────────────
 // C2Coin 精度为 6 位（合约 decimals() 返回 6）
 const C2COIN_DECIMALS = 6;
-
-const STAKING_MANAGER_ABI = [
-  "function stake(uint256 amount) external",
-  "function unstake(uint256 amount) external",
-  "function claimStakingReward(uint256 month) external",
-];
-
-const ERC20_ABI = [
-  "function approve(address spender, uint256 amount) external returns (bool)",
-];
-
-// ─── 环境变量 ────────────────────────────────────────────────────────────────
+// ABI 别名（从合约仓库自动同步，勿手动修改）
+const STAKING_MANAGER_ABI = STAKINGMANAGER_ABI;
+const ERC20_ABI = C2COIN_ABI;
+// ─── 环境变量 ────────────────────────────────────────────────────────────────────────────
 const EXPLORER_URL = import.meta.env.VITE_EXPLORER_URL || "https://amoy.polygonscan.com";
 const STAKING_MANAGER_ADDRESS = import.meta.env.VITE_STAKING_MANAGER_ADDRESS || "";
 const C2_COIN_ADDRESS = import.meta.env.VITE_C2_COIN_ADDRESS || "";

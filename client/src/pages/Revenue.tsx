@@ -18,9 +18,9 @@ import {
   Wallet,
 } from "lucide-react";
 
-const REVENUE_DISTRIBUTOR_ABI = [
-  "function claimRevenue(uint256 month) external",
-];
+import { REVENUEDISTRIBUTOR_ABI } from "@/contracts";
+// ABI 别名（从合约仓库自动同步，勿手动修改）
+const REVENUE_DISTRIBUTOR_ABI = REVENUEDISTRIBUTOR_ABI;
 
 const EXPLORER_URL = import.meta.env.VITE_EXPLORER_URL || "https://amoy.polygonscan.com";
 const REVENUE_DISTRIBUTOR_ADDRESS = import.meta.env.VITE_REVENUE_DISTRIBUTOR_ADDRESS || "";

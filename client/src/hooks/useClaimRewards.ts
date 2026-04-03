@@ -1,5 +1,11 @@
 import { useState } from 'react';
 import { ethers } from 'ethers';
+import { C2COIN_ABI, REVENUEDISTRIBUTOR_ABI, STAKINGMANAGER_ABI } from '@/contracts';
+
+// ABI 从合约仓库自动同步，勿手动修改
+const C2CoinABI = C2COIN_ABI;
+const RevenueDistributorABI = REVENUEDISTRIBUTOR_ABI;
+const StakingManagerABI = STAKINGMANAGER_ABI;
 
 /**
  * Hook for claiming C2Coin, Revenue, and Staking Rewards
@@ -25,12 +31,6 @@ export const useClaimRewards = () => {
     setSuccess(false);
 
     try {
-      const C2CoinABI = [
-        'function claimC2Coin(uint256 yearMonth) external nonReentrant whenNotPaused',
-        'function getUserMonthlyReward(address user, uint256 yearMonth) external view returns (uint256)',
-        'function isMonthlyRewardClaimed(address user, uint256 yearMonth) external view returns (bool)',
-      ];
-
       const contract = new ethers.Contract(c2CoinAddress, C2CoinABI, signer);
       const tx = await contract.claimC2Coin(yearMonth);
       await tx.wait();
@@ -62,12 +62,6 @@ export const useClaimRewards = () => {
     setSuccess(false);
 
     try {
-      const RevenueDistributorABI = [
-        'function claimRevenue(uint256 month) external nonReentrant whenNotPaused',
-        'function getUserMonthlyRevenue(address user, uint256 month) external view returns (uint256)',
-        'function isMonthlyRevenueClaimed(address user, uint256 month) external view returns (bool)',
-      ];
-
       const contract = new ethers.Contract(revenueDistributorAddress, RevenueDistributorABI, signer);
       const tx = await contract.claimRevenue(month);
       await tx.wait();
@@ -99,12 +93,6 @@ export const useClaimRewards = () => {
     setSuccess(false);
 
     try {
-      const StakingManagerABI = [
-        'function claimStakingReward(uint256 month) external nonReentrant whenNotPaused',
-        'function getUserMonthlyReward(address user, uint256 month) external view returns (uint256)',
-        'function isMonthlyRewardClaimed(address user, uint256 month) external view returns (bool)',
-      ];
-
       const contract = new ethers.Contract(stakingManagerAddress, StakingManagerABI, signer);
       const tx = await contract.claimStakingReward(month);
       await tx.wait();
@@ -130,10 +118,6 @@ export const useClaimRewards = () => {
     provider: ethers.Provider
   ) => {
     try {
-      const C2CoinABI = [
-        'function getUserMonthlyReward(address user, uint256 yearMonth) external view returns (uint256)',
-      ];
-
       const contract = new ethers.Contract(c2CoinAddress, C2CoinABI, provider);
       const reward = await contract.getUserMonthlyReward(userAddress, yearMonth);
       return reward;
@@ -153,10 +137,6 @@ export const useClaimRewards = () => {
     provider: ethers.Provider
   ) => {
     try {
-      const RevenueDistributorABI = [
-        'function getUserMonthlyRevenue(address user, uint256 month) external view returns (uint256)',
-      ];
-
       const contract = new ethers.Contract(revenueDistributorAddress, RevenueDistributorABI, provider);
       const reward = await contract.getUserMonthlyRevenue(userAddress, month);
       return reward;
@@ -176,10 +156,6 @@ export const useClaimRewards = () => {
     provider: ethers.Provider
   ) => {
     try {
-      const StakingManagerABI = [
-        'function getUserMonthlyReward(address user, uint256 month) external view returns (uint256)',
-      ];
-
       const contract = new ethers.Contract(stakingManagerAddress, StakingManagerABI, provider);
       const reward = await contract.getUserMonthlyReward(userAddress, month);
       return reward;

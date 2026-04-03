@@ -20,27 +20,18 @@ import {
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { PRIVATESALE_ABI, PUBLICSALE_ABI, PVCOIN_ABI } from "@/contracts";
 
-// 合约 ABI（前端直接调用）
-const PRIVATE_SALE_ABI = [
-  "function purchase(uint256 _usdtAmount) external",
-];
-const ERC20_ABI = [
-  "function approve(address spender, uint256 amount) external returns (bool)",
-  "function allowance(address owner, address spender) external view returns (uint256)",
-  "function balanceOf(address account) external view returns (uint256)",
-  "function decimals() external view returns (uint8)",
-];
+// ABI 别名（从合约仓库自动同步，勿手动修改）
+const PRIVATE_SALE_ABI = PRIVATESALE_ABI;
+const PUBLIC_SALE_ABI = PUBLICSALE_ABI;
+const ERC20_ABI = PVCOIN_ABI;
 
 // 合约地址（从 Vite 环境变量读取）
 const PRIVATE_SALE_ADDRESS = import.meta.env.VITE_PRIVATE_SALE_ADDRESS as string | undefined;
 const PUBLIC_SALE_ADDRESS = import.meta.env.VITE_PUBLIC_SALE_ADDRESS as string | undefined;
 const USDT_ADDRESS = import.meta.env.VITE_USDT_ADDRESS as string | undefined;
 const EXPLORER_URL = import.meta.env.VITE_EXPLORER_URL || "https://amoy.polygonscan.com";
-
-const PUBLIC_SALE_ABI = [
-  "function purchase(uint256 _usdtAmount) external",
-];
 
 type TxStep = "idle" | "approving" | "approved" | "buying" | "confirming" | "success" | "error";
 

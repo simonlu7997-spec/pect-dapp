@@ -1,13 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useReadContract } from './useContract';
+import { ELECTRICITYPRICEORACLE_ABI } from '@/contracts';
 
-const ORACLE_ABI = [
-  'function getLatestGeneration() public view returns (uint256)',
-  'function getLatestRevenue() public view returns (uint256)',
-  'function getRMBUSDTRate() public view returns (uint256)',
-  'function getC2CoinPrice() public view returns (uint256)',
-  'function getPVCoinPrice() public view returns (uint256)',
-];
+// ABI 从合约仓库自动同步，勿手动修改
+const ORACLE_ABI = ELECTRICITYPRICEORACLE_ABI;
 
 export const useOracleData = (oracleAddress: string) => {
   const [data, setData] = useState({
