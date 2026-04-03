@@ -477,29 +477,54 @@ export function startRewardScheduler() {
       const { year, month } = getLastMonth();
       const periodLabel = `${year}-${String(month).padStart(2, "0")}`;
 
-      // 从数据库读取本月已执行的交易记录
-      const allTx: AdminTransaction[] = await listAdminTransactions(20);
+      // 从数据库读取本月已执行的交易记录（取最近 50 条以涵盖当月所有批次）
+      const allTx: AdminTransaction[] = await listAdminTransactions(50);
       const stakingTx = allTx.filter(
         (tx: AdminTransaction) => tx.txType === "distribute_staking_reward" && tx.createdBy === "system"
       );
       const revenueTx = allTx.filter(
         (tx: AdminTransaction) => tx.txType === "distribute_revenue" && tx.createdBy === "system"
       );
+      const airdropTx = allTx.filter(
+        (tx: AdminTransaction) => tx.txType === "airdrop_calculate" && tx.createdBy === "system"
+      );
 
+      // 质押奖励统计
       const stakingSuccess = stakingTx.some((tx: AdminTransaction) => tx.status === "confirmed");
-      const revenueSuccess = revenueTx.some((tx: AdminTransaction) => tx.status === "confirmed");
       const stakingAmount = stakingTx.find((tx: AdminTransaction) => tx.status === "confirmed")?.amount ?? "N/A";
+
+      // 分红统计
+      const revenueSuccess = revenueTx.some((tx: AdminTransaction) => tx.status === "confirmed");
       const revenueAmount = revenueTx.find((tx: AdminTransaction) => tx.status === "confirmed")?.amount ?? "N/A";
+
+      // 空投统计：汇总成功批次数和总地址数
+      const airdropConfirmed = airdropTx.filter((tx: AdminTransaction) => tx.status === "confirmed");
+      const airdropFailed = airdropTx.filter((tx: AdminTransaction) => tx.status === "failed");
+      const airdropTotalAddresses = airdropConfirmed.reduce(
+        (sum: number, tx: AdminTransaction) => sum + (parseInt(tx.amount ?? "0") || 0), 0
+      );
+      const airdropBatches = airdropConfirmed.length;
+      const airdropHasAny = airdropTx.length > 0;
+      const airdropAllOk = airdropHasAny && airdropFailed.length === 0;
+
+      let airdropLine: string;
+      if (!airdropHasAny) {
+        airdropLine = "❌ 未执行或无记录";
+      } else if (airdropAllOk) {
+        airdropLine = `✅ 已完成（共 ${airdropTotalAddresses} 个地址，${airdropBatches} 批次）`;
+      } else {
+        airdropLine = `⚠️ 部分失败（成功 ${airdropBatches} 批 / 失败 ${airdropFailed.length} 批，共 ${airdropTotalAddresses} 个地址已处理）`;
+      }
 
       const lines = [
         `月份：${periodLabel}`,
         `质押奖励：${stakingSuccess ? `✅ 已完成（${stakingAmount} USDT）` : "❌ 未成功或未执行"}`,
         `分红：${revenueSuccess ? `✅ 已完成（${revenueAmount} USDT）` : "❌ 未成功或未执行"}`,
-        `空投：请到管理后台确认空投历史`,
+        `空投：${airdropLine}`,
         `汇总时间：${now}`,
       ];
 
-      const allOk = stakingSuccess && revenueSuccess;
+      const allOk = stakingSuccess && revenueSuccess && airdropAllOk;
       await notifyOwner({
         title: allOk ? "✅ 月度自动任务执行摘要" : "⚠️ 月度自动任务执行摘要（部分失败）",
         content: lines.join("\n"),

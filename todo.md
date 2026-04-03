@@ -65,3 +65,7 @@
 - [x] 质押奖励金额独立配置：数据库新增 stakingRewardAmount 字段，管理员可单独输入，定时任务优先读取该字段
 - [x] GitHub Actions CI：前端测试流水线（每次 push 自动运行 pnpm test）
 - [x] GitHub Actions CI：合约 ABI 自动同步（合约代码变更时运行 sync-abi.cjs 并提交到前端仓库）
+
+## 2026-04-03 新增任务（二）
+
+- [x] 月度执行摘要 notifyOwner：将空投执行结果（地址数、批次数、状态）从数据库读取后一并汇总到通知内容，替换原有「请到管理后台确认」提示
