@@ -14,8 +14,8 @@ import {
 
 // ─── 合约 ABI ───────────────────────────────────────────────────────────────
 const AIRDROP_ABI = [
-  "function claim() external",
-  "function claimableAmount(address account) external view returns (uint256)",
+  "function claimC2Coin(uint256 yearMonth) external",
+  "function getUserMonthlyReward(address user, uint256 yearMonth) external view returns (uint256)",
 ];
 
 // ─── 环境变量 ────────────────────────────────────────────────────────────────
@@ -63,7 +63,10 @@ export default function Airdrop() {
     try {
       const airdropContract = new ethers.Contract(C2_COIN_ADDRESS, AIRDROP_ABI, signer);
       toast.info("请在钱包中确认领取交易...");
-      const tx = await airdropContract.claim();
+      // 获取当前年月（格式：YYYYMM，如 202604）
+      const now = new Date();
+      const currentYearMonth = now.getFullYear() * 100 + (now.getMonth() + 1);
+      const tx = await airdropContract.claimC2Coin(currentYearMonth);
       setAirdropTxHash(tx.hash);
       setAirdropTxStep("confirming");
       await recordAirdropClaim.mutateAsync({ walletAddress, txHash: tx.hash, c2Amount: String(claimableAmount) });

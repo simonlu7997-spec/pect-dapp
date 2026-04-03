@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 
 const REVENUE_DISTRIBUTOR_ABI = [
-  "function claim() external",
+  "function claimRevenue(uint256 month) external",
 ];
 
 const EXPLORER_URL = import.meta.env.VITE_EXPLORER_URL || "https://amoy.polygonscan.com";
@@ -83,7 +83,10 @@ export default function Revenue() {
       );
 
       toast.info("请在钱包中确认交易...");
-      const tx = await contract.claim();
+      // 获取当前年月（格式：YYYYMM，如 202604）
+      const now = new Date();
+      const currentMonth = now.getFullYear() * 100 + (now.getMonth() + 1);
+      const tx = await contract.claimRevenue(currentMonth);
       setClaimTxHash(tx.hash);
       toast.info("交易已提交，等待链上确认...");
 

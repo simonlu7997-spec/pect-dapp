@@ -16,10 +16,13 @@ import {
 } from "lucide-react";
 
 // ─── 合约 ABI ───────────────────────────────────────────────────────────────
+// C2Coin 精度为 6 位（合约 decimals() 返回 6）
+const C2COIN_DECIMALS = 6;
+
 const STAKING_MANAGER_ABI = [
   "function stake(uint256 amount) external",
   "function unstake(uint256 amount) external",
-  "function claimReward() external",
+  "function claimStakingReward(uint256 month) external",
 ];
 
 const ERC20_ABI = [
@@ -72,9 +75,9 @@ export default function Staking() {
 
     setIsStakeProcessing(true); setStakeTxType("stake");
     try {
-      const amountWei = ethers.parseUnits(stakeAmount, 18);
+      const amountWei = ethers.parseUnits(stakeAmount, C2COIN_DECIMALS);
       const c2Coin = new ethers.Contract(C2_COIN_ADDRESS, ERC20_ABI, signer);
-      const currentAllowance = BigInt(ethers.parseUnits(stakingInfo?.c2Allowance || "0", 18).toString());
+      const currentAllowance = BigInt(ethers.parseUnits(stakingInfo?.c2Allowance || "0", C2COIN_DECIMALS).toString());
       if (currentAllowance < amountWei) {
         toast.info("请在钱包中确认 C2-Coin 授权...");
         const approveTx = await c2Coin.approve(STAKING_MANAGER_ADDRESS, amountWei);
@@ -106,7 +109,7 @@ export default function Staking() {
 
     setIsStakeProcessing(true); setStakeTxType("unstake");
     try {
-      const amountWei = ethers.parseUnits(unstakeAmount, 18);
+      const amountWei = ethers.parseUnits(unstakeAmount, C2COIN_DECIMALS);
       const stakingManager = new ethers.Contract(STAKING_MANAGER_ADDRESS, STAKING_MANAGER_ABI, signer);
       toast.info("请在钱包中确认解除质押交易...");
       const tx = await stakingManager.unstake(amountWei);
@@ -130,7 +133,10 @@ export default function Staking() {
     try {
       const stakingManager = new ethers.Contract(STAKING_MANAGER_ADDRESS, STAKING_MANAGER_ABI, signer);
       toast.info("请在钱包中确认领取奖励交易...");
-      const tx = await stakingManager.claimReward();
+      // 获取当前年月（格式：YYYYMM，如 202604）
+      const now = new Date();
+      const currentMonth = now.getFullYear() * 100 + (now.getMonth() + 1);
+      const tx = await stakingManager.claimStakingReward(currentMonth);
       setStakeTxHash(tx.hash);
       await recordStakingTx.mutateAsync({ walletAddress, txHash: tx.hash, txType: "claim_reward", amount: stakingInfo.pendingReward, tokenSymbol: "USDT" });
       await tx.wait(1);

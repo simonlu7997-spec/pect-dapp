@@ -23,7 +23,7 @@ import { toast } from "sonner";
 
 // 合约 ABI（前端直接调用）
 const PRIVATE_SALE_ABI = [
-  "function buy(uint256 usdtAmount) external",
+  "function purchase(uint256 _usdtAmount) external",
 ];
 const ERC20_ABI = [
   "function approve(address spender, uint256 amount) external returns (bool)",
@@ -39,7 +39,7 @@ const USDT_ADDRESS = import.meta.env.VITE_USDT_ADDRESS as string | undefined;
 const EXPLORER_URL = import.meta.env.VITE_EXPLORER_URL || "https://amoy.polygonscan.com";
 
 const PUBLIC_SALE_ABI = [
-  "function buy(uint256 usdtAmount) external",
+  "function purchase(uint256 _usdtAmount) external",
 ];
 
 type TxStep = "idle" | "approving" | "approved" | "buying" | "confirming" | "success" | "error";
@@ -175,7 +175,7 @@ export default function Buy() {
       const usdtWei = ethers.parseUnits(usdtInput, decimals);
 
       const privateSale = new ethers.Contract(PRIVATE_SALE_ADDRESS, PRIVATE_SALE_ABI, signer);
-      const tx = await privateSale.buy(usdtWei);
+      const tx = await privateSale.purchase(usdtWei);
       setTxHash(tx.hash);
       setTxStep("confirming");
       toast.info("购买交易已提交，等待链上确认...", { duration: 8000 });
@@ -678,7 +678,7 @@ function PublicSaleTab({
       const decimals = await usdt.decimals();
       const usdtWei = ethers.parseUnits(usdtInput, decimals);
       const publicSale = new ethers.Contract(PUBLIC_SALE_ADDRESS, PUBLIC_SALE_ABI, signer);
-      const tx = await publicSale.buy(usdtWei);
+      const tx = await publicSale.purchase(usdtWei);
       setTxHash(tx.hash); setTxStep("confirming");
       toast.info("购买交易已提交，等待链上确认...", { duration: 8000 });
       if (account) {
