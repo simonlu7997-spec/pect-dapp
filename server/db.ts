@@ -1,4 +1,4 @@
-import { eq, desc, asc } from "drizzle-orm";
+import { eq, desc, asc, inArray, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
@@ -348,4 +348,22 @@ export async function updateAdminTransactionStatus(
       confirmedAt: status === "confirmed" ? new Date() : null,
     })
     .where(eq(adminTransactions.txHash, txHash));
+}
+
+/**
+ * 获取所有已确认 PVC 购买交易的钉包地址（用于月度空投计算）
+ */
+export async function getPvcHolderAddresses(): Promise<string[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db
+    .selectDistinct({ walletAddress: transactions.walletAddress })
+    .from(transactions)
+    .where(
+      and(
+        inArray(transactions.txType, ["purchase_private", "purchase_public"]),
+        eq(transactions.status, "confirmed")
+      )
+    );
+  return rows.map((r) => r.walletAddress);
 }

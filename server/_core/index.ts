@@ -9,6 +9,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { startPoller } from "../poller";
+import { startAirdropScheduler } from "../airdropScheduler";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -100,6 +101,8 @@ async function startServer() {
     console.log(`Server running on http://localhost:${port}/`);
     // Start the transaction status poller after server is ready
     startPoller();
+    // Start the monthly C2Coin airdrop scheduler
+    startAirdropScheduler();
   });
 }
 

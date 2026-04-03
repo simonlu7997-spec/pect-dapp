@@ -162,7 +162,7 @@ export type InsertStation = typeof stations.$inferInsert;
 /**
  * 链上操作记录表（分红发放、质押奖励发放等管理员操作）
  */
-const adminTxTypeValues = ["distribute_revenue", "distribute_staking_reward"] as const;
+const adminTxTypeValues = ["distribute_revenue", "distribute_staking_reward", "airdrop_calculate"] as const;
 const adminTxStatusValues = ["pending", "confirmed", "failed"] as const;
 
 export const adminTransactions = mysqlTable("admin_transactions", {

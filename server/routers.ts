@@ -13,6 +13,7 @@ import { oracleRouter } from "./routers/oracle";
 import { adminStationsRouter } from "./routers/adminStations";
 import { stationsPublicRouter } from "./routers/stationsPublic";
 import { airdropRouter } from "./routers/airdrop";
+import { adminAirdropRouter } from "./routers/adminAirdrop";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -50,6 +51,8 @@ export const appRouter = router({
   stations: stationsPublicRouter,
   // C2-Coin 空投查询和领取
   airdrop: airdropRouter,
+  // 管理后台：空投手动触发和历史查询
+  adminAirdrop: adminAirdropRouter,
 });
 
 export type AppRouter = typeof appRouter;

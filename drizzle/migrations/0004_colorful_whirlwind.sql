@@ -1,0 +1,1 @@
+ALTER TABLE `admin_transactions` MODIFY COLUMN `txType` enum('distribute_revenue','distribute_staking_reward','airdrop_calculate') NOT NULL;
