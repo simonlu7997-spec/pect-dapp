@@ -4,6 +4,7 @@ import { ENV } from "../_core/env";
 import { listAdminTransactions } from "../db";
 import { runMonthlyStakingReward, runMonthlyRevenue } from "../rewardScheduler";
 import { ethers } from "ethers";
+import { z } from "zod";
 
 // USDT ERC20 最小 ABI
 const USDT_MINIMAL_ABI = [
@@ -181,17 +182,18 @@ export const adminRewardRouter = router({
   }),
 
   /**
-   * 查询 deployer 账户的 USDT 余额和对 RevenueDistributor 的 allowance（仅管理员）
+   * 查询 deployer 账户的 USDT 余额、对 RevenueDistributor 的 allowance、对 StakingManager 的 allowance（仅管理员）
    */
   getDeployerBalance: protectedProcedure.query(async ({ ctx }) => {
     if (ctx.user.role !== "admin") {
       throw new TRPCError({ code: "FORBIDDEN", message: "仅管理员可查看" });
     }
-    if (!ENV.blockchainRpcUrl || !ENV.usdtAddress || !ENV.revenueDistributorAddress || !ENV.deployerPrivateKey) {
+    if (!ENV.blockchainRpcUrl || !ENV.usdtAddress || !ENV.deployerPrivateKey) {
       return {
         deployerAddress: "",
         usdtBalance: "0",
-        allowance: "0",
+        revenueAllowance: "0",
+        stakingAllowance: "0",
         error: "区块链 RPC 或合约地址未配置",
       };
     }
@@ -201,18 +203,28 @@ export const adminRewardRouter = router({
       const deployerAddress = deployerWallet.address;
       const usdtContract = new ethers.Contract(ENV.usdtAddress, USDT_MINIMAL_ABI, provider);
 
-      const [balanceRaw, allowanceRaw] = await Promise.all([
+      const queries: Promise<bigint>[] = [
         usdtContract.balanceOf(deployerAddress),
-        usdtContract.allowance(deployerAddress, ENV.revenueDistributorAddress),
-      ]);
+        ENV.revenueDistributorAddress
+          ? usdtContract.allowance(deployerAddress, ENV.revenueDistributorAddress)
+          : Promise.resolve(BigInt(0)),
+        ENV.stakingManagerAddress
+          ? usdtContract.allowance(deployerAddress, ENV.stakingManagerAddress)
+          : Promise.resolve(BigInt(0)),
+      ];
+      const [balanceRaw, revenueAllowanceRaw, stakingAllowanceRaw] = await Promise.all(queries);
 
       const usdtBalance = ethers.formatUnits(balanceRaw, 6);
-      const allowanceFormatted = ethers.formatUnits(allowanceRaw, 6);
+      const revenueAllowance = ethers.formatUnits(revenueAllowanceRaw, 6);
+      const stakingAllowance = ethers.formatUnits(stakingAllowanceRaw, 6);
 
       return {
         deployerAddress,
         usdtBalance,
-        allowance: allowanceFormatted,
+        revenueAllowance,
+        stakingAllowance,
+        // 向后兼容：保留 allowance 字段指向分红合约的 allowance
+        allowance: revenueAllowance,
         error: null,
       };
     } catch (err: unknown) {
@@ -221,9 +233,70 @@ export const adminRewardRouter = router({
       return {
         deployerAddress: "",
         usdtBalance: "0",
+        revenueAllowance: "0",
+        stakingAllowance: "0",
         allowance: "0",
         error: `链上查询失败：${message.slice(0, 100)}`,
       };
     }
   }),
+
+  /**
+   * 执行 USDT approve（仅管理员）
+   * 允许管理员通过后台调用 deployer 对指定合约 approve USDT
+   */
+  approveUsdt: protectedProcedure
+    .input(
+      z.object({
+        contractType: z.enum(["revenue", "staking"]),
+        amount: z.string(), // USDT 金额（字符串格式，如 "1000.00"）
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (ctx.user.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "仅管理员可操作" });
+      }
+      if (!ENV.blockchainRpcUrl || !ENV.usdtAddress || !ENV.deployerPrivateKey) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "缺少区块链配置（BLOCKCHAIN_RPC_URL / USDT_ADDRESS / DEPLOYER_PRIVATE_KEY）",
+        });
+      }
+      const contractAddress =
+        input.contractType === "revenue"
+          ? ENV.revenueDistributorAddress
+          : ENV.stakingManagerAddress;
+      if (!contractAddress) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: `合约地址未配置（${input.contractType === "revenue" ? "VITE_REVENUE_DISTRIBUTOR_ADDRESS" : "VITE_STAKING_MANAGER_ADDRESS"}）`,
+        });
+      }
+      try {
+        const provider = new ethers.JsonRpcProvider(ENV.blockchainRpcUrl);
+        const signer = new ethers.Wallet(ENV.deployerPrivateKey, provider);
+        const USDT_APPROVE_ABI = [
+          "function approve(address spender, uint256 amount) returns (bool)",
+        ];
+        const usdtContract = new ethers.Contract(ENV.usdtAddress, USDT_APPROVE_ABI, signer);
+        const amountWei = ethers.parseUnits(input.amount, 6);
+        console.log(`[AdminReward] approve USDT: ${input.amount} USDT 到 ${contractAddress} (${input.contractType})`);
+        const tx = await usdtContract.approve(contractAddress, amountWei);
+        const receipt = await tx.wait(2);
+        console.log(`[AdminReward] approve 成功: ${tx.hash}`);
+        return {
+          success: true,
+          txHash: tx.hash as string,
+          blockNumber: receipt?.blockNumber as number,
+          message: `已成功授权 ${input.amount} USDT 给 ${input.contractType === "revenue" ? "分红合约" : "质押奖励合约"}`,
+        };
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error("[AdminReward] approve USDT 失败:", message);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `approve 失败：${message.slice(0, 200)}`,
+        });
+      }
+    }),
 });

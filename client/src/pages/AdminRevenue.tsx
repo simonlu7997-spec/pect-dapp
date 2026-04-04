@@ -183,6 +183,24 @@ export default function AdminRevenue() {
   const { data: deployerBalance, isLoading: loadingDeployerBalance, refetch: refetchDeployerBalance } =
     trpc.adminReward.getDeployerBalance.useQuery(undefined, { enabled: isAdmin });
 
+  // Approve 对话框状态
+  const [approveDialogOpen, setApproveDialogOpen] = useState(false);
+  const [approveContractType, setApproveContractType] = useState<"revenue" | "staking">("revenue");
+  const [approveAmount, setApproveAmount] = useState("");
+
+  // 一键 Approve USDT
+  const approveMutation = trpc.adminReward.approveUsdt.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message + ` (tx: ${data.txHash.slice(0, 10)}...)`);
+      setApproveDialogOpen(false);
+      setApproveAmount("");
+      refetchDeployerBalance();
+    },
+    onError: (err) => {
+      toast.error(`Approve 失败：${err.message}`);
+    },
+  });
+
   // 删除分红数据
   const deleteMutation = trpc.adminRevenue.delete.useMutation({
     onSuccess: () => {
@@ -690,9 +708,27 @@ export default function AdminRevenue() {
               <AlertCircle className="w-4 h-4 text-yellow-400" />
               Deployer 账户 USDT 余额检测
             </CardTitle>
-            <Button variant="ghost" size="sm" onClick={() => refetchDeployerBalance()} className="text-gray-400 hover:text-white">
-              刷新
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-blue-700 text-blue-400 hover:bg-blue-900/30 hover:text-blue-300 text-xs"
+                onClick={() => { setApproveContractType("revenue"); setApproveDialogOpen(true); }}
+              >
+                分红 Approve
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-purple-700 text-purple-400 hover:bg-purple-900/30 hover:text-purple-300 text-xs"
+                onClick={() => { setApproveContractType("staking"); setApproveDialogOpen(true); }}
+              >
+                质押奖励 Approve
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => refetchDeployerBalance()} className="text-gray-400 hover:text-white">
+                <RefreshCw className="w-3.5 h-3.5" />
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {loadingDeployerBalance ? (
@@ -700,7 +736,7 @@ export default function AdminRevenue() {
             ) : deployerBalance?.error ? (
               <p className="text-red-400 text-sm">{deployerBalance.error}</p>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="bg-gray-800 rounded-lg p-4">
                   <p className="text-gray-400 text-xs mb-1">Deployer 地址</p>
                   <p className="text-white text-xs font-mono break-all">{deployerBalance?.deployerAddress || "未配置"}</p>
@@ -721,24 +757,95 @@ export default function AdminRevenue() {
                   )}
                 </div>
                 <div className="bg-gray-800 rounded-lg p-4">
-                  <p className="text-gray-400 text-xs mb-1">RevenueDistributor Allowance</p>
+                  <p className="text-gray-400 text-xs mb-1">分红合约 Allowance</p>
                   <p className={`text-xl font-bold ${
-                    parseFloat(deployerBalance?.allowance ?? "0") < 1000
+                    parseFloat(deployerBalance?.revenueAllowance ?? "0") < 1000
                       ? "text-red-400"
-                      : parseFloat(deployerBalance?.allowance ?? "0") < 10000
+                      : parseFloat(deployerBalance?.revenueAllowance ?? "0") < 10000
                       ? "text-yellow-400"
                       : "text-green-400"
                   }`}>
-                    {parseFloat(deployerBalance?.allowance ?? "0").toLocaleString()} USDT
+                    {parseFloat(deployerBalance?.revenueAllowance ?? deployerBalance?.allowance ?? "0").toLocaleString()} USDT
                   </p>
-                  {parseFloat(deployerBalance?.allowance ?? "0") < 1000 && (
-                    <p className="text-red-400 text-xs mt-1">⚠️ Allowance 不足，分红任务将失败，请调用 approve</p>
+                  {parseFloat(deployerBalance?.revenueAllowance ?? deployerBalance?.allowance ?? "0") < 1000 && (
+                    <p className="text-red-400 text-xs mt-1">⚠️ Allowance 不足，分红将失败</p>
+                  )}
+                </div>
+                <div className="bg-gray-800 rounded-lg p-4">
+                  <p className="text-gray-400 text-xs mb-1">质押奖励合约 Allowance</p>
+                  <p className={`text-xl font-bold ${
+                    parseFloat(deployerBalance?.stakingAllowance ?? "0") < 1000
+                      ? "text-red-400"
+                      : parseFloat(deployerBalance?.stakingAllowance ?? "0") < 10000
+                      ? "text-yellow-400"
+                      : "text-green-400"
+                  }`}>
+                    {parseFloat(deployerBalance?.stakingAllowance ?? "0").toLocaleString()} USDT
+                  </p>
+                  {parseFloat(deployerBalance?.stakingAllowance ?? "0") < 1000 && (
+                    <p className="text-red-400 text-xs mt-1">⚠️ Allowance 不足，质押奖励将失败</p>
                   )}
                 </div>
               </div>
             )}
           </CardContent>
         </Card>
+
+        {/* 一键 Approve 对话框 */}
+        <Dialog open={approveDialogOpen} onOpenChange={setApproveDialogOpen}>
+          <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-white flex items-center gap-2">
+                授权 USDT Approve（{approveContractType === "revenue" ? "分红合约" : "质押奖励合约"}）
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-2">
+              <div className="bg-blue-900/20 border border-blue-800/50 rounded-lg p-3">
+                <p className="text-blue-400 text-sm font-medium">ℹ️ 说明</p>
+                <p className="text-blue-300/80 text-xs mt-1">
+                  此操作将使用 deployer 私鑰调用 USDT 合约的 approve 函数，
+                  授权{approveContractType === "revenue" ? "RevenueDistributor" : "StakingManager"}合约使用指定金额的 USDT。
+                  建议授权金额略大于实际需要金额。
+                </p>
+              </div>
+              <div>
+                <Label className="text-gray-300">Approve 金额（USDT）</Label>
+                <Input
+                  value={approveAmount}
+                  onChange={e => setApproveAmount(e.target.value)}
+                  placeholder="例如：100000.00"
+                  className="bg-gray-800 border-gray-600 text-white mt-1"
+                />
+                <p className="text-gray-500 text-xs mt-1">
+                  当前余额：{parseFloat(deployerBalance?.usdtBalance ?? "0").toLocaleString()} USDT
+                </p>
+              </div>
+              <div className="flex gap-3 justify-end pt-2">
+                <Button type="button" variant="outline" onClick={() => setApproveDialogOpen(false)}
+                  className="border-gray-600 text-gray-300">
+                  取消
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (!approveAmount || isNaN(parseFloat(approveAmount))) {
+                      toast.error("请输入有效的 USDT 金额");
+                      return;
+                    }
+                    approveMutation.mutate({ contractType: approveContractType, amount: approveAmount });
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  disabled={approveMutation.isPending}
+                >
+                  {approveMutation.isPending ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />授权中...</>
+                  ) : (
+                    "确认 Approve"
+                  )}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* 分红历史记录表 */}
         <Card className="bg-gray-900 border-gray-800">

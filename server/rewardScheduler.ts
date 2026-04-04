@@ -100,6 +100,54 @@ function getLastMonth(): { year: number; month: number } {
   return { year, month };
 }
 
+// USDT 最小 ABI（余额和 allowance 查询）
+const USDT_MINIMAL_ABI = [
+  "function balanceOf(address account) view returns (uint256)",
+  "function allowance(address owner, address spender) view returns (uint256)",
+];
+
+/**
+ * 检查 deployer 账户的 USDT 余额和对目标合约的 allowance
+ * 若余额或 allowance 不足，推送告警通知并返回 false
+ */
+async function checkDeployerUsdtBalance(
+  provider: ethers.JsonRpcProvider,
+  deployerAddress: string,
+  contractAddress: string,
+  requiredAmount: bigint,
+  taskName: string
+): Promise<{ ok: boolean; balance: bigint; allowance: bigint }> {
+  const usdtAddress = ENV.usdtAddress;
+  if (!usdtAddress) {
+    console.warn(`[RewardScheduler] USDT 地址未配置，跳过 ${taskName} 余额检测`);
+    return { ok: true, balance: BigInt(0), allowance: BigInt(0) };
+  }
+  try {
+    const usdt = new ethers.Contract(usdtAddress, USDT_MINIMAL_ABI, provider);
+    const balance: bigint = await usdt.balanceOf(deployerAddress);
+    const allowance: bigint = await usdt.allowance(deployerAddress, contractAddress);
+    const balanceUsdt = Number(balance) / 1e6;
+    const allowanceUsdt = Number(allowance) / 1e6;
+    const requiredUsdt = Number(requiredAmount) / 1e6;
+    const balanceOk = balance >= requiredAmount;
+    const allowanceOk = allowance >= requiredAmount;
+    if (!balanceOk || !allowanceOk) {
+      const issues: string[] = [];
+      if (!balanceOk) issues.push(`余额不足（当前 ${balanceUsdt.toFixed(2)} USDT，需要 ${requiredUsdt.toFixed(2)} USDT）`);
+      if (!allowanceOk) issues.push(`allowance 不足（当前 ${allowanceUsdt.toFixed(2)} USDT，需要 ${requiredUsdt.toFixed(2)} USDT）`);
+      const alertMsg = `⚠️ ${taskName} 前置检测失败：${issues.join('；')}。请在管理后台检查 deployer 账户并补充 USDT 或 Approve。`;
+      console.error(`[RewardScheduler] ${alertMsg}`);
+      await notifyOwner({ title: `⚠️ ${taskName} 无法执行`, content: alertMsg }).catch(() => {});
+      return { ok: false, balance, allowance };
+    }
+    console.log(`[RewardScheduler] ${taskName} 前置检测通过：余额 ${balanceUsdt.toFixed(2)} USDT，allowance ${allowanceUsdt.toFixed(2)} USDT`);
+    return { ok: true, balance, allowance };
+  } catch (err) {
+    console.warn(`[RewardScheduler] ${taskName} 余额检测失败（非致命，继续执行）:`, err);
+    return { ok: true, balance: BigInt(0), allowance: BigInt(0) }; // 检测失败时不阻断任务
+  }
+}
+
 // ─── 质押奖励任务 ─────────────────────────────────────────────────────────────
 
 /**
@@ -145,6 +193,19 @@ export async function runMonthlyStakingReward(
     }
     const amountWei = ethers.parseUnits(stakingRewardAmount.toFixed(6), 6); // USDT 6位精度
     console.log(`[RewardScheduler] 质押奖励金额: ${stakingRewardAmount} USDT（来自 ${year}-${month} ${stakingRewardSource}）`);
+
+    // 1.5 前置检测：deployer USDT 余额和 allowance
+    const deployerAddress = signer.address;
+    const preCheck = await checkDeployerUsdtBalance(
+      provider,
+      deployerAddress,
+      stakingManagerAddress,
+      amountWei,
+      "月度质押奖励"
+    );
+    if (!preCheck.ok) {
+      return { success: false, totalStakers: 0, batches: 0, txHashes, error: "前置检测失败：deployer USDT 余额或 allowance 不足" };
+    }
 
     // 2. 调用 startMonthlyReward
     console.log(`[RewardScheduler] 调用 startMonthlyReward(${stakingRewardAmount} USDT)...`);
@@ -266,6 +327,19 @@ export async function runMonthlyRevenue(
     }
     const amountWei = ethers.parseUnits(dividendPool.toFixed(6), 6); // USDT 6位精度
     console.log(`[RewardScheduler] 分红金额: ${dividendPool} USDT（来自 ${year}-${month} 分红记录）`);
+
+    // 1.5 前置检测：deployer USDT 余额和 allowance
+    const deployerAddress = signer.address;
+    const preCheck = await checkDeployerUsdtBalance(
+      provider,
+      deployerAddress,
+      revenueDistributorAddress,
+      amountWei,
+      "月度分红"
+    );
+    if (!preCheck.ok) {
+      return { success: false, totalHolders: 0, batches: 0, txHashes, error: "前置检测失败：deployer USDT 余额或 allowance 不足" };
+    }
 
     // 2. 调用 startDistribution
     console.log(`[RewardScheduler] 调用 startDistribution(${dividendPool} USDT)...`);
@@ -447,14 +521,14 @@ async function initRevenueMinThreshold() {
     const provider = new ethers.JsonRpcProvider(ENV.blockchainRpcUrl!);
     const signer = new ethers.Wallet(ENV.deployerPrivateKey!, provider);
     const distributor = new ethers.Contract(ENV.revenueDistributorAddress!, REVENUEDISTRIBUTOR_ABI, signer);
-    const currentThreshold: bigint = await distributor.minThreshold();
+    const currentThreshold: bigint = await distributor.minRewardThreshold();
     if (currentThreshold !== REVENUE_MIN_THRESHOLD) {
-      console.log(`[RewardScheduler] 设置 RevenueDistributor minThreshold: ${currentThreshold} → ${REVENUE_MIN_THRESHOLD}`);
-      const tx = await distributor.setMinThreshold(REVENUE_MIN_THRESHOLD);
+      console.log(`[RewardScheduler] 设置 RevenueDistributor minRewardThreshold: ${currentThreshold} → ${REVENUE_MIN_THRESHOLD}`);
+      const tx = await distributor.setMinRewardThreshold(REVENUE_MIN_THRESHOLD);
       await tx.wait(1);
-      console.log(`[RewardScheduler] RevenueDistributor minThreshold 已更新: ${tx.hash}`);
+      console.log(`[RewardScheduler] RevenueDistributor minRewardThreshold 已更新: ${tx.hash}`);
     } else {
-      console.log(`[RewardScheduler] RevenueDistributor minThreshold 已是目标值 ${REVENUE_MIN_THRESHOLD}，跳过`);
+      console.log(`[RewardScheduler] RevenueDistributor minRewardThreshold 已是目标值 ${REVENUE_MIN_THRESHOLD}，跳过`);
     }
   } catch (err) {
     console.warn("[RewardScheduler] 初始化 RevenueDistributor minThreshold 失败（非致命）:", err);

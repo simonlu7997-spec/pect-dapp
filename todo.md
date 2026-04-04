@@ -82,3 +82,11 @@
 - [x] C2Coin 空投第一阶段（issue）自动化：carbonAmount = 上月发电量 × 0.785 / 1000，在 airdropScheduler 中自动调用
 - [x] 管理后台分红管理页面：添加 deployer 账户 USDT 余额 & allowance 检测卡片
 - [x] 调整合约最小奖励阈值：C2Coin 改为 0.1 C2Coin（10^5），分红改为 0.01 USDT（10^4）
+
+## 2026-04-04 新增任务（二）
+
+- [ ] 分红定时任务执行前检测 deployer USDT 余额和 allowance，不足时提前终止并推送告警通知
+- [ ] 质押奖励定时任务执行前检测 deployer USDT 余额和 allowance，不足时提前终止并推送告警通知
+- [ ] 扩展 getDeployerBalance 路由，同时返回质押奖励合约（StakingManager）的 USDT 余额和 allowance
+- [ ] 管理后台分红管理页面：deployer 余额检测卡片新增「一键 Approve 分红合约」和「一键 Approve 质押奖励合约」按钮
+- [ ] 管理后台分红管理页面：新增质押奖励 USDT 余额检测卡片（与分红余额检测并排显示）
