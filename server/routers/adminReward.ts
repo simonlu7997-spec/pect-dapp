@@ -349,6 +349,10 @@ export const adminRewardRouter = router({
         "function transfer(address to, uint256 amount) returns (bool)",
         "function decimals() view returns (uint8)",
         "function balanceOf(address account) view returns (uint256)",
+        "function isKycVerified(address _account) view returns (bool)",
+        "function addKyc(address _account) external",
+        "function isSenderWhitelisted(address _account) view returns (bool)",
+        "function addSenderWhitelist(address _account) external",
       ];
       try {
         const provider = new ethers.JsonRpcProvider(ENV.blockchainRpcUrl);
@@ -365,6 +369,24 @@ export const adminRewardRouter = router({
             code: "PRECONDITION_FAILED",
             message: `Deployer PVC 余额不足，当前余额: ${ethers.formatUnits(deployerBalance, decimals)} PVC，需要: ${input.amount} PVC`,
           });
+        }
+
+        // 确保目标合约地址已通过 KYC（PVCoin 要求接收方必须在 KYC 白名单中）
+        const isKyc: boolean = await pvCoin.isKycVerified(targetAddress);
+        if (!isKyc) {
+          console.log(`[AdminReward] 目标合约 ${targetAddress} 未通过 KYC，自动添加...`);
+          const kycTx = await pvCoin.addKyc(targetAddress);
+          await kycTx.wait(1);
+          console.log(`[AdminReward] KYC 添加成功: ${kycTx.hash}`);
+        }
+
+        // 确保 deployer 在发送者白名单中（PVCoin 要求发送方必须在 senderWhitelist 中）
+        const isSenderOk: boolean = await pvCoin.isSenderWhitelisted(signer.address);
+        if (!isSenderOk) {
+          console.log(`[AdminReward] Deployer ${signer.address} 不在发送者白名单，自动添加...`);
+          const senderTx = await pvCoin.addSenderWhitelist(signer.address);
+          await senderTx.wait(1);
+          console.log(`[AdminReward] 发送者白名单添加成功: ${senderTx.hash}`);
         }
 
         console.log(`[AdminReward] 充入 PVC: ${input.amount} PVC 到 ${input.saleType} 合约 ${targetAddress}`);

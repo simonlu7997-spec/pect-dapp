@@ -140,3 +140,11 @@
 - [x] 验证 PrivateSale 合约内部 USDT 地址与 VITE_USDT_ADDRESS 一致（链上查询确认）
 - [x] 将 WalletContext 中的 siweAuth.me 改为 auth.me，删除冗余路由
 - [x] 为 siweAuth.verify 补充单元测试（19 个新增测试，138/138 全部通过）
+
+## 2026-04-04 Bug 修复（四）
+
+- [ ] 公募购买第二步仍然失败：授权成功但 buy() 调用失败，排查真实原因
+
+## 2026-04-04 Bug 修复（五）
+
+- [x] 公募 depositPVC 充值失败：PVCoin 合约要求接收方在 KYC 白名单中，已在 depositPvcToSale 路由中自动检查并调用 addKyc/addSenderWhitelist（138/138 测试通过）
