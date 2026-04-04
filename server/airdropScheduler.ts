@@ -3,18 +3,42 @@
  *
  * 执行流程：
  * 1. 每月 1 日 00:05（UTC+8）自动触发
- * 2. 从数据库查询所有 confirmed 的 PVC 购买者地址
- * 3. 通过链上 PVCoin Transfer 事件补充其他持有者地址
- * 4. 去重后分批（每批 ≤ 100 个）调用 C2Coin.calculateRewardsBatch
- * 5. 记录执行结果到 admin_transactions 表
- * 6. 推送 notifyOwner 通知
+ * 2. 从数据库读取上月发电量，计算 carbonAmount = 发电量 × 0.785 / 1000
+ * 3. 调用 C2Coin.issue(carbonAmount) 发行本月 C2Coin 池
+ * 4. 从数据库查询所有 confirmed 的 PVC 购买者地址
+ * 5. 通过链上 PVCoin Transfer 事件补充其他持有者地址
+ * 6. 去重后分批（每批 ≤ 100 个）调用 C2Coin.calculateRewardsBatch
+ * 7. 记录执行结果到 admin_transactions 表
+ * 8. 推送 notifyOwner 通知
+ *
+ * carbonAmount 计算公式：上月发电量（kWh）× 0.785 / 1000
+ * （0.785 kgCO2/kWh 为电网排放因子，1000 kgCO2 = 1 碳信用）
  */
 
 import { ethers } from "ethers";
 import { ENV } from "./_core/env";
 import { notifyOwner } from "./_core/notification";
-import { recordAdminTransaction, getPvcHolderAddresses } from "./db";
+import { recordAdminTransaction, getPvcHolderAddresses, getRevenueRecordByPeriod } from "./db";
 import { C2COIN_ABI } from "../client/src/contracts/C2Coin";
+
+// 电网碳排放因子（kgCO2/kWh），1000 kgCO2 = 1 碳信用
+const CARBON_EMISSION_FACTOR = 0.785;
+const KG_PER_CREDIT = 1000;
+
+/**
+ * 获取上月的年份和月份（UTC+8）
+ */
+function getLastMonth(): { year: number; month: number } {
+  const now = new Date();
+  const utc8 = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+  let year = utc8.getUTCFullYear();
+  let month = utc8.getUTCMonth(); // 0-indexed，当前月 - 1 = 上月
+  if (month === 0) {
+    month = 12;
+    year -= 1;
+  }
+  return { year, month };
+}
 
 // 每批最多 100 个地址（合约限制）
 const BATCH_SIZE = 100;
@@ -135,6 +159,45 @@ export async function runMonthlyAirdrop(triggeredBy: "scheduler" | "manual" = "s
     const c2Coin = new ethers.Contract(c2CoinAddress, C2COIN_ABI, signer);
 
     console.log(`[AirdropScheduler] 开始月度空投计算（触发方式: ${triggeredBy}）`);
+
+    // 0. 从数据库读取上月发电量，自动调用 issue 发行 C2Coin 池
+    const { year, month } = getLastMonth();
+    const revenueRecord = await getRevenueRecordByPeriod(year, month);
+    if (!revenueRecord) {
+      throw new Error(`未找到 ${year}-${String(month).padStart(2, "0")} 的分红记录，请先在管理后台录入电站收益数据`);
+    }
+    const totalGenerationKwh = parseFloat(revenueRecord.totalGeneration);
+    if (totalGenerationKwh <= 0) {
+      throw new Error(`上月发电量为 0，无法计算碳信用额度（totalGeneration=${totalGenerationKwh}）`);
+    }
+    // carbonAmount = 发电量(kWh) × 0.785(kgCO2/kWh) / 1000(kgCO2/碳信用)
+    const carbonAmountDecimal = (totalGenerationKwh * CARBON_EMISSION_FACTOR) / KG_PER_CREDIT;
+    const carbonAmount = Math.floor(carbonAmountDecimal); // 合约接受整数碳信用
+    if (carbonAmount <= 0) {
+      throw new Error(`计算得到的碳信用额度为 0（发电量=${totalGenerationKwh} kWh，碳信用=${carbonAmountDecimal.toFixed(4)}），请检查数据`);
+    }
+    console.log(`[AirdropScheduler] 上月发电量: ${totalGenerationKwh} kWh → 碳信用: ${carbonAmount}（${carbonAmountDecimal.toFixed(4)} 取整）`);
+
+    // 检查本月是否已经 issue 过（避免重复发行）
+    const lastIssuanceYearMonth: bigint = await c2Coin.lastIssuanceYearMonth();
+    const currentYearMonth = parseInt(`${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, "0")}`);
+    if (Number(lastIssuanceYearMonth) >= currentYearMonth) {
+      console.log(`[AirdropScheduler] 本月（${currentYearMonth}）已发行过 C2Coin，跳过 issue 步骤`);
+    } else {
+      console.log(`[AirdropScheduler] 调用 issue(${carbonAmount}) 发行 C2Coin 池...`);
+      const issueTx = await c2Coin.issue(BigInt(carbonAmount));
+      await recordAdminTransaction({
+        txHash: issueTx.hash,
+        txType: "airdrop_calculate",
+        amount: String(carbonAmount),
+        status: "pending",
+        note: `月度 C2Coin 发行 carbonAmount=${carbonAmount}（发电量 ${totalGenerationKwh} kWh × ${CARBON_EMISSION_FACTOR} / ${KG_PER_CREDIT}，${triggeredBy}）`,
+        createdBy: "system",
+      });
+      const issueReceipt = await issueTx.wait(2);
+      txHashes.push(issueTx.hash);
+      console.log(`[AirdropScheduler] issue 成功: ${issueTx.hash}，区块: ${issueReceipt?.blockNumber}`);
+    }
 
     // 1. 从数据库获取购买者地址
     const dbHolders = await getPvcHolderAddresses();
@@ -258,6 +321,31 @@ let schedulerTimer: ReturnType<typeof setTimeout> | null = null;
 /**
  * 启动月度空投定时任务
  */
+// C2Coin 最小奖励阈值：0.1 C2Coin（6位精度 → 100000 raw）
+const C2COIN_MIN_THRESHOLD = BigInt(100_000);
+
+/**
+ * 初始化 C2Coin 合约最小奖励阈值（仅在服务启动时执行一次）
+ */
+async function initC2CoinMinThreshold() {
+  try {
+    const provider = new ethers.JsonRpcProvider(ENV.blockchainRpcUrl!);
+    const signer = new ethers.Wallet(ENV.deployerPrivateKey!, provider);
+    const c2Coin = new ethers.Contract(ENV.c2CoinAddress!, C2COIN_ABI, signer);
+    const currentThreshold: bigint = await c2Coin.minRewardThreshold();
+    if (currentThreshold !== C2COIN_MIN_THRESHOLD) {
+      console.log(`[AirdropScheduler] 设置 C2Coin minRewardThreshold: ${currentThreshold} → ${C2COIN_MIN_THRESHOLD}`);
+      const tx = await c2Coin.setMinRewardThreshold(C2COIN_MIN_THRESHOLD);
+      await tx.wait(1);
+      console.log(`[AirdropScheduler] C2Coin minRewardThreshold 已更新: ${tx.hash}`);
+    } else {
+      console.log(`[AirdropScheduler] C2Coin minRewardThreshold 已是目标值 ${C2COIN_MIN_THRESHOLD}，跳过`);
+    }
+  } catch (err) {
+    console.warn("[AirdropScheduler] 初始化 C2Coin minRewardThreshold 失败（非致命）:", err);
+  }
+}
+
 export function startAirdropScheduler() {
   if (!ENV.blockchainRpcUrl || !ENV.deployerPrivateKey || !ENV.c2CoinAddress) {
     console.warn(
@@ -265,6 +353,8 @@ export function startAirdropScheduler() {
     );
     return;
   }
+  // 启动时初始化 C2Coin 最小奖励阈值（0.1 C2Coin）
+  initC2CoinMinThreshold();
 
   // Node.js setTimeout 最大支持 ~24.8 天（2^31-1 ms），超出会溢出
   // 使用递归短轮询方式安全调度远期任务

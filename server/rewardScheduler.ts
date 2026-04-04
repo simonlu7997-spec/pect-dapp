@@ -436,6 +436,31 @@ function scheduleTask(
   waitAndRun(ms);
 }
 
+// RevenueDistributor 最小分红阈值：0.01 USDT（6位精度 → 10000 raw）
+const REVENUE_MIN_THRESHOLD = BigInt(10_000);
+
+/**
+ * 初始化 RevenueDistributor 合约最小分红阈值（仅在服务启动时执行一次）
+ */
+async function initRevenueMinThreshold() {
+  try {
+    const provider = new ethers.JsonRpcProvider(ENV.blockchainRpcUrl!);
+    const signer = new ethers.Wallet(ENV.deployerPrivateKey!, provider);
+    const distributor = new ethers.Contract(ENV.revenueDistributorAddress!, REVENUEDISTRIBUTOR_ABI, signer);
+    const currentThreshold: bigint = await distributor.minThreshold();
+    if (currentThreshold !== REVENUE_MIN_THRESHOLD) {
+      console.log(`[RewardScheduler] 设置 RevenueDistributor minThreshold: ${currentThreshold} → ${REVENUE_MIN_THRESHOLD}`);
+      const tx = await distributor.setMinThreshold(REVENUE_MIN_THRESHOLD);
+      await tx.wait(1);
+      console.log(`[RewardScheduler] RevenueDistributor minThreshold 已更新: ${tx.hash}`);
+    } else {
+      console.log(`[RewardScheduler] RevenueDistributor minThreshold 已是目标值 ${REVENUE_MIN_THRESHOLD}，跳过`);
+    }
+  } catch (err) {
+    console.warn("[RewardScheduler] 初始化 RevenueDistributor minThreshold 失败（非致命）:", err);
+  }
+}
+
 /**
  * 启动月度质押奖励和分红定时任务
  */
@@ -444,6 +469,10 @@ export function startRewardScheduler() {
   if (!deployerPrivateKey || !blockchainRpcUrl) {
     console.warn("[RewardScheduler] 缺少区块链配置，月度奖励/分红定时任务未启动");
     return;
+  }
+  // 启动时初始化 RevenueDistributor 最小分红阈值（0.01 USDT）
+  if (revenueDistributorAddress) {
+    initRevenueMinThreshold();
   }
   if (stakingManagerAddress) {
     // 质押奖励：每月 1 日 00:00 UTC+8

@@ -5,6 +5,13 @@ import { listAdminTransactions } from "../db";
 import { runMonthlyStakingReward, runMonthlyRevenue } from "../rewardScheduler";
 import { ethers } from "ethers";
 
+// USDT ERC20 最小 ABI
+const USDT_MINIMAL_ABI = [
+  "function balanceOf(address account) view returns (uint256)",
+  "function allowance(address owner, address spender) view returns (uint256)",
+  "function decimals() view returns (uint8)",
+];
+
 // StakingManager 最小 ABI（只需要读取链上累计奖励数据）
 const STAKING_MANAGER_MINIMAL_ABI = [
   "function lastRewardMonth() view returns (uint256)",
@@ -18,6 +25,7 @@ const STAKING_MANAGER_MINIMAL_ABI = [
  * - triggerRevenue: 手动触发月度分红计算
  * - getRewardHistory: 查询质押奖励/分红执行历史
  * - getCumulativeStakingReward: 查询链上累计质押奖励总量
+ * - getDeployerBalance: 查询 deployer 账户 USDT 余额和 allowance
  */
 export const adminRewardRouter = router({
   /**
@@ -167,6 +175,53 @@ export const adminRewardRouter = router({
         cumulativeRewardUsdt: "0",
         lastRewardMonth: 0,
         monthlyBreakdown: [] as { month: number; amountUsdt: string }[],
+        error: `链上查询失败：${message.slice(0, 100)}`,
+      };
+    }
+  }),
+
+  /**
+   * 查询 deployer 账户的 USDT 余额和对 RevenueDistributor 的 allowance（仅管理员）
+   */
+  getDeployerBalance: protectedProcedure.query(async ({ ctx }) => {
+    if (ctx.user.role !== "admin") {
+      throw new TRPCError({ code: "FORBIDDEN", message: "仅管理员可查看" });
+    }
+    if (!ENV.blockchainRpcUrl || !ENV.usdtAddress || !ENV.revenueDistributorAddress || !ENV.deployerPrivateKey) {
+      return {
+        deployerAddress: "",
+        usdtBalance: "0",
+        allowance: "0",
+        error: "区块链 RPC 或合约地址未配置",
+      };
+    }
+    try {
+      const provider = new ethers.JsonRpcProvider(ENV.blockchainRpcUrl);
+      const deployerWallet = new ethers.Wallet(ENV.deployerPrivateKey, provider);
+      const deployerAddress = deployerWallet.address;
+      const usdtContract = new ethers.Contract(ENV.usdtAddress, USDT_MINIMAL_ABI, provider);
+
+      const [balanceRaw, allowanceRaw] = await Promise.all([
+        usdtContract.balanceOf(deployerAddress),
+        usdtContract.allowance(deployerAddress, ENV.revenueDistributorAddress),
+      ]);
+
+      const usdtBalance = ethers.formatUnits(balanceRaw, 6);
+      const allowanceFormatted = ethers.formatUnits(allowanceRaw, 6);
+
+      return {
+        deployerAddress,
+        usdtBalance,
+        allowance: allowanceFormatted,
+        error: null,
+      };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[AdminReward] 查询 deployer 余额失败:", message);
+      return {
+        deployerAddress: "",
+        usdtBalance: "0",
+        allowance: "0",
         error: `链上查询失败：${message.slice(0, 100)}`,
       };
     }

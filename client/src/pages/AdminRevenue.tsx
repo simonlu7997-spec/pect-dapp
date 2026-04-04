@@ -41,6 +41,7 @@ import {
   Gift,
   ExternalLink,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
 
 export default function AdminRevenue() {
@@ -177,6 +178,10 @@ export default function AdminRevenue() {
   // 查询链上累计质押奖励
   const { data: cumulativeReward, isLoading: loadingCumulativeReward } =
     trpc.adminReward.getCumulativeStakingReward.useQuery(undefined, { enabled: isAdmin });
+
+  // 查询 deployer 账户 USDT 余额和 allowance
+  const { data: deployerBalance, isLoading: loadingDeployerBalance, refetch: refetchDeployerBalance } =
+    trpc.adminReward.getDeployerBalance.useQuery(undefined, { enabled: isAdmin });
 
   // 删除分红数据
   const deleteMutation = trpc.adminRevenue.delete.useMutation({
@@ -677,6 +682,63 @@ export default function AdminRevenue() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Deployer 账户 USDT 余额检测 */}
+        <Card className="bg-gray-900 border-gray-800">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-white text-base flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-yellow-400" />
+              Deployer 账户 USDT 余额检测
+            </CardTitle>
+            <Button variant="ghost" size="sm" onClick={() => refetchDeployerBalance()} className="text-gray-400 hover:text-white">
+              刷新
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {loadingDeployerBalance ? (
+              <p className="text-gray-400 text-sm">正在查询链上数据...</p>
+            ) : deployerBalance?.error ? (
+              <p className="text-red-400 text-sm">{deployerBalance.error}</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-gray-800 rounded-lg p-4">
+                  <p className="text-gray-400 text-xs mb-1">Deployer 地址</p>
+                  <p className="text-white text-xs font-mono break-all">{deployerBalance?.deployerAddress || "未配置"}</p>
+                </div>
+                <div className="bg-gray-800 rounded-lg p-4">
+                  <p className="text-gray-400 text-xs mb-1">USDT 余额</p>
+                  <p className={`text-xl font-bold ${
+                    parseFloat(deployerBalance?.usdtBalance ?? "0") < 1000
+                      ? "text-red-400"
+                      : parseFloat(deployerBalance?.usdtBalance ?? "0") < 10000
+                      ? "text-yellow-400"
+                      : "text-green-400"
+                  }`}>
+                    {parseFloat(deployerBalance?.usdtBalance ?? "0").toLocaleString()} USDT
+                  </p>
+                  {parseFloat(deployerBalance?.usdtBalance ?? "0") < 1000 && (
+                    <p className="text-red-400 text-xs mt-1">⚠️ 余额不足，请尽快充入</p>
+                  )}
+                </div>
+                <div className="bg-gray-800 rounded-lg p-4">
+                  <p className="text-gray-400 text-xs mb-1">RevenueDistributor Allowance</p>
+                  <p className={`text-xl font-bold ${
+                    parseFloat(deployerBalance?.allowance ?? "0") < 1000
+                      ? "text-red-400"
+                      : parseFloat(deployerBalance?.allowance ?? "0") < 10000
+                      ? "text-yellow-400"
+                      : "text-green-400"
+                  }`}>
+                    {parseFloat(deployerBalance?.allowance ?? "0").toLocaleString()} USDT
+                  </p>
+                  {parseFloat(deployerBalance?.allowance ?? "0") < 1000 && (
+                    <p className="text-red-400 text-xs mt-1">⚠️ Allowance 不足，分红任务将失败，请调用 approve</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* 分红历史记录表 */}
         <Card className="bg-gray-900 border-gray-800">
