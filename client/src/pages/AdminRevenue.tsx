@@ -201,6 +201,28 @@ export default function AdminRevenue() {
     },
   });
 
+  // 查询私募/公募合约 PVC 余额
+  const { data: pvcSaleBalance, isLoading: loadingPvcBalance, refetch: refetchPvcBalance } =
+    trpc.adminReward.getPvcSaleBalance.useQuery(undefined, { enabled: isAdmin });
+
+  // PVC 充值对话框状态
+  const [pvcDepositDialogOpen, setPvcDepositDialogOpen] = useState(false);
+  const [pvcDepositSaleType, setPvcDepositSaleType] = useState<"private" | "public">("private");
+  const [pvcDepositAmount, setPvcDepositAmount] = useState("");
+
+  // 充值 PVC mutation
+  const depositPvcMutation = trpc.adminReward.depositPvcToSale.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message + ` (tx: ${data.txHash.slice(0, 10)}...)`);
+      setPvcDepositDialogOpen(false);
+      setPvcDepositAmount("");
+      refetchPvcBalance();
+    },
+    onError: (err) => {
+      toast.error(`PVC 充值失败：${err.message}`);
+    },
+  });
+
   // 删除分红数据
   const deleteMutation = trpc.adminRevenue.delete.useMutation({
     onSuccess: () => {
@@ -840,6 +862,176 @@ export default function AdminRevenue() {
                     <><Loader2 className="w-4 h-4 mr-2 animate-spin" />授权中...</>
                   ) : (
                     "确认 Approve"
+                  )}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* PVC 合约余额检测与充入 */}
+        <Card className="bg-gray-900 border-gray-800">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-white text-base flex items-center gap-2">
+              <Zap className="w-4 h-4 text-emerald-400" />
+              PVC 合约余额检测
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-emerald-700 text-emerald-400 hover:bg-emerald-900/30 hover:text-emerald-300 text-xs"
+                onClick={() => { setPvcDepositSaleType("private"); setPvcDepositDialogOpen(true); }}
+              >
+                充入私募 PVC
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-cyan-700 text-cyan-400 hover:bg-cyan-900/30 hover:text-cyan-300 text-xs"
+                onClick={() => { setPvcDepositSaleType("public"); setPvcDepositDialogOpen(true); }}
+              >
+                充入公募 PVC
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => refetchPvcBalance()} className="text-gray-400 hover:text-white">
+                <RefreshCw className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loadingPvcBalance ? (
+              <p className="text-gray-400 text-sm">正在查询链上数据...</p>
+            ) : pvcSaleBalance?.error ? (
+              <p className="text-red-400 text-sm">{pvcSaleBalance.error}</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-gray-800 rounded-lg p-4">
+                  <p className="text-gray-400 text-xs mb-1">Deployer PVC 余额</p>
+                  <p className={`text-xl font-bold ${
+                    parseFloat(pvcSaleBalance?.deployerPvcBalance ?? "0") < 1000
+                      ? "text-red-400"
+                      : parseFloat(pvcSaleBalance?.deployerPvcBalance ?? "0") < 10000
+                      ? "text-yellow-400"
+                      : "text-emerald-400"
+                  }`}>
+                    {parseFloat(pvcSaleBalance?.deployerPvcBalance ?? "0").toLocaleString()} PVC
+                  </p>
+                  {parseFloat(pvcSaleBalance?.deployerPvcBalance ?? "0") < 1000 && (
+                    <p className="text-red-400 text-xs mt-1">⚠️ 余额不足，无法充入</p>
+                  )}
+                </div>
+                <div className="bg-gray-800 rounded-lg p-4">
+                  <p className="text-gray-400 text-xs mb-1">私募合约 PVC 余额</p>
+                  <p className={`text-xl font-bold ${
+                    parseFloat(pvcSaleBalance?.privateSaleBalance ?? "0") < 1000
+                      ? "text-red-400"
+                      : parseFloat(pvcSaleBalance?.privateSaleBalance ?? "0") < 10000
+                      ? "text-yellow-400"
+                      : "text-emerald-400"
+                  }`}>
+                    {parseFloat(pvcSaleBalance?.privateSaleBalance ?? "0").toLocaleString()} PVC
+                  </p>
+                  {parseFloat(pvcSaleBalance?.privateSaleBalance ?? "0") === 0 && (
+                    <p className="text-red-400 text-xs mt-1">⚠️ 余额为 0，用户购买将失败</p>
+                  )}
+                  {parseFloat(pvcSaleBalance?.privateSaleBalance ?? "0") > 0 &&
+                    parseFloat(pvcSaleBalance?.privateSaleBalance ?? "0") < 1000 && (
+                    <p className="text-yellow-400 text-xs mt-1">⚠️ 余额偏低，建议尽快充入</p>
+                  )}
+                  <p className="text-gray-500 text-xs mt-1 font-mono truncate">{pvcSaleBalance?.privateSaleAddress?.slice(0, 10)}...</p>
+                </div>
+                <div className="bg-gray-800 rounded-lg p-4">
+                  <p className="text-gray-400 text-xs mb-1">公募合约 PVC 余额</p>
+                  <p className={`text-xl font-bold ${
+                    parseFloat(pvcSaleBalance?.publicSaleBalance ?? "0") < 1000
+                      ? "text-red-400"
+                      : parseFloat(pvcSaleBalance?.publicSaleBalance ?? "0") < 10000
+                      ? "text-yellow-400"
+                      : "text-cyan-400"
+                  }`}>
+                    {parseFloat(pvcSaleBalance?.publicSaleBalance ?? "0").toLocaleString()} PVC
+                  </p>
+                  {parseFloat(pvcSaleBalance?.publicSaleBalance ?? "0") === 0 && (
+                    <p className="text-red-400 text-xs mt-1">⚠️ 余额为 0，用户购买将失败</p>
+                  )}
+                  {parseFloat(pvcSaleBalance?.publicSaleBalance ?? "0") > 0 &&
+                    parseFloat(pvcSaleBalance?.publicSaleBalance ?? "0") < 1000 && (
+                    <p className="text-yellow-400 text-xs mt-1">⚠️ 余额偏低，建议尽快充入</p>
+                  )}
+                  <p className="text-gray-500 text-xs mt-1 font-mono truncate">{pvcSaleBalance?.publicSaleAddress?.slice(0, 10)}...</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* PVC 充入对话框 */}
+        <Dialog open={pvcDepositDialogOpen} onOpenChange={setPvcDepositDialogOpen}>
+          <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-white flex items-center gap-2">
+                <Zap className="w-5 h-5 text-emerald-400" />
+                充入 PVC 到{pvcDepositSaleType === "private" ? "私募" : "公募"}合约
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-2">
+              <div className="bg-emerald-900/20 border border-emerald-800/50 rounded-lg p-3">
+                <p className="text-emerald-400 text-sm font-medium">ℹ️ 说明</p>
+                <p className="text-emerald-300/80 text-xs mt-1">
+                  此操作将使用 deployer 私鑰调用 PVC 合约的 transfer 函数，
+                  将指定数量的 PVC 从 deployer 账户转入{pvcDepositSaleType === "private" ? "私募" : "公募"}合约。
+                  请确认数量无误后再执行。
+                </p>
+              </div>
+              <div className="bg-gray-800 rounded-lg p-3 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Deployer PVC 余额</span>
+                  <span className="text-emerald-400 font-mono">
+                    {parseFloat(pvcSaleBalance?.deployerPvcBalance ?? "0").toLocaleString()} PVC
+                  </span>
+                </div>
+                <div className="flex justify-between mt-1">
+                  <span className="text-gray-400">目标合约当前余额</span>
+                  <span className="text-white font-mono">
+                    {parseFloat(
+                      pvcDepositSaleType === "private"
+                        ? pvcSaleBalance?.privateSaleBalance ?? "0"
+                        : pvcSaleBalance?.publicSaleBalance ?? "0"
+                    ).toLocaleString()} PVC
+                  </span>
+                </div>
+              </div>
+              <div>
+                <Label className="text-gray-300">充入数量（PVC）</Label>
+                <Input
+                  value={pvcDepositAmount}
+                  onChange={e => setPvcDepositAmount(e.target.value)}
+                  placeholder="例如：10000"
+                  className="bg-gray-800 border-gray-600 text-white mt-1"
+                  type="number"
+                  min="1"
+                />
+              </div>
+              <div className="flex gap-3 justify-end pt-2">
+                <Button type="button" variant="outline" onClick={() => setPvcDepositDialogOpen(false)}
+                  className="border-gray-600 text-gray-300">
+                  取消
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (!pvcDepositAmount || isNaN(parseFloat(pvcDepositAmount)) || parseFloat(pvcDepositAmount) <= 0) {
+                      toast.error("请输入有效的 PVC 数量");
+                      return;
+                    }
+                    depositPvcMutation.mutate({ saleType: pvcDepositSaleType, amount: pvcDepositAmount });
+                  }}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  disabled={depositPvcMutation.isPending}
+                >
+                  {depositPvcMutation.isPending ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />充入中...</>
+                  ) : (
+                    "确认充入"
                   )}
                 </Button>
               </div>

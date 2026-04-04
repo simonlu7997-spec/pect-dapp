@@ -242,6 +242,154 @@ export const adminRewardRouter = router({
   }),
 
   /**
+   * 查询私募和公募合约的 PVC 余额（仅管理员）
+   */
+  getPvcSaleBalance: protectedProcedure.query(async ({ ctx }) => {
+    if (ctx.user.role !== "admin") {
+      throw new TRPCError({ code: "FORBIDDEN", message: "仅管理员可查看" });
+    }
+    if (!ENV.blockchainRpcUrl || !ENV.pvCoinAddress) {
+      return {
+        privateSaleBalance: "0",
+        publicSaleBalance: "0",
+        deployerPvcBalance: "0",
+        privateSaleAddress: ENV.privateSaleAddress,
+        publicSaleAddress: ENV.publicSaleAddress,
+        error: "区块链 RPC 或 PVC 合约地址未配置",
+      };
+    }
+    const PVC_ABI = [
+      "function balanceOf(address account) view returns (uint256)",
+      "function decimals() view returns (uint8)",
+    ];
+    const SALE_ABI = [
+      "function getPVCoinBalance() view returns (uint256)",
+    ];
+    try {
+      const provider = new ethers.JsonRpcProvider(ENV.blockchainRpcUrl);
+      const pvCoin = new ethers.Contract(ENV.pvCoinAddress, PVC_ABI, provider);
+      const decimals: number = Number(await pvCoin.decimals());
+
+      // deployer 的 PVC 余额
+      let deployerPvcBalance = "0";
+      if (ENV.deployerPrivateKey) {
+        const deployerWallet = new ethers.Wallet(ENV.deployerPrivateKey, provider);
+        const raw: bigint = await pvCoin.balanceOf(deployerWallet.address);
+        deployerPvcBalance = ethers.formatUnits(raw, decimals);
+      }
+
+      // 私募合约 PVC 余额
+      let privateSaleBalance = "0";
+      if (ENV.privateSaleAddress) {
+        const privateSale = new ethers.Contract(ENV.privateSaleAddress, SALE_ABI, provider);
+        const raw: bigint = await privateSale.getPVCoinBalance();
+        privateSaleBalance = ethers.formatUnits(raw, decimals);
+      }
+
+      // 公募合约 PVC 余额
+      let publicSaleBalance = "0";
+      if (ENV.publicSaleAddress) {
+        const publicSale = new ethers.Contract(ENV.publicSaleAddress, SALE_ABI, provider);
+        const raw: bigint = await publicSale.getPVCoinBalance();
+        publicSaleBalance = ethers.formatUnits(raw, decimals);
+      }
+
+      return {
+        privateSaleBalance,
+        publicSaleBalance,
+        deployerPvcBalance,
+        privateSaleAddress: ENV.privateSaleAddress,
+        publicSaleAddress: ENV.publicSaleAddress,
+        error: null,
+      };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[AdminReward] 查询 PVC 余额失败:", message);
+      return {
+        privateSaleBalance: "0",
+        publicSaleBalance: "0",
+        deployerPvcBalance: "0",
+        privateSaleAddress: ENV.privateSaleAddress,
+        publicSaleAddress: ENV.publicSaleAddress,
+        error: `链上查询失败：${message.slice(0, 100)}`,
+      };
+    }
+  }),
+
+  /**
+   * 给私募或公募合约充入 PVC 代币（仅管理员）
+   * deployer 账户直接调用 PVC.transfer(saleContract, amount)
+   */
+  depositPvcToSale: protectedProcedure
+    .input(
+      z.object({
+        saleType: z.enum(["private", "public"]),
+        amount: z.string().min(1), // PVC 数量（字符串，如 "1000"）
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (ctx.user.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "仅管理员可操作" });
+      }
+      if (!ENV.blockchainRpcUrl || !ENV.pvCoinAddress || !ENV.deployerPrivateKey) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "缺少区块链配置（BLOCKCHAIN_RPC_URL / PV_COIN_ADDRESS / DEPLOYER_PRIVATE_KEY）",
+        });
+      }
+      const targetAddress =
+        input.saleType === "private" ? ENV.privateSaleAddress : ENV.publicSaleAddress;
+      if (!targetAddress) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: `合约地址未配置（${input.saleType === "private" ? "PRIVATE_SALE_ADDRESS" : "PUBLIC_SALE_ADDRESS"}）`,
+        });
+      }
+      const PVC_TRANSFER_ABI = [
+        "function transfer(address to, uint256 amount) returns (bool)",
+        "function decimals() view returns (uint8)",
+        "function balanceOf(address account) view returns (uint256)",
+      ];
+      try {
+        const provider = new ethers.JsonRpcProvider(ENV.blockchainRpcUrl);
+        const signer = new ethers.Wallet(ENV.deployerPrivateKey, provider);
+        const pvCoin = new ethers.Contract(ENV.pvCoinAddress, PVC_TRANSFER_ABI, signer);
+
+        const decimals: number = Number(await pvCoin.decimals());
+        const amountWei = ethers.parseUnits(input.amount, decimals);
+
+        // 检查 deployer 余额是否足够
+        const deployerBalance: bigint = await pvCoin.balanceOf(signer.address);
+        if (deployerBalance < amountWei) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: `Deployer PVC 余额不足，当前余额: ${ethers.formatUnits(deployerBalance, decimals)} PVC，需要: ${input.amount} PVC`,
+          });
+        }
+
+        console.log(`[AdminReward] 充入 PVC: ${input.amount} PVC 到 ${input.saleType} 合约 ${targetAddress}`);
+        const tx = await pvCoin.transfer(targetAddress, amountWei);
+        const receipt = await tx.wait(2);
+        console.log(`[AdminReward] PVC 充入成功: ${tx.hash}`);
+
+        return {
+          success: true,
+          txHash: tx.hash as string,
+          blockNumber: receipt?.blockNumber as number,
+          message: `已成功向${input.saleType === "private" ? "私募" : "公募"}合约充入 ${input.amount} PVC`,
+        };
+      } catch (err: unknown) {
+        if (err instanceof TRPCError) throw err;
+        const message = err instanceof Error ? err.message : String(err);
+        console.error("[AdminReward] PVC 充入失败:", message);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `PVC 充入失败：${message.slice(0, 200)}`,
+        });
+      }
+    }),
+
+  /**
    * 执行 USDT approve（仅管理员）
    * 允许管理员通过后台调用 deployer 对指定合约 approve USDT
    */

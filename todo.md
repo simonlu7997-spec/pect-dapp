@@ -108,3 +108,7 @@
 - [x] KYC 审核通过时同时调用 PrivateSale 和 PublicSale 的 addToWhitelist
 - [x] 修复 rewardScheduler.ts 中调用不存在的 setMinRewardThreshold 函数导致的启动告警
 - [ ] 公募购买页面添加白名单状态检测，未通过 KYC 时显示提示（待公募合约地址配置到 Buy.tsx 后完成）
+
+## 2026-04-04 新增任务（五）
+
+- [x] 管理后台分红管理页面：添加 PVC 充値卡片，显示 deployer/私募/公募合约 PVC 余额，支持一键充値对话框
