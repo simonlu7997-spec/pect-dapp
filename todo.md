@@ -107,7 +107,8 @@
 - [x] 同步 PublicSale ABI 到 DApp，更新环境变量 VITE_PUBLIC_SALE_ADDRESS 和 PUBLIC_SALE_ADDRESS
 - [x] KYC 审核通过时同时调用 PrivateSale 和 PublicSale 的 addToWhitelist
 - [x] 修复 rewardScheduler.ts 中调用不存在的 setMinRewardThreshold 函数导致的启动告警
-- [ ] 公募购买页面添加白名单状态检测，未通过 KYC 时显示提示（待公募合约地址配置到 Buy.tsx 后完成）
+- [x] 公募购买页面添加 KYC 状态检测，未通过 KYC 时显示提示并引导到白名单申请页，购买按鈕加入 KYC 校验
+- [x] KYC 拒绝时同时调用 PrivateSale 和 PublicSale 的 removeFromWhitelist（已在 whitelist.ts reject 路由中完成）
 
 ## 2026-04-04 新增任务（五）
 

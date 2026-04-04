@@ -24,6 +24,7 @@ const PVCoinABI = [
 // Sale 合约白名单 ABI（PrivateSale 和 PublicSale 共用）
 const SaleWhitelistABI = [
   "function addToWhitelist(address[] calldata _users) external",
+  "function removeFromWhitelist(address[] calldata _users) external",
   "function isWhitelisted(address _user) external view returns (bool)",
 ];
 
@@ -284,6 +285,39 @@ export const whitelistRouter = router({
         walletAddress: kyc.walletAddress,
         reviewNote: input.reviewNote,
       }).catch((err) => console.error("[Email] Failed to send rejected email:", err));
+
+      // 异步从 PrivateSale 和 PublicSale 白名单移除（如果已在白名单中）
+      const deployerPrivateKey = process.env.DEPLOYER_PRIVATE_KEY;
+      const rpcUrl = process.env.BLOCKCHAIN_RPC_URL;
+      const privateSaleAddress = process.env.PRIVATE_SALE_ADDRESS;
+      const publicSaleAddress = process.env.PUBLIC_SALE_ADDRESS;
+
+      if (deployerPrivateKey && rpcUrl && kyc.walletAddress) {
+        const provider = new ethers.JsonRpcProvider(rpcUrl);
+        const deployerWallet = new ethers.Wallet(deployerPrivateKey, provider);
+
+        // 异步移除 PrivateSale 白名单
+        if (privateSaleAddress && privateSaleAddress !== "0x0000000000000000000000000000000000000000") {
+          const privateSaleContract = new ethers.Contract(privateSaleAddress, SaleWhitelistABI, deployerWallet);
+          privateSaleContract.isWhitelisted(kyc.walletAddress).then(async (isIn: boolean) => {
+            if (isIn) {
+              const tx = await privateSaleContract.removeFromWhitelist([kyc.walletAddress]);
+              console.log(`[Whitelist] PrivateSale 白名单移除成功: ${kyc.walletAddress}, tx: ${tx.hash}`);
+            }
+          }).catch((err: unknown) => console.error("[Whitelist] PrivateSale 移除失败:", err));
+        }
+
+        // 异步移除 PublicSale 白名单
+        if (publicSaleAddress && publicSaleAddress !== "0x0000000000000000000000000000000000000000") {
+          const publicSaleContract = new ethers.Contract(publicSaleAddress, SaleWhitelistABI, deployerWallet);
+          publicSaleContract.isWhitelisted(kyc.walletAddress).then(async (isIn: boolean) => {
+            if (isIn) {
+              const tx = await publicSaleContract.removeFromWhitelist([kyc.walletAddress]);
+              console.log(`[Whitelist] PublicSale 白名单移除成功: ${kyc.walletAddress}, tx: ${tx.hash}`);
+            }
+          }).catch((err: unknown) => console.error("[Whitelist] PublicSale 移除失败:", err));
+        }
+      }
 
       return { success: true, message: "已拒绝该申请" };
     }),

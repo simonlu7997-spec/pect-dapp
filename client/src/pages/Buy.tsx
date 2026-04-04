@@ -586,6 +586,12 @@ function PublicSaleTab({
   const [txError, setTxError] = useState<string | null>(null);
   const [currentAllowance, setCurrentAllowance] = useState("0");
 
+  // 查询 KYC 状态
+  const { data: kycStatus } = trpc.whitelist.checkStatus.useQuery(
+    { walletAddress: account ?? "" },
+    { enabled: !!account }
+  );
+
   const { data: saleInfo, isLoading: saleLoading, refetch: refetchSaleInfo } =
     trpc.purchase.getPublicSaleInfo.useQuery(
       { walletAddress: account ?? undefined },
@@ -781,6 +787,36 @@ function PublicSaleTab({
               )}
               {isConnected && (
                 <>
+                  {/* KYC 状态提示 */}
+                  {account && (
+                    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
+                      kycStatus?.isKycVerified
+                        ? "bg-green-50 border border-green-200"
+                        : kycStatus?.dbRecord?.status === "pending"
+                        ? "bg-amber-50 border border-amber-200"
+                        : "bg-red-50 border border-red-200"
+                    }`}>
+                      {kycStatus?.isKycVerified ? (
+                        <>
+                          <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                          <span className="text-green-700 font-medium">KYC 已通过，可参与公募</span>
+                        </>
+                      ) : kycStatus?.dbRecord?.status === "pending" ? (
+                        <>
+                          <Loader2 className="w-4 h-4 text-amber-600 flex-shrink-0 animate-spin" />
+                          <span className="text-amber-700">KYC 审核中，请耐心等待</span>
+                        </>
+                      ) : (
+                        <>
+                          <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
+                          <span className="text-red-700">未通过 KYC，公募需要白名单认证。
+                            <a href="/whitelist" className="underline hover:text-red-900 ml-1">立即申请</a>
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  )}
+
                   {txStep === "success" && (
                     <div className="flex flex-col items-center gap-4 py-6 text-center">
                       <CheckCircle2 className="w-14 h-14 text-blue-500" />
@@ -867,7 +903,7 @@ function PublicSaleTab({
                           </Button>
                         )}
                         <Button className="w-full bg-blue-600 hover:bg-blue-700"
-                          disabled={!usdtInput || !!inputError || needsApproval || txStep === "buying" || !saleInfo?.isActive}
+                          disabled={!usdtInput || !!inputError || needsApproval || txStep === "buying" || !saleInfo?.isActive || !kycStatus?.isKycVerified}
                           onClick={handleBuy}>
                           {txStep === "buying" ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />购买中...</> : needsApproval ? "第二步：购买 PVC（需先授权）" : "购买 PVC"}
                         </Button>
