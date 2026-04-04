@@ -6,7 +6,6 @@ import {
   Zap, TrendingUp, Gift, Layers, ShoppingCart, PieChart,
 } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { useWalletContext } from "@/contexts/WalletContext";
 import {
@@ -165,9 +164,9 @@ function WalletButton() {
 export default function Navbar() {
   const [location, setLocation] = useLocation();
   const [isOpen, setIsOpen] = useState(false);
+  // auth.me 已统一返回 SIWE 钱包用户，无需重复调用 siweAuth.me
   const { user } = useAuth();
-  const { data: siweUser } = trpc.siweAuth.me.useQuery(undefined, { retry: false, refetchOnWindowFocus: false });
-  const isAdmin = user?.role === "admin" || siweUser?.role === "admin";
+  const isAdmin = user?.role === "admin";
 
   // 桌面端下拉菜单状态
   const [showAssetMenu, setShowAssetMenu] = useState(false);

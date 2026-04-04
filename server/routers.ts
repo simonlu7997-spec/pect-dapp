@@ -1,5 +1,3 @@
-import { COOKIE_NAME } from "@shared/const";
-import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import { whitelistRouter } from "./routers/whitelist";
@@ -17,20 +15,26 @@ import { adminAirdropRouter } from "./routers/adminAirdrop";
 import { adminRewardRouter } from "./routers/adminReward";
 
 export const appRouter = router({
-    // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
+  // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
+
+  // auth.me / auth.logout 统一使用 SIWE 钱包签名认证（已移除 Manus OAuth）
+  // auth.me 直接返回 ctx.user（由 context.ts 从 siwe_token 解析）
+  // auth.logout 清除 siwe_token Cookie
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
-      const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      ctx.res.clearCookie("siwe_token", {
+        httpOnly: true,
+        path: "/",
+      });
       return {
         success: true,
       } as const;
     }),
   }),
 
-  // SIWE 钱包签名认证路由
+  // SIWE 钱包签名认证路由（getNonce / verify / me / logout）
   siweAuth: siweAuthRouter,
   // 白名单路由（后端使用部署者私钥调用合约）
   whitelist: whitelistRouter,

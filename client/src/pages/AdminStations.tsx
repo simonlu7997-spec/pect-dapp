@@ -145,12 +145,9 @@ function StationFormFields({
 }
 
 export default function AdminStations() {
+  // auth.me 已统一返回 SIWE 钱包用户，无需重复调用 siweAuth.me
   const { user, loading } = useAuth();
-  const { data: siweUser, isLoading: siweLoading } = trpc.siweAuth.me.useQuery(undefined, {
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
-  const isAdmin = user?.role === "admin" || siweUser?.role === "admin";
+  const isAdmin = user?.role === "admin";
   const [, navigate] = useLocation();
 
   const [createOpen, setCreateOpen] = useState(false);
@@ -228,7 +225,7 @@ export default function AdminStations() {
     setEditTarget({ id: station.id });
   };
 
-  if (loading || siweLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-green-400" />

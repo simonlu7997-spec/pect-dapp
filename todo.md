@@ -118,3 +118,15 @@
 ## 2026-04-04 新增任务（六）
 
 - [x] 为公募购买流程补充 vitest 测试用例：白名单校验 + 合约调用失败降级逻辑（共 35 个新增测试，118/118 全部通过）
+
+## 2026-04-04 移除 Manus OAuth
+
+- [x] 移除后端 OAuth 相关代码（oauth.ts、sdk.ts 中的 OAuthService、index.ts 中的 registerOAuthRoutes）
+- [x] 简化 context.ts：只保留 SIWE JWT 验证，删除 sdk.authenticateRequest
+- [x] 合并 auth.me 与 siweAuth.me：auth.me 改为读取 siwe_token，统一鉴权入口
+- [x] 更新 auth.logout：清除 siwe_token 而非 app_session_id
+- [x] 更新前端 useAuth hook：auth.me 返回 SIWE 用户
+- [x] 更新 DashboardLayout：移除 OAuth 登录跳转，改为引导连接钱包
+- [x] 更新 main.tsx：移除 redirectToLoginIfUnauthorized 的 OAuth 跳转
+- [x] 清理 client/src/const.ts 中的 getLoginUrl
+- [x] 更新测试用例中的断言（logout 改清 siwe_token，119/119 测试通过）

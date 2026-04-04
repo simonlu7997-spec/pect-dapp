@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
-import { COOKIE_NAME } from "../shared/const";
 import type { TrpcContext } from "./_core/context";
 
 type CookieCall = {
@@ -15,10 +14,10 @@ function createAuthContext(): { ctx: TrpcContext; clearedCookies: CookieCall[] }
 
   const user: AuthenticatedUser = {
     id: 1,
-    openId: "sample-user",
-    email: "sample@example.com",
-    name: "Sample User",
-    loginMethod: "manus",
+    openId: "0xabcdef1234567890abcdef1234567890abcdef12",
+    email: null,
+    name: "0xabcdef...ef12",
+    loginMethod: "siwe",
     role: "user",
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -42,21 +41,42 @@ function createAuthContext(): { ctx: TrpcContext; clearedCookies: CookieCall[] }
 }
 
 describe("auth.logout", () => {
-  it("clears the session cookie and reports success", async () => {
+  it("clears the siwe_token cookie and reports success", async () => {
     const { ctx, clearedCookies } = createAuthContext();
     const caller = appRouter.createCaller(ctx);
 
     const result = await caller.auth.logout();
 
     expect(result).toEqual({ success: true });
+    // auth.logout 现在清除 siwe_token（已移除 Manus OAuth，不再使用 app_session_id）
     expect(clearedCookies).toHaveLength(1);
-    expect(clearedCookies[0]?.name).toBe(COOKIE_NAME);
+    expect(clearedCookies[0]?.name).toBe("siwe_token");
     expect(clearedCookies[0]?.options).toMatchObject({
-      maxAge: -1,
-      secure: true,
-      sameSite: "lax",  // 已从 "none" 改为 "lax"，兼容 Edge 增强隐私保护
       httpOnly: true,
       path: "/",
     });
+  });
+
+  it("allows unauthenticated users to call logout without error", async () => {
+    const clearedCookies: CookieCall[] = [];
+    const ctx: TrpcContext = {
+      user: null,
+      req: {
+        protocol: "https",
+        headers: {},
+      } as TrpcContext["req"],
+      res: {
+        clearCookie: (name: string, options: Record<string, unknown>) => {
+          clearedCookies.push({ name, options });
+        },
+      } as TrpcContext["res"],
+    };
+
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.auth.logout();
+
+    // 即使未登录，logout 也应该成功（清除 cookie 是幂等操作）
+    expect(result).toEqual({ success: true });
+    expect(clearedCookies[0]?.name).toBe("siwe_token");
   });
 });

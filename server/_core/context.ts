@@ -1,6 +1,5 @@
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import type { User } from "../../drizzle/schema";
-import { sdk } from "./sdk";
 import { jwtVerify } from "jose";
 import { getUserByOpenId } from "../db";
 
@@ -20,23 +19,18 @@ export async function createContext(
 ): Promise<TrpcContext> {
   let user: User | null = null;
 
+  // 只使用 SIWE 钱包签名认证（已移除 Manus OAuth）
   try {
-    user = await sdk.authenticateRequest(opts.req);
-  } catch (error) {
-    // Authentication is optional for public procedures.
-    // Fallback: try SIWE wallet authentication via siwe_token cookie
-    try {
-      const siweToken = opts.req.cookies?.siwe_token;
-      if (siweToken) {
-        const { payload } = await jwtVerify(siweToken, getSiweJwtSecret());
-        const address = payload.address as string;
-        if (address) {
-          user = (await getUserByOpenId(address)) ?? null;
-        }
+    const siweToken = opts.req.cookies?.siwe_token;
+    if (siweToken) {
+      const { payload } = await jwtVerify(siweToken, getSiweJwtSecret());
+      const address = payload.address as string;
+      if (address) {
+        user = (await getUserByOpenId(address)) ?? null;
       }
-    } catch {
-      // SIWE auth also failed, user remains null
     }
+  } catch {
+    // Token 无效或过期，user 保持 null
   }
 
   return {
