@@ -148,11 +148,13 @@ export const siweAuthRouter = router({
           .sign(getJwtSecret());
 
         // 设置 Cookie
+        // 使用 "strict" 而非 "none"，确保 Edge/Firefox 等浏览器的增强隐私保护不会阻止 Cookie
+        // 前后端均在 pect-dapp.io 同一域名下，无需跨域 Cookie
         const isProduction = process.env.NODE_ENV === "production";
         ctx.res.cookie("siwe_token", token, {
           httpOnly: true,
           secure: isProduction,
-          sameSite: isProduction ? "none" : "lax",
+          sameSite: "strict",
           maxAge: 7 * 24 * 60 * 60 * 1000, // 7 天
           path: "/",
         });
