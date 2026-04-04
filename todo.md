@@ -134,3 +134,9 @@
 ## 2026-04-04 Bug 修复（三）
 
 - [x] 购买 PVC 第二步失败：根本原因是 VITE_USDT_ADDRESS/USDT_ADDRESS 配置的是主网 USDT，但合约内部使用 Amoy tUSDT（地址不一致导致 allowance=0）；已将两个环境变量更新为 0xf889dfa134E8fa22562fC40119e1B3CD2376aD94
+
+## 2026-04-04 后续优化（四）
+
+- [x] 验证 PrivateSale 合约内部 USDT 地址与 VITE_USDT_ADDRESS 一致（链上查询确认）
+- [x] 将 WalletContext 中的 siweAuth.me 改为 auth.me，删除冗余路由
+- [x] 为 siweAuth.verify 补充单元测试（19 个新增测试，138/138 全部通过）

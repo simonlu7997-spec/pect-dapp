@@ -43,15 +43,20 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const verifyMutation = trpc.siweAuth.verify.useMutation();
   const logoutMutation = trpc.siweAuth.logout.useMutation();
 
-  // 查询当前登录状态
-  const { data: meData, refetch: refetchMe } = trpc.siweAuth.me.useQuery(undefined, {
+  // 查询当前登录状态（统一使用 auth.me，已改为读取 siwe_token，无需重复请求 siweAuth.me）
+  const { data: meData, refetch: refetchMe } = trpc.auth.me.useQuery(undefined, {
     retry: false,
     refetchOnWindowFocus: false,
   });
 
   useEffect(() => {
     if (meData) {
-      setSiweUser(meData);
+      // auth.me 返回 User 对象：openId 存储钱包地址，id 为数据库主键
+      setSiweUser({
+        address: meData.openId,
+        name: meData.name ?? meData.openId,
+        userId: meData.id,
+      });
     } else {
       setSiweUser(null);
     }
