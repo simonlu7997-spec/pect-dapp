@@ -76,3 +76,9 @@
 - [x] 在连接钱包提示区域添加「推荐使用 Chrome 浏览器，暂不支持 IE」提示
 - [x] Edge 浏览器登录失败：将 Cookie sameSite 从 "none" 改为 "strict"，解决 Edge 增强隐私保护阻止 Cookie 的问题
 - [x] 连接钱包提示区域：补充 Edge 浏览器同样支持的说明，避免用户误解
+
+## 2026-04-04 新增任务
+
+- [x] C2Coin 空投第一阶段（issue）自动化：carbonAmount = 上月发电量 × 0.785 / 1000，在 airdropScheduler 中自动调用
+- [x] 管理后台分红管理页面：添加 deployer 账户 USDT 余额 & allowance 检测卡片
+- [x] 调整合约最小奖励阈值：C2Coin 改为 0.1 C2Coin（10^5），分红改为 0.01 USDT（10^4）
