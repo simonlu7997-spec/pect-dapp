@@ -90,3 +90,7 @@
 - [x] 扩展 getDeployerBalance 路由，同时返回质押奖励合约（StakingManager）的 USDT 余额和 allowance
 - [x] 管理后台分红管理页面：deployer 余额检测卡片新增「一键 Approve 分红合约」和「一键 Approve 质押奖励合约」按钮
 - [x] 修复 ABI 函数名错误：minThreshold → minRewardThreshold，定时任务初始化阶段不再报错
+
+## 2026-04-04 新增任务（三）
+
+- [x] 将前端 USDT 合约地址更新为 Amoy tUSDT（0xf889dfa134E8fa22562fC40119e1B3CD2376aD94），正式上线主网时再改回

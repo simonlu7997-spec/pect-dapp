@@ -279,10 +279,11 @@ export const TOKEN_CONFIG = {
    * USDT 配置（Polygon Amoy）
    */
   USDT: {
-    name: 'Tether USD',
-    symbol: 'USDT',
+    name: 'Test USDT (Amoy)',
+    symbol: 'tUSDT',
     decimals: 6,
-    address: import.meta.env.VITE_USDT_ADDRESS || '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
+    // Amoy 测试网 tUSDT 地址；正式上线主网时替换为 0xc2132D05D31c914a87C6611C10748AEb04B58e8F（Polygon USDT）
+    address: import.meta.env.VITE_USDT_ADDRESS || '0xf889dfa134E8fa22562fC40119e1B3CD2376aD94',
   },
 } as const;
 
