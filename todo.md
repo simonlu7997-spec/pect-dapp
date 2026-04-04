@@ -130,3 +130,7 @@
 - [x] 更新 main.tsx：移除 redirectToLoginIfUnauthorized 的 OAuth 跳转
 - [x] 清理 client/src/const.ts 中的 getLoginUrl
 - [x] 更新测试用例中的断言（logout 改清 siwe_token，119/119 测试通过）
+
+## 2026-04-04 Bug 修复（三）
+
+- [x] 购买 PVC 第二步失败：根本原因是 VITE_USDT_ADDRESS/USDT_ADDRESS 配置的是主网 USDT，但合约内部使用 Amoy tUSDT（地址不一致导致 allowance=0）；已将两个环境变量更新为 0xf889dfa134E8fa22562fC40119e1B3CD2376aD94
