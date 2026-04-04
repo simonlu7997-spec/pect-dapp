@@ -42,7 +42,10 @@ export function getSessionCookieOptions(
   return {
     httpOnly: true,
     path: "/",
-    sameSite: "none",
+    // "lax" 允许顶层导航（OAuth 302 重定向）携带 Cookie，同时兼容 Edge 增强隐私保护
+    // "none" 会被 Edge/Firefox 的增强隐私保护阻止（视为第三方 Cookie）
+    // "strict" 会阻止 OAuth 重定向后携带 Cookie（重定向属于跨站导航）
+    sameSite: "lax",
     secure: isSecureRequest(req),
   };
 }

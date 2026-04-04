@@ -54,7 +54,7 @@ describe("auth.logout", () => {
     expect(clearedCookies[0]?.options).toMatchObject({
       maxAge: -1,
       secure: true,
-      sameSite: "none",
+      sameSite: "lax",  // 已从 "none" 改为 "lax"，兼容 Edge 增强隐私保护
       httpOnly: true,
       path: "/",
     });
