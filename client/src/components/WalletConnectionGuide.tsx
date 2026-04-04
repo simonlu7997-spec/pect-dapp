@@ -55,12 +55,20 @@ export function WalletConnectionGuide() {
   // 桌面用户提示
   if (deviceInfo.isDesktop) {
     return (
-      <Alert className="border-purple-200 bg-purple-50 mb-4">
-        <Monitor className="h-4 w-4 text-purple-600" />
-        <AlertDescription className="text-purple-800 ml-2">
-          <strong>桌面用户提示：</strong> 建议安装 <strong>MetaMask 浏览器扩展</strong>，或使用 <strong>WalletConnect</strong> 连接方式（使用手机扫描二维码）。
-        </AlertDescription>
-      </Alert>
+      <div className="space-y-2 mb-4">
+        <Alert className="border-purple-200 bg-purple-50">
+          <Monitor className="h-4 w-4 text-purple-600" />
+          <AlertDescription className="text-purple-800 ml-2">
+            <strong>桌面用户提示：</strong> 建议安装 <strong>MetaMask 浏览器扩展</strong>，或使用 <strong>WalletConnect</strong> 连接方式（使用手机扫描二维码）。
+          </AlertDescription>
+        </Alert>
+        <Alert className="border-amber-200 bg-amber-50">
+          <AlertCircle className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-800 ml-2">
+            推荐使用 <strong>Chrome 浏览器</strong>以获得最佳体验，暂不支持 IE 浏览器。
+          </AlertDescription>
+        </Alert>
+      </div>
     );
   }
 
