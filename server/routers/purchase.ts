@@ -12,7 +12,7 @@ const SaleABI = [
   "function minPurchase() external view returns (uint256)",
   "function maxPurchase() external view returns (uint256)",
   "function isActive() external view returns (bool)",
-  "function purchasedAmount(address) external view returns (uint256)",
+  "function purchaseAmount(address) external view returns (uint256)",
   "function buy(uint256 usdtAmount) external",
 ];
 
@@ -63,7 +63,7 @@ async function fetchSaleInfo(
       usdt.decimals(),
       usdt.balanceOf(walletAddress),
       usdt.allowance(walletAddress, saleAddress),
-      sale.purchasedAmount(walletAddress),
+      sale.purchaseAmount(walletAddress),
     ]);
     usdtDecimals = Number(decimals);
     userUsdtBalance = ethers.formatUnits(balance, usdtDecimals);

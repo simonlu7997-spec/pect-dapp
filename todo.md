@@ -95,3 +95,7 @@
 
 - [x] 将前端 USDT 合约地址更新为 Amoy tUSDT（0xf889dfa134E8fa22562fC40119e1B3CD2376aD94），正式上线主网时再改回
 - [x] 购买页面所有 UI 文字标签改为动态读取 TOKEN_CONFIG.USDT.symbol（当前显示 tUSDT，主网改回后自动变为 USDT）
+
+## 2026-04-04 Bug 修复（二）
+
+- [x] 购买页面 tUSDT 余额显示不足，但钉包实际有充足余额——根本原因：后端 SaleABI 中函数名写错（purchasedAmount → purchaseAmount），导致 Promise.all revert，返回余额 0
