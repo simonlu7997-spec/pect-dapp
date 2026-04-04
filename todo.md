@@ -75,3 +75,4 @@
 - [ ] IE 浏览器（Windows）SIWE 登录失败：Failed to fetch 错误，排查并修复兼容性问题
 - [x] 在连接钱包提示区域添加「推荐使用 Chrome 浏览器，暂不支持 IE」提示
 - [x] Edge 浏览器登录失败：将 Cookie sameSite 从 "none" 改为 "strict"，解决 Edge 增强隐私保护阻止 Cookie 的问题
+- [x] 连接钱包提示区域：补充 Edge 浏览器同样支持的说明，避免用户误解

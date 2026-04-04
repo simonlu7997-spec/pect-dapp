@@ -65,7 +65,7 @@ export function WalletConnectionGuide() {
         <Alert className="border-amber-200 bg-amber-50">
           <AlertCircle className="h-4 w-4 text-amber-600" />
           <AlertDescription className="text-amber-800 ml-2">
-            推荐使用 <strong>Chrome 浏览器</strong>以获得最佳体验，暂不支持 IE 浏览器。
+            支持 <strong>Chrome</strong>、<strong>Edge</strong>、<strong>Firefox</strong> 等现代浏览器，暂不支持 IE 浏览器。
           </AlertDescription>
         </Alert>
       </div>
