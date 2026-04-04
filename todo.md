@@ -99,3 +99,12 @@
 ## 2026-04-04 Bug 修复（二）
 
 - [x] 购买页面 tUSDT 余额显示不足——根本原因：后端 SaleABI 全部函数名错误（tokenPrice/totalRaised/hardCap/minPurchase/maxPurchase/isActive/buy 均不存在），导致 Promise.all revert 返回余额 0；已全量重写为合约实际函数名，并修正 exchangeRate 精度计算（除以 10^6），链上验证通过
+
+## 2026-04-04 新增任务（四）
+
+- [x] 升级 PublicSale.sol，添加白名单功能（addToWhitelist/removeFromWhitelist/isWhitelisted）
+- [x] 部署升级后的 PublicSale v2 到 Amoy 测试网，地址: 0x44F8E4C74caC9196DF8038041A64716081Ba04e1
+- [x] 同步 PublicSale ABI 到 DApp，更新环境变量 VITE_PUBLIC_SALE_ADDRESS 和 PUBLIC_SALE_ADDRESS
+- [x] KYC 审核通过时同时调用 PrivateSale 和 PublicSale 的 addToWhitelist
+- [x] 修复 rewardScheduler.ts 中调用不存在的 setMinRewardThreshold 函数导致的启动告警
+- [ ] 公募购买页面添加白名单状态检测，未通过 KYC 时显示提示（待公募合约地址配置到 Buy.tsx 后完成）

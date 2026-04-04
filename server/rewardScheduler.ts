@@ -522,14 +522,8 @@ async function initRevenueMinThreshold() {
     const signer = new ethers.Wallet(ENV.deployerPrivateKey!, provider);
     const distributor = new ethers.Contract(ENV.revenueDistributorAddress!, REVENUEDISTRIBUTOR_ABI, signer);
     const currentThreshold: bigint = await distributor.minRewardThreshold();
-    if (currentThreshold !== REVENUE_MIN_THRESHOLD) {
-      console.log(`[RewardScheduler] 设置 RevenueDistributor minRewardThreshold: ${currentThreshold} → ${REVENUE_MIN_THRESHOLD}`);
-      const tx = await distributor.setMinRewardThreshold(REVENUE_MIN_THRESHOLD);
-      await tx.wait(1);
-      console.log(`[RewardScheduler] RevenueDistributor minRewardThreshold 已更新: ${tx.hash}`);
-    } else {
-      console.log(`[RewardScheduler] RevenueDistributor minRewardThreshold 已是目标值 ${REVENUE_MIN_THRESHOLD}，跳过`);
-    }
+    // RevenueDistributor 合约没有 setMinRewardThreshold 函数，只记录当前值即可
+    console.log(`[RewardScheduler] RevenueDistributor minRewardThreshold 当前値: ${currentThreshold} USDT（定义在合约构造函数中，无法动态修改）`);
   } catch (err) {
     console.warn("[RewardScheduler] 初始化 RevenueDistributor minThreshold 失败（非致命）:", err);
   }

@@ -21,6 +21,12 @@ const PVCoinABI = [
   "function isSenderWhitelisted(address _account) external view returns (bool)",
 ];
 
+// Sale 合约白名单 ABI（PrivateSale 和 PublicSale 共用）
+const SaleWhitelistABI = [
+  "function addToWhitelist(address[] calldata _users) external",
+  "function isWhitelisted(address _user) external view returns (bool)",
+];
+
 export const whitelistRouter = router({
   // ── 用户提交 KYC 申请（只写数据库，等待管理员审核）──────────────────
   submit: publicProcedure
@@ -180,6 +186,45 @@ export const whitelistRouter = router({
           const senderTx = await pvCoinContract.addSenderWhitelist(kyc.walletAddress);
           txHashSender = senderTx.hash;
           await senderTx.wait();
+        }
+
+        // 同步添加到 PrivateSale 和 PublicSale 白名单（合规要求）
+        const privateSaleAddress = process.env.PRIVATE_SALE_ADDRESS;
+        const publicSaleAddress  = process.env.PUBLIC_SALE_ADDRESS;
+
+        const saleWhitelistPromises: Promise<void>[] = [];
+
+        if (privateSaleAddress && privateSaleAddress !== "0x0000000000000000000000000000000000000000") {
+          const privateSaleContract = new ethers.Contract(privateSaleAddress, SaleWhitelistABI, deployerWallet);
+          saleWhitelistPromises.push(
+            privateSaleContract.isWhitelisted(kyc.walletAddress).then(async (already: boolean) => {
+              if (!already) {
+                const tx = await privateSaleContract.addToWhitelist([kyc.walletAddress]);
+                await tx.wait();
+                console.log(`[Whitelist] PrivateSale 白名单添加成功: ${kyc.walletAddress}, tx: ${tx.hash}`);
+              }
+            })
+          );
+        }
+
+        if (publicSaleAddress && publicSaleAddress !== "0x0000000000000000000000000000000000000000") {
+          const publicSaleContract = new ethers.Contract(publicSaleAddress, SaleWhitelistABI, deployerWallet);
+          saleWhitelistPromises.push(
+            publicSaleContract.isWhitelisted(kyc.walletAddress).then(async (already: boolean) => {
+              if (!already) {
+                const tx = await publicSaleContract.addToWhitelist([kyc.walletAddress]);
+                await tx.wait();
+                console.log(`[Whitelist] PublicSale 白名单添加成功: ${kyc.walletAddress}, tx: ${tx.hash}`);
+              }
+            })
+          );
+        }
+
+        if (saleWhitelistPromises.length > 0) {
+          await Promise.all(saleWhitelistPromises).catch((err) => {
+            // 不阻塞主流程，记录错误即可
+            console.error("[Whitelist] Sale 合约白名单添加失败:", err);
+          });
         }
 
         await updateKycStatus(input.id, "approved", {

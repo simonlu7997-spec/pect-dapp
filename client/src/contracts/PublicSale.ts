@@ -1,24 +1,28 @@
 /**
- * PublicSale 合约 ABI
+ * PublicSale 合约 ABI (v2 - 含白名单功能)
  * 
  * ⚠️  此文件由 scripts/sync-abi.cjs 自动生成，请勿手动修改
  * ⚠️  如需更新，请在合约仓库运行: node scripts/sync-abi.cjs
  * 
- * 生成时间: 2026-04-03T12:34:22.478Z
+ * 生成时间: 2026-04-04T08:41:08.000Z
+ * 合约地址 (Amoy): 0x44F8E4C74caC9196DF8038041A64716081Ba04e1
  * 
  * 函数列表:
+//   addToWhitelist(address[] _users) → void [nonpayable]
 //   exchangeRate() → uint256 [view]
 //   getPVCoinBalance() → uint256 [view]
 //   getRemainingQuota(address _user) → uint256 [view]
 //   getRemainingTime() → uint256 [view]
 //   getUSDTBalance() → uint256 [view]
+//   isWhitelisted(address _user) → bool [view]
 //   maxPerUser() → uint256 [view]
 //   owner() → address [view]
 //   pause() → void [nonpayable]
 //   paused() → bool [view]
 //   purchase(uint256 _usdtAmount) → void [nonpayable]
 //   purchaseAmount(address ) → uint256 [view]
-//   pvCoin() → address [view]
+//   pvCoin() → contract IERC20 [view]
+//   removeFromWhitelist(address[] _users) → void [nonpayable]
 //   renounceOwnership() → void [nonpayable]
 //   saleEndTime() → uint256 [view]
 //   saleStartTime() → uint256 [view]
@@ -28,7 +32,8 @@
 //   totalSold() → uint256 [view]
 //   transferOwnership(address newOwner) → void [nonpayable]
 //   unpause() → void [nonpayable]
-//   usdt() → address [view]
+//   usdt() → contract IERC20 [view]
+//   whitelist(address ) → bool [view]
 //   withdrawPVCoin(uint256 _amount) → void [nonpayable]
 //   withdrawUSDT(uint256 _amount) → void [nonpayable]
  * 
@@ -42,6 +47,8 @@
 //   event SaleTimeUpdated(uint256 newStartTime, uint256 newEndTime)
 //   event USDTWithdrawn(indexed address to, uint256 amount)
 //   event Unpaused(address account)
+//   event WhitelistAdded(indexed address user)
+//   event WhitelistRemoved(indexed address user)
  */
 
 export const PUBLICSALE_ABI = [
@@ -279,6 +286,45 @@ export const PUBLICSALE_ABI = [
     "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      }
+    ],
+    "name": "WhitelistAdded",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      }
+    ],
+    "name": "WhitelistRemoved",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address[]",
+        "name": "_users",
+        "type": "address[]"
+      }
+    ],
+    "name": "addToWhitelist",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "exchangeRate",
     "outputs": [
@@ -344,6 +390,25 @@ export const PUBLICSALE_ABI = [
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_user",
+        "type": "address"
+      }
+    ],
+    "name": "isWhitelisted",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
       }
     ],
     "stateMutability": "view",
@@ -438,6 +503,19 @@ export const PUBLICSALE_ABI = [
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address[]",
+        "name": "_users",
+        "type": "address[]"
+      }
+    ],
+    "name": "removeFromWhitelist",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -566,6 +644,25 @@ export const PUBLICSALE_ABI = [
   {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "whitelist",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "uint256",
         "name": "_amount",
         "type": "uint256"
@@ -590,5 +687,3 @@ export const PUBLICSALE_ABI = [
     "type": "function"
   }
 ] as const;
-
-export type PublicSaleAbi = typeof PUBLICSALE_ABI;
