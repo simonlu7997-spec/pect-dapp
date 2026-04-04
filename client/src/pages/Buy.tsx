@@ -21,6 +21,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { PRIVATESALE_ABI, PUBLICSALE_ABI, PVCOIN_ABI } from "@/contracts";
+import { TOKEN_CONFIG } from "@/config/contracts";
+
+// 从合约配置读取 USDT symbol，切换测试网/主网时自动跟随
+const U = TOKEN_CONFIG.USDT.symbol; // 当前为 "tUSDT"，主网改回后自动变为 "USDT"
 
 // ABI 别名（从合约仓库自动同步，勿手动修改）
 const PRIVATE_SALE_ABI = PRIVATESALE_ABI;
@@ -92,11 +96,11 @@ export default function Buy() {
   const userBalance = parseFloat(saleInfo?.userUsdtBalance || "0");
   const inputError = usdtInput
     ? usdtAmount < minPurchase
-      ? `最低购买 ${minPurchase} USDT`
+      ? `最低购买 ${minPurchase} ${U}`
       : usdtAmount > maxPurchase
-      ? `最高购买 ${maxPurchase} USDT`
+      ? `最高购买 ${maxPurchase} ${U}`
       : usdtAmount > userBalance
-      ? `USDT 余额不足（当前 ${userBalance.toFixed(2)} USDT）`
+      ? `${U} 余额不足（当前 ${userBalance.toFixed(2)} ${U}）`
       : null
     : null;
 
@@ -138,14 +142,14 @@ export default function Buy() {
       await tx.wait();
       await refreshAllowance();
       setTxStep("approved");
-      toast.success("USDT 授权成功！现在可以购买 PVC 了");
+      toast.success(`${U} 授权成功！现在可以购买 PVC 了`);
     } catch (err: unknown) {
       setTxStep("idle");
       if ((err as { code?: string }).code === "ACTION_REJECTED") {
         toast.error("您已取消授权操作");
       } else {
         setTxError("授权失败，请重试");
-        toast.error("USDT 授权失败，请重试");
+        toast.error(`${U} 授权失败，请重试`);
       }
     }
   };
@@ -246,15 +250,15 @@ export default function Buy() {
                   <CardContent className="space-y-3 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-500">代币价格</span>
-                      <span className="font-semibold">{saleInfo?.tokenPrice ?? "0.10"} USDT/PVC</span>
+                      <span className="font-semibold">{saleInfo?.tokenPrice ?? "0.10"} {U}/PVC</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">最低购买</span>
-                      <span className="font-semibold">{saleInfo?.minPurchase ?? "500"} USDT</span>
+                      <span className="font-semibold">{saleInfo?.minPurchase ?? "500"} {U}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">最高购买</span>
-                      <span className="font-semibold">{saleInfo?.maxPurchase ?? "10,000"} USDT</span>
+                      <span className="font-semibold">{saleInfo?.maxPurchase ?? "10,000"} {U}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">锁仓期</span>
@@ -272,7 +276,7 @@ export default function Buy() {
                       <div className="flex justify-between text-xs text-gray-500 mb-1">
                         <span>募资进度</span>
                         <span>
-                          {saleInfo?.totalRaised ?? "0"} / {saleInfo?.hardCap ?? "80,000"} USDT
+                          {saleInfo?.totalRaised ?? "0"} / {saleInfo?.hardCap ?? "80,000"} {U}
                         </span>
                       </div>
                       <Progress value={saleInfo?.progressPercent ?? 0} className="h-2" />
@@ -319,16 +323,16 @@ export default function Buy() {
                   <Card className="border-gray-200">
                     <CardContent className="pt-4 pb-4 space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-gray-500">USDT 余额</span>
-                        <span className="font-semibold">{parseFloat(saleInfo.userUsdtBalance).toFixed(2)} USDT</span>
+                        <span className="text-gray-500">{U} 余额</span>
+                        <span className="font-semibold">{parseFloat(saleInfo.userUsdtBalance).toFixed(2)} {U}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-500">已授权额度</span>
-                        <span className="font-semibold">{parseFloat(currentAllowance).toFixed(2)} USDT</span>
+                        <span className="font-semibold">{parseFloat(currentAllowance).toFixed(2)} {U}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-500">本轮已购</span>
-                        <span className="font-semibold">{parseFloat(saleInfo.userPurchased).toFixed(2)} USDT</span>
+                        <span className="font-semibold">{parseFloat(saleInfo.userPurchased).toFixed(2)} {U}</span>
                       </div>
                     </CardContent>
                   </Card>
@@ -406,12 +410,12 @@ export default function Buy() {
                             {/* 输入框 */}
                             <div className="space-y-2">
                               <label className="text-sm font-medium text-gray-700">
-                                支付 USDT 金额
+                                支付 {U} 金额
                               </label>
                               <div className="relative">
                                 <Input
                                   type="number"
-                                  placeholder={`最低 ${minPurchase} USDT`}
+                                  placeholder={`最低 ${minPurchase} ${U}`}
                                   value={usdtInput}
                                   onChange={(e) => {
                                     setUsdtInput(e.target.value);
@@ -421,7 +425,7 @@ export default function Buy() {
                                   className={`pr-16 text-base ${inputError ? "border-red-400" : ""}`}
                                 />
                                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">
-                                  USDT
+                                  {U}
                                 </span>
                               </div>
                               {inputError && (
@@ -436,7 +440,7 @@ export default function Buy() {
                               <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-1">
                                 <div className="flex justify-between text-sm">
                                   <span className="text-gray-600">支付</span>
-                                  <span className="font-semibold">{usdtAmount.toFixed(2)} USDT</span>
+                                  <span className="font-semibold">{usdtAmount.toFixed(2)} {U}</span>
                                 </div>
                                 <div className="flex justify-between text-sm">
                                   <span className="text-gray-600">获得</span>
@@ -446,7 +450,7 @@ export default function Buy() {
                                 </div>
                                 <div className="flex justify-between text-xs text-gray-400 pt-1 border-t border-green-200">
                                   <span>单价</span>
-                                  <span>{tokenPrice} USDT/PVC</span>
+                                  <span>{tokenPrice} {U}/PVC</span>
                                 </div>
                               </div>
                             )}
@@ -467,7 +471,7 @@ export default function Buy() {
                                   {!needsApproval || txStep === "approved" ? "✓" : "1"}
                                 </div>
                                 <span className={!needsApproval || txStep === "approved" ? "text-green-600" : ""}>
-                                  授权 USDT
+                                  授权 {U}
                                 </span>
                                 <div className="flex-1 h-px bg-gray-200" />
                                 <div className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold bg-gray-200 text-gray-500">
@@ -489,7 +493,7 @@ export default function Buy() {
                                       授权中...
                                     </>
                                   ) : (
-                                    "第一步：授权 USDT"
+                                    `第一步：授权 ${U}`
                                   )}
                                 </Button>
                               )}
@@ -615,11 +619,11 @@ function PublicSaleTab({
   const userBalance = parseFloat(saleInfo?.userUsdtBalance || "0");
   const inputError = usdtInput
     ? usdtAmount < minPurchase
-      ? `最低购买 ${minPurchase} USDT`
+      ? `最低购买 ${minPurchase} ${U}`
       : usdtAmount > maxPurchase
-      ? `最高购买 ${maxPurchase} USDT`
+      ? `最高购买 ${maxPurchase} ${U}`
       : usdtAmount > userBalance
-      ? `USDT 余额不足（当前 ${userBalance.toFixed(2)} USDT）`
+      ? `${U} 余额不足（当前 ${userBalance.toFixed(2)} ${U}）`
       : null
     : null;
   const needsApproval = parseFloat(currentAllowance) < usdtAmount;
@@ -650,11 +654,11 @@ function PublicSaleTab({
       await tx.wait();
       await refreshAllowance();
       setTxStep("approved");
-      toast.success("USDT 授权成功！现在可以购买 PVC 了");
+      toast.success(`${U} 授权成功！现在可以购买 PVC 了`);
     } catch (err: unknown) {
       setTxStep("idle");
       if ((err as { code?: string }).code === "ACTION_REJECTED") toast.error("您已取消授权操作");
-      else { setTxError("授权失败，请重试"); toast.error("USDT 授权失败，请重试"); }
+      else { setTxError("授权失败，请重试"); toast.error(`${U} 授权失败，请重试`); }
     }
   };
 
@@ -709,15 +713,15 @@ function PublicSaleTab({
             <CardContent className="space-y-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-500">代币价格</span>
-                <span className="font-semibold">{saleInfo?.tokenPrice ?? "0.20"} USDT/PVC</span>
+                <span className="font-semibold">{saleInfo?.tokenPrice ?? "0.20"} {U}/PVC</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">最低购买</span>
-                <span className="font-semibold">{saleInfo?.minPurchase ?? "100"} USDT</span>
+                <span className="font-semibold">{saleInfo?.minPurchase ?? "100"} {U}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">最高购买</span>
-                <span className="font-semibold">{saleInfo?.maxPurchase ?? "50,000"} USDT</span>
+                <span className="font-semibold">{saleInfo?.maxPurchase ?? "50,000"} {U}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">锁仓期</span>
@@ -734,7 +738,7 @@ function PublicSaleTab({
               <div className="pt-2 border-t">
                 <div className="flex justify-between text-xs text-gray-500 mb-1">
                   <span>募资进度</span>
-                  <span>{saleInfo?.totalRaised ?? "0"} / {saleInfo?.hardCap ?? "200,000"} USDT</span>
+                  <span>{saleInfo?.totalRaised ?? "0"} / {saleInfo?.hardCap ?? "200,000"} {U}</span>
                 </div>
                 <Progress value={saleInfo?.progressPercent ?? 0} className="h-2" />
                 <p className="text-right text-xs text-gray-400 mt-1">{saleInfo?.progressPercent ?? 0}%</p>
@@ -746,16 +750,16 @@ function PublicSaleTab({
             <Card className="border-gray-200">
               <CardContent className="pt-4 pb-4 space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">USDT 余额</span>
-                  <span className="font-semibold">{parseFloat(saleInfo.userUsdtBalance).toFixed(2)} USDT</span>
+                  <span className="text-gray-500">{U} 余额</span>
+                  <span className="font-semibold">{parseFloat(saleInfo.userUsdtBalance).toFixed(2)} {U}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">已授权额度</span>
-                  <span className="font-semibold">{parseFloat(currentAllowance).toFixed(2)} USDT</span>
+                  <span className="font-semibold">{parseFloat(currentAllowance).toFixed(2)} {U}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">本轮已购</span>
-                  <span className="font-semibold">{parseFloat(saleInfo.userPurchased).toFixed(2)} USDT</span>
+                  <span className="font-semibold">{parseFloat(saleInfo.userPurchased).toFixed(2)} {U}</span>
                 </div>
               </CardContent>
             </Card>
@@ -811,12 +815,12 @@ function PublicSaleTab({
                   {txStep !== "success" && txStep !== "confirming" && (
                     <>
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700">支付 USDT 金额</label>
+                        <label className="text-sm font-medium text-gray-700">支付 {U} 金额</label>
                         <div className="relative">
-                          <Input type="number" placeholder={`最低 ${minPurchase} USDT`} value={usdtInput}
+                          <Input type="number" placeholder={`最低 ${minPurchase} ${U}`} value={usdtInput}
                             onChange={(e) => { setUsdtInput(e.target.value); setTxStep("idle"); setTxError(null); }}
                             className={`pr-16 text-base ${inputError ? "border-red-400" : ""}`} />
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">USDT</span>
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">{U}</span>
                         </div>
                         {inputError && (
                           <p className="text-xs text-red-500 flex items-center gap-1">
@@ -828,7 +832,7 @@ function PublicSaleTab({
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-1">
                           <div className="flex justify-between text-sm">
                             <span className="text-gray-600">支付</span>
-                            <span className="font-semibold">{usdtAmount.toFixed(2)} USDT</span>
+                            <span className="font-semibold">{usdtAmount.toFixed(2)} {U}</span>
                           </div>
                           <div className="flex justify-between text-sm">
                             <span className="text-gray-600">获得</span>
@@ -836,7 +840,7 @@ function PublicSaleTab({
                           </div>
                           <div className="flex justify-between text-xs text-gray-400 pt-1 border-t border-blue-200">
                             <span>单价</span>
-                            <span>{tokenPrice} USDT/PVC</span>
+                            <span>{tokenPrice} {U}/PVC</span>
                           </div>
                         </div>
                       )}
@@ -850,7 +854,7 @@ function PublicSaleTab({
                           <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${!needsApproval || txStep === "approved" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-500"}`}>
                             {!needsApproval || txStep === "approved" ? "✓" : "1"}
                           </div>
-                          <span className={!needsApproval || txStep === "approved" ? "text-blue-600" : ""}>授权 USDT</span>
+                          <span className={!needsApproval || txStep === "approved" ? "text-blue-600" : ""}>授权 {U}</span>
                           <div className="flex-1 h-px bg-gray-200" />
                           <div className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold bg-gray-200 text-gray-500">2</div>
                           <span>购买 PVC</span>
@@ -859,7 +863,7 @@ function PublicSaleTab({
                           <Button className="w-full bg-blue-600 hover:bg-blue-700"
                             disabled={!usdtInput || !!inputError || txStep === "approving" || !saleInfo?.isActive}
                             onClick={handleApprove}>
-                            {txStep === "approving" ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />授权中...</> : "第一步：授权 USDT"}
+                            {txStep === "approving" ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />授权中...</> : `第一步：授权 ${U}`}
                           </Button>
                         )}
                         <Button className="w-full bg-blue-600 hover:bg-blue-700"
