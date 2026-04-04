@@ -85,8 +85,8 @@
 
 ## 2026-04-04 新增任务（二）
 
-- [ ] 分红定时任务执行前检测 deployer USDT 余额和 allowance，不足时提前终止并推送告警通知
-- [ ] 质押奖励定时任务执行前检测 deployer USDT 余额和 allowance，不足时提前终止并推送告警通知
-- [ ] 扩展 getDeployerBalance 路由，同时返回质押奖励合约（StakingManager）的 USDT 余额和 allowance
-- [ ] 管理后台分红管理页面：deployer 余额检测卡片新增「一键 Approve 分红合约」和「一键 Approve 质押奖励合约」按钮
-- [ ] 管理后台分红管理页面：新增质押奖励 USDT 余额检测卡片（与分红余额检测并排显示）
+- [x] 分红定时任务执行前检测 deployer USDT 余额和 allowance，不足时提前终止并推送告警通知
+- [x] 质押奖励定时任务执行前检测 deployer USDT 余额和 allowance，不足时提前终止并推送告警通知
+- [x] 扩展 getDeployerBalance 路由，同时返回质押奖励合约（StakingManager）的 USDT 余额和 allowance
+- [x] 管理后台分红管理页面：deployer 余额检测卡片新增「一键 Approve 分红合约」和「一键 Approve 质押奖励合约」按钮
+- [x] 修复 ABI 函数名错误：minThreshold → minRewardThreshold，定时任务初始化阶段不再报错
