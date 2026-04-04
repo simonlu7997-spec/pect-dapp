@@ -4,16 +4,17 @@ import { z } from "zod";
 import { ethers } from "ethers";
 import { recordTransaction, getTransactionsByWallet } from "../db";
 
-// PrivateSale / PublicSale 合约 ABI（接口相同）
+// PrivateSale / PublicSale 合约 ABI（对照合约实际函数名）
+// 合约实际函数：exchangeRate, totalSold, maxPerUser, saleStartTime, saleEndTime, paused, purchaseAmount, purchase
 const SaleABI = [
-  "function tokenPrice() external view returns (uint256)",
-  "function totalRaised() external view returns (uint256)",
-  "function hardCap() external view returns (uint256)",
-  "function minPurchase() external view returns (uint256)",
-  "function maxPurchase() external view returns (uint256)",
-  "function isActive() external view returns (bool)",
-  "function purchaseAmount(address) external view returns (uint256)",
-  "function buy(uint256 usdtAmount) external",
+  "function exchangeRate() external view returns (uint256)",   // PVC per USDT（如 10 表示 1 USDT = 10 PVC）
+  "function totalSold() external view returns (uint256)",      // 已售出 PVC 数量
+  "function maxPerUser() external view returns (uint256)",     // 每人最大购买 USDT 上限
+  "function saleStartTime() external view returns (uint256)",  // 销售开始时间（unix timestamp）
+  "function saleEndTime() external view returns (uint256)",    // 销售结束时间（unix timestamp）
+  "function paused() external view returns (bool)",            // 是否暂停
+  "function purchaseAmount(address) external view returns (uint256)", // 用户已购买 USDT 数量
+  "function purchase(uint256 _usdtAmount) external",           // 购买函数
 ];
 
 // ERC20 USDT ABI（授权和余额查询）
@@ -37,21 +38,46 @@ async function fetchSaleInfo(
   saleAddress: string,
   usdtAddress: string | undefined,
   walletAddress: string | undefined,
-  defaults: { tokenPrice: string; hardCap: string; minPurchase: string; maxPurchase: string }
 ) {
   const provider = new ethers.JsonRpcProvider(rpcUrl);
   const sale = new ethers.Contract(saleAddress, SaleABI, provider);
 
-  const [tokenPrice, totalRaised, hardCap, minPurchase, maxPurchase, isActive] =
+  // 第一步：读取合约基础信息（不依赖用户地址）
+  const [exchangeRate, totalSold, maxPerUser, saleStartTime, saleEndTime, paused] =
     await Promise.all([
-      sale.tokenPrice(),
-      sale.totalRaised(),
-      sale.hardCap(),
-      sale.minPurchase(),
-      sale.maxPurchase(),
-      sale.isActive(),
+      sale.exchangeRate(),
+      sale.totalSold(),
+      sale.maxPerUser(),
+      sale.saleStartTime(),
+      sale.saleEndTime(),
+      sale.paused(),
     ]);
 
+  // 推算 isActive：当前时间在销售区间内且未暂停
+  const now = Math.floor(Date.now() / 1000);
+  const startTime = Number(saleStartTime);
+  const endTime = Number(saleEndTime);
+  const isActive = !paused && now >= startTime && now <= endTime;
+
+  // exchangeRate 带 6 位精度：exchangeRate / 10^6 = PVC per USDT
+  // 例如 exchangeRate = 10000000 → 10 PVC per USDT → tokenPrice = 0.1 USDT/PVC
+  const exchangeRateRaw = Number(exchangeRate);
+  const pvcPerUsdt = exchangeRateRaw / 1e6;  // 实际兑换比例（如 10）
+  const tokenPriceStr = pvcPerUsdt > 0
+    ? (1 / pvcPerUsdt).toFixed(4)
+    : "0";
+
+  // totalSold 是 PVC 数量（18位精度），转换为 USDT 等价值用于显示进度
+  // totalRaised（USDT）= totalSold（PVC）/ pvcPerUsdt
+  const totalSoldPvc = parseFloat(ethers.formatUnits(totalSold, 18));
+  const totalRaisedUsdt = pvcPerUsdt > 0
+    ? (totalSoldPvc / pvcPerUsdt).toFixed(2)
+    : "0";
+
+  // maxPerUser 是 USDT 数量（6位精度）
+  const maxPerUserFormatted = ethers.formatUnits(maxPerUser, 6);
+
+  // 第二步：读取用户相关数据（可选）
   let usdtDecimals = 6;
   let userUsdtBalance = "0";
   let userAllowance = "0";
@@ -59,6 +85,7 @@ async function fetchSaleInfo(
 
   if (usdtAddress && walletAddress) {
     const usdt = new ethers.Contract(usdtAddress, ERC20ABI, provider);
+    // 将用户数据查询与合约数据查询分开，避免一个失败导致全部失败
     const [decimals, balance, allowance, purchased] = await Promise.all([
       usdt.decimals(),
       usdt.balanceOf(walletAddress),
@@ -71,25 +98,25 @@ async function fetchSaleInfo(
     userPurchased = ethers.formatUnits(purchased, usdtDecimals);
   }
 
-  const hardCapFormatted = ethers.formatUnits(hardCap, usdtDecimals);
-  const totalRaisedFormatted = ethers.formatUnits(totalRaised, usdtDecimals);
-  const progressPercent =
-    Number(hardCap) > 0
-      ? Math.min(100, Math.round((Number(totalRaised) / Number(hardCap)) * 100))
-      : 0;
+  // 进度百分比：totalRaised / hardCap（这里用 maxPerUser 作为参考，合约无 hardCap）
+  // 实际上合约没有 hardCap，进度基于 totalSold PVC / 合约 PVC 余额（暂用 0）
+  const progressPercent = 0; // 合约无 hardCap，暂不显示进度
 
   return {
     contractConfigured: true,
     isActive,
-    tokenPrice: ethers.formatUnits(tokenPrice, usdtDecimals),
-    totalRaised: totalRaisedFormatted,
-    hardCap: hardCapFormatted,
-    minPurchase: ethers.formatUnits(minPurchase, usdtDecimals),
-    maxPurchase: ethers.formatUnits(maxPurchase, usdtDecimals),
+    tokenPrice: tokenPriceStr,           // USDT per PVC
+    exchangeRate: pvcPerUsdt,             // PVC per USDT（已除以 10^6）
+    totalRaised: totalRaisedUsdt,         // 等价 USDT
+    hardCap: "0",                         // 合约无 hardCap
+    minPurchase: "1",                     // 合约无 minPurchase，默认 1 USDT
+    maxPurchase: maxPerUserFormatted,     // 每人上限
     progressPercent,
     userPurchased,
     userUsdtBalance,
     userAllowance,
+    saleStartTime: startTime,
+    saleEndTime: endTime,
   };
 }
 
@@ -105,38 +132,39 @@ export const purchaseRouter = router({
           contractConfigured: false,
           isActive: false,
           tokenPrice: "0.10",
+          exchangeRate: 10,
           totalRaised: "0",
           hardCap: "80000",
           minPurchase: "500",
-          maxPurchase: "10000",
+          maxPurchase: "100000",
           progressPercent: 0,
           userPurchased: "0",
           userUsdtBalance: "0",
           userAllowance: "0",
+          saleStartTime: 0,
+          saleEndTime: 0,
         };
       }
 
       try {
-        return await fetchSaleInfo(rpcUrl, privateSaleAddress, usdtAddress, input.walletAddress, {
-          tokenPrice: "0.10",
-          hardCap: "80000",
-          minPurchase: "500",
-          maxPurchase: "10000",
-        });
+        return await fetchSaleInfo(rpcUrl, privateSaleAddress, usdtAddress, input.walletAddress);
       } catch (error) {
         console.error("[Purchase] 查询私募轮信息失败:", error);
         return {
           contractConfigured: true,
           isActive: false,
           tokenPrice: "0.10",
+          exchangeRate: 10,
           totalRaised: "0",
           hardCap: "80000",
           minPurchase: "500",
-          maxPurchase: "10000",
+          maxPurchase: "100000",
           progressPercent: 0,
           userPurchased: "0",
           userUsdtBalance: "0",
           userAllowance: "0",
+          saleStartTime: 0,
+          saleEndTime: 0,
           error: "查询链上数据失败，请稍后重试",
         };
       }
@@ -152,7 +180,8 @@ export const purchaseRouter = router({
         return {
           contractConfigured: false,
           isActive: false,
-          tokenPrice: "0.20",       // 公募价格高于私募
+          tokenPrice: "0.20",
+          exchangeRate: 5,
           totalRaised: "0",
           hardCap: "200000",
           minPurchase: "100",
@@ -161,22 +190,20 @@ export const purchaseRouter = router({
           userPurchased: "0",
           userUsdtBalance: "0",
           userAllowance: "0",
+          saleStartTime: 0,
+          saleEndTime: 0,
         };
       }
 
       try {
-        return await fetchSaleInfo(rpcUrl, publicSaleAddress, usdtAddress, input.walletAddress, {
-          tokenPrice: "0.20",
-          hardCap: "200000",
-          minPurchase: "100",
-          maxPurchase: "50000",
-        });
+        return await fetchSaleInfo(rpcUrl, publicSaleAddress, usdtAddress, input.walletAddress);
       } catch (error) {
         console.error("[Purchase] 查询公募轮信息失败:", error);
         return {
           contractConfigured: true,
           isActive: false,
           tokenPrice: "0.20",
+          exchangeRate: 5,
           totalRaised: "0",
           hardCap: "200000",
           minPurchase: "100",
@@ -185,6 +212,8 @@ export const purchaseRouter = router({
           userPurchased: "0",
           userUsdtBalance: "0",
           userAllowance: "0",
+          saleStartTime: 0,
+          saleEndTime: 0,
           error: "查询链上数据失败，请稍后重试",
         };
       }

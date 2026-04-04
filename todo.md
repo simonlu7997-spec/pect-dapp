@@ -98,4 +98,4 @@
 
 ## 2026-04-04 Bug 修复（二）
 
-- [x] 购买页面 tUSDT 余额显示不足，但钉包实际有充足余额——根本原因：后端 SaleABI 中函数名写错（purchasedAmount → purchaseAmount），导致 Promise.all revert，返回余额 0
+- [x] 购买页面 tUSDT 余额显示不足——根本原因：后端 SaleABI 全部函数名错误（tokenPrice/totalRaised/hardCap/minPurchase/maxPurchase/isActive/buy 均不存在），导致 Promise.all revert 返回余额 0；已全量重写为合约实际函数名，并修正 exchangeRate 精度计算（除以 10^6），链上验证通过
