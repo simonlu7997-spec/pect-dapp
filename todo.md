@@ -148,3 +148,12 @@
 ## 2026-04-04 Bug 修复（五）
 
 - [x] 公募 depositPVC 充值失败：PVCoin 合约要求接收方在 KYC 白名单中，已在 depositPvcToSale 路由中自动检查并调用 addKyc/addSenderWhitelist（138/138 测试通过）
+
+## 2026-04-04 功能增强（六）
+
+- [ ] whitelist.ts approve 路由同步调用 pvCoin.addKyc(walletAddress)，确保 KYC 通过用户可购买 PVC
+
+## 2026-04-05 Bug 修复（七）
+
+- [x] 登录后需要刷新页面才能显示登录成功状态：verify 成功后立即调用 setSiweUser，无需等待 invalidate 异步完成
+- [x] 购买 PVC 授权成功但购买失败：根本原因是用户钉包地址未加入合约白名单（Not whitelisted），已手动添加白名单并完善错误提示文案

@@ -39,12 +39,13 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [siweUser, setSiweUser] = useState<SiweUser | null>(null);
 
   // tRPC mutations
+  const utils = trpc.useUtils();
   const getNonceMutation = trpc.siweAuth.getNonce.useMutation();
   const verifyMutation = trpc.siweAuth.verify.useMutation();
   const logoutMutation = trpc.siweAuth.logout.useMutation();
 
   // 查询当前登录状态（统一使用 auth.me，已改为读取 siwe_token，无需重复请求 siweAuth.me）
-  const { data: meData, refetch: refetchMe } = trpc.auth.me.useQuery(undefined, {
+  const { data: meData } = trpc.auth.me.useQuery(undefined, {
     retry: false,
     refetchOnWindowFocus: false,
   });
@@ -211,7 +212,14 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const result = await verifyMutation.mutateAsync({ message, signature });
 
       if (result.success) {
-        await refetchMe();
+        // 立即更新本地状态，无需等待 invalidate 异步完成，解决登录后需要刷新才显示的问题
+        setSiweUser({
+          address: result.address,
+          name: result.name || `${result.address.slice(0, 6)}...${result.address.slice(-4)}`,
+          userId: 0, // 临时值，auth.me 重新请求后会通过 useEffect 同步完整信息
+        });
+        // 后台失效缓存，确保 userId 等完整信息随后同步
+        utils.auth.me.invalidate();
       }
     } catch (error: any) {
       console.error('SIWE 登录失败:', error);
@@ -221,7 +229,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
       alert('登录失败，请重试');
     }
-  }, [account, signer, getNonceMutation, verifyMutation, refetchMe]);
+  }, [account, signer, getNonceMutation, verifyMutation, utils]);
 
   // 登出
   const signOut = useCallback(async () => {
