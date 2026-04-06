@@ -45,7 +45,7 @@ export default function Buy() {
   const [txStep, setTxStep] = useState<TxStep>("idle");
   const [txHash, setTxHash] = useState<string | null>(null);
   const [txError, setTxError] = useState<string | null>(null);
-  const [currentAllowance, setCurrentAllowance] = useState("0");
+  const [currentAllowanceRaw, setCurrentAllowanceRaw] = useState<bigint | null>(null);
 
   // 查询私募轮链上信息
   const { data: saleInfo, isLoading: saleLoading, refetch: refetchSaleInfo } =
@@ -104,18 +104,21 @@ export default function Buy() {
       : null
     : null;
 
-  const needsApproval = parseFloat(currentAllowance) < usdtAmount;
+  // 用 BigInt 比较，避免 MaxUint256 的浮点精度溢出问题
+  // currentAllowanceRaw === null 表示尚未加载，此时不显示授权按钮
+  const needsApproval = currentAllowanceRaw === null
+    ? false  // 未加载完成时不强制显示授权按钮
+    : usdtAmount > 0 && currentAllowanceRaw < ethers.parseUnits(usdtInput || "0", 6);
 
-  // 刷新授权额度
+  // 刷新授权额度（存储 raw BigInt，用 BigInt 比较避免精度问题）
   const refreshAllowance = useCallback(async () => {
     if (!account || !USDT_ADDRESS || !PRIVATE_SALE_ADDRESS || !signer) return;
     try {
       const usdt = new ethers.Contract(USDT_ADDRESS, ERC20_ABI, signer);
-      const decimals = await usdt.decimals();
-      const allowance = await usdt.allowance(account, PRIVATE_SALE_ADDRESS);
-      setCurrentAllowance(ethers.formatUnits(allowance, decimals));
+      const allowance: bigint = await usdt.allowance(account, PRIVATE_SALE_ADDRESS);
+      setCurrentAllowanceRaw(allowance);
     } catch {
-      // 忽略
+      // 查询失败时保持原值，不重置为 null
     }
   }, [account, signer]);
 
@@ -344,7 +347,7 @@ export default function Buy() {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-500">已授权额度</span>
-                        <span className="font-semibold">{parseFloat(currentAllowance).toFixed(2)} {U}</span>
+                        <span className="font-semibold">{currentAllowanceRaw === null ? "加载中..." : currentAllowanceRaw >= BigInt("57896044618658097711785492504343953926634992332820282019728792003956564819967") ? "无限额" : parseFloat(ethers.formatUnits(currentAllowanceRaw, 6)).toFixed(2) + " " + U}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-500">本轮已购</span>
@@ -600,7 +603,7 @@ function PublicSaleTab({
   const [txStep, setTxStep] = useState<TxStep>("idle");
   const [txHash, setTxHash] = useState<string | null>(null);
   const [txError, setTxError] = useState<string | null>(null);
-  const [currentAllowance, setCurrentAllowance] = useState("0");
+  const [currentAllowanceRaw, setCurrentAllowanceRaw] = useState<bigint | null>(null);
 
   // 查询 KYC 状态
   const { data: kycStatus } = trpc.whitelist.checkStatus.useQuery(
@@ -648,16 +651,18 @@ function PublicSaleTab({
       ? `${U} 余额不足（当前 ${userBalance.toFixed(2)} ${U}）`
       : null
     : null;
-  const needsApproval = parseFloat(currentAllowance) < usdtAmount;
+  // 用 BigInt 比较，避免 MaxUint256 的浮点精度溢出问题
+  const needsApproval = currentAllowanceRaw === null
+    ? false
+    : usdtAmount > 0 && currentAllowanceRaw < ethers.parseUnits(usdtInput || "0", 6);
 
   const refreshAllowance = useCallback(async () => {
     if (!account || !USDT_ADDRESS || !PUBLIC_SALE_ADDRESS || !signer) return;
     try {
       const usdt = new ethers.Contract(USDT_ADDRESS, ERC20_ABI, signer);
-      const decimals = await usdt.decimals();
-      const allowance = await usdt.allowance(account, PUBLIC_SALE_ADDRESS);
-      setCurrentAllowance(ethers.formatUnits(allowance, decimals));
-    } catch { /* 忽略 */ }
+      const allowance: bigint = await usdt.allowance(account, PUBLIC_SALE_ADDRESS);
+      setCurrentAllowanceRaw(allowance);
+    } catch { /* 查询失败时保持原值 */ }
   }, [account, signer]);
 
   useEffect(() => { refreshAllowance(); }, [refreshAllowance]);
@@ -803,7 +808,7 @@ function PublicSaleTab({
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">已授权额度</span>
-                  <span className="font-semibold">{parseFloat(currentAllowance).toFixed(2)} {U}</span>
+                  <span className="font-semibold">{currentAllowanceRaw === null ? "加载中..." : currentAllowanceRaw >= BigInt("57896044618658097711785492504343953926634992332820282019728792003956564819967") ? "无限额" : parseFloat(ethers.formatUnits(currentAllowanceRaw, 6)).toFixed(2) + " " + U}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">本轮已购</span>

@@ -153,6 +153,10 @@
 
 - [x] whitelist.ts approve 路由同步调用 pvCoin.addKyc(walletAddress)，确保 KYC 通过用户可购买 PVC（已实现，仅 todo.md 未同步）
 
+## 2026-04-06 Bug 修复（十一）
+
+- [x] 授权后购买失败，下次进入页面仍需重新授权：将 currentAllowance 改为 BigInt 存储和比较，避免 MaxUint256 的浮点精度溢出；已授权时显示“无限额”，页面加载前不强制显示授权按钮
+
 ## 2026-04-06 Bug 修复（十）
 
 - [x] 授权成功后过一段时间需要重新授权：根本原因是授权金额等于输入金额，购买后 allowance 被消耗为 0。已改为授权 MaxUint256，一次授权永久有效
