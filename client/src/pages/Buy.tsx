@@ -315,10 +315,20 @@ export default function Buy() {
                   <Card className="border-gray-200">
                     <CardContent className="pt-4 pb-4">
                       <div className="flex items-center gap-2 text-sm">
-                        {kycStatus?.isKycVerified ? (
+                        {kycStatus === undefined ? (
+                          <>
+                            <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />
+                            <span className="text-gray-500">KYC 状态查询中...</span>
+                          </>
+                        ) : kycStatus?.isKycVerified ? (
                           <>
                             <ShieldCheck className="w-4 h-4 text-green-600" />
                             <span className="text-green-700 font-medium">KYC 已通过，可参与私募</span>
+                          </>
+                        ) : kycStatus?.isKycVerified === null ? (
+                          <>
+                            <AlertCircle className="w-4 h-4 text-amber-500" />
+                            <span className="text-amber-700">KYC 状态查询失败，请刷新页面重试</span>
                           </>
                         ) : kycStatus?.dbRecord?.status === "pending" ? (
                           <>
@@ -536,7 +546,7 @@ export default function Buy() {
                                   needsApproval ||
                                   txStep === "buying" ||
                                   !saleInfo?.isActive ||
-                                  !kycStatus?.isKycVerified
+                                  kycStatus?.isKycVerified === false
                                 }
                                 onClick={handleBuy}
                               >
@@ -850,16 +860,30 @@ function PublicSaleTab({
                   {/* KYC 状态提示 */}
                   {account && (
                     <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
-                      kycStatus?.isKycVerified
+                      kycStatus === undefined
+                        ? "bg-gray-50 border border-gray-200"
+                        : kycStatus?.isKycVerified
                         ? "bg-green-50 border border-green-200"
+                        : kycStatus?.isKycVerified === null
+                        ? "bg-amber-50 border border-amber-200"
                         : kycStatus?.dbRecord?.status === "pending"
                         ? "bg-amber-50 border border-amber-200"
                         : "bg-red-50 border border-red-200"
                     }`}>
-                      {kycStatus?.isKycVerified ? (
+                      {kycStatus === undefined ? (
+                        <>
+                          <Loader2 className="w-4 h-4 text-gray-400 flex-shrink-0 animate-spin" />
+                          <span className="text-gray-500">KYC 状态查询中...</span>
+                        </>
+                      ) : kycStatus?.isKycVerified ? (
                         <>
                           <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
                           <span className="text-green-700 font-medium">KYC 已通过，可参与公募</span>
+                        </>
+                      ) : kycStatus?.isKycVerified === null ? (
+                        <>
+                          <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                          <span className="text-amber-700">KYC 状态查询失败，请刷新页面重试</span>
                         </>
                       ) : kycStatus?.dbRecord?.status === "pending" ? (
                         <>

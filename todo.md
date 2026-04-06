@@ -153,6 +153,10 @@
 
 - [x] whitelist.ts approve 路由同步调用 pvCoin.addKyc(walletAddress)，确保 KYC 通过用户可购买 PVC（已实现，仅 todo.md 未同步）
 
+## 2026-04-06 Bug 修复（十五）
+
+- [x] 私募购买仍然报错“您的钉包地址未通过 KYC 白名单验证”：私募购买按鈕 disabled 条件用的是 !kycStatus?.isKycVerified（漏修复），已改为 === false；同时修复私募和公募 KYC 状态显示，加载中显示 spinner，null 时显示查询失败提示而非误报未通过 KYC
+
 ## 2026-04-06 功能增强（十四）
 
 - [x] 私募和公募购买成功后自动跳转到购买历史页面（延迟 2 秒，让用户看到成功提示）
