@@ -114,8 +114,22 @@ export const whitelistRouter = router({
         ]);
         return { isKycVerified, isSenderWhitelisted, contractConfigured: true, dbRecord: dbRecord ?? null };
       } catch (error) {
-        console.error("[Whitelist] 检查状态失败:", error);
-        return { isKycVerified: false, isSenderWhitelisted: false, contractConfigured: true, error: "查询失败", dbRecord: dbRecord ?? null };
+        console.error("[Whitelist] 检查状态失败，尝试重试:", error);
+        // 重试一次，避免 RPC 偶发超时导致误报 KYC 未通过
+        try {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          const provider2 = new ethers.JsonRpcProvider(rpcUrl);
+          const pvCoinContract2 = new ethers.Contract(pvCoinAddress, PVCoinABI, provider2);
+          const [isKycVerified2, isSenderWhitelisted2] = await Promise.all([
+            pvCoinContract2.isKycVerified(input.walletAddress),
+            pvCoinContract2.isSenderWhitelisted(input.walletAddress),
+          ]);
+          return { isKycVerified: isKycVerified2, isSenderWhitelisted: isSenderWhitelisted2, contractConfigured: true, dbRecord: dbRecord ?? null };
+        } catch (retryError) {
+          console.error("[Whitelist] 重试也失败，返回 queryFailed:", retryError);
+          // 返回 null 而非 false，让前端区分「查询失败」和「真正未通过」
+          return { isKycVerified: null as unknown as boolean, isSenderWhitelisted: null as unknown as boolean, contractConfigured: true, error: "查询失败", dbRecord: dbRecord ?? null };
+        }
       }
     }),
 

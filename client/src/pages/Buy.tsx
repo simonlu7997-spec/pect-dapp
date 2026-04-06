@@ -206,10 +206,12 @@ export default function Buy() {
         toast.error("私募轮已结束");
       } else if (
         error.reason?.includes("Insufficient allowance") || error.message?.includes("Insufficient allowance") ||
-        error.reason?.includes("insufficient allowance") || error.message?.includes("insufficient allowance")
+        error.reason?.includes("insufficient allowance") || error.message?.includes("insufficient allowance") ||
+        (error as any).data?.startsWith("0xfb8f41b2") || error.message?.includes("0xfb8f41b2") ||
+        error.message?.includes("ERC20InsufficientAllowance")
       ) {
-        setTxError("授权额度不足，请先完成授权步骤");
-        toast.error("请先完成 USDT 授权");
+        setTxError("授权额度不足，请返回上一步重新完成 USDT 授权");
+        toast.error("请重新完成 USDT 授权");
       } else {
         const errMsg = error.reason || error.message || "未知错误";
         setTxError(`购买失败：${errMsg.slice(0, 120)}`);
@@ -721,10 +723,12 @@ function PublicSaleTab({
         toast.error("公募轮已结束");
       } else if (
         error.reason?.includes("Insufficient allowance") || error.message?.includes("Insufficient allowance") ||
-        error.reason?.includes("insufficient allowance") || error.message?.includes("insufficient allowance")
+        error.reason?.includes("insufficient allowance") || error.message?.includes("insufficient allowance") ||
+        (error as any).data?.startsWith("0xfb8f41b2") || error.message?.includes("0xfb8f41b2") ||
+        error.message?.includes("ERC20InsufficientAllowance")
       ) {
-        setTxError("授权额度不足，请先完成授权步骤");
-        toast.error("请先完成 USDT 授权");
+        setTxError("授权额度不足，请返回上一步重新完成 USDT 授权");
+        toast.error("请重新完成 USDT 授权");
       } else {
         const errMsg = error.reason || error.message || "未知错误";
         setTxError(`购买失败：${errMsg.slice(0, 120)}`);
@@ -942,7 +946,7 @@ function PublicSaleTab({
                           </Button>
                         )}
                         <Button className="w-full bg-blue-600 hover:bg-blue-700"
-                          disabled={!usdtInput || !!inputError || needsApproval || txStep === "buying" || !saleInfo?.isActive || !kycStatus?.isKycVerified}
+                          disabled={!usdtInput || !!inputError || needsApproval || txStep === "buying" || !saleInfo?.isActive || kycStatus?.isKycVerified === false}
                           onClick={handleBuy}>
                           {txStep === "buying" ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />购买中...</> : needsApproval ? "第二步：购买 PVC（需先授权）" : "购买 PVC"}
                         </Button>
