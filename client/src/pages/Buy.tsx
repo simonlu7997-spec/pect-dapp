@@ -21,7 +21,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
-import { PRIVATESALE_ABI, PUBLICSALE_ABI, PVCOIN_ABI } from "@/contracts";
+import { PRIVATESALE_ABI, PUBLICSALE_ABI } from "@/contracts";
 import { TOKEN_CONFIG } from "@/config/contracts";
 
 // 从合约配置读取 USDT symbol，切换测试网/主网时自动跟随
@@ -30,7 +30,13 @@ const U = TOKEN_CONFIG.USDT.symbol; // 当前为 "tUSDT"，主网改回后自动
 // ABI 别名（从合约仓库自动同步，勿手动修改）
 const PRIVATE_SALE_ABI = PRIVATESALE_ABI;
 const PUBLIC_SALE_ABI = PUBLICSALE_ABI;
-const ERC20_ABI = PVCOIN_ABI;
+// 标准 ERC20 ABI（用于调用 USDT 合约，不能用 PVCoin ABI，因为 PVCoin.decimals 是 pure 而 USDT.decimals 是 view）
+const ERC20_ABI = [
+  "function allowance(address owner, address spender) external view returns (uint256)",
+  "function balanceOf(address account) external view returns (uint256)",
+  "function decimals() external view returns (uint8)",
+  "function approve(address spender, uint256 amount) external returns (bool)",
+];
 
 // 合约地址（从 Vite 环境变量读取）
 const PRIVATE_SALE_ADDRESS = import.meta.env.VITE_PRIVATE_SALE_ADDRESS as string | undefined;
