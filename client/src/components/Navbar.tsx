@@ -20,6 +20,7 @@ import { toast } from "sonner";
 // ─── 我的资产子菜单项 ─────────────────────────────────────────────────────────
 const assetSubItems = [
   { label: "资产总览", href: "/portfolio", icon: PieChart, desc: "持仓汇总" },
+  { label: "购买历史", href: "/purchase-history", icon: ShoppingCart, desc: "交易记录" },
   { label: "分红领取", href: "/revenue", icon: TrendingUp, desc: "PV-Coin 分红" },
   { label: "C2 空投", href: "/airdrop", icon: Gift, desc: "C2-Coin 空投" },
   { label: "质押管理", href: "/staking", icon: Layers, desc: "C2-Coin 质押" },

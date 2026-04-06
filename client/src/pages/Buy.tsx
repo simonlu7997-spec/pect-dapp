@@ -501,20 +501,26 @@ export default function Buy() {
 
                               {/* 授权按钮 */}
                               {needsApproval && txStep !== "approved" && (
-                                <Button
-                                  className="w-full bg-blue-600 hover:bg-blue-700"
-                                  disabled={!usdtInput || !!inputError || txStep === "approving" || !saleInfo?.isActive}
-                                  onClick={handleApprove}
-                                >
-                                  {txStep === "approving" ? (
-                                    <>
-                                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                      授权中...
-                                    </>
-                                  ) : (
-                                    `第一步：授权 ${U}`
-                                  )}
-                                </Button>
+                                <div className="space-y-2">
+                                  <Button
+                                    className="w-full bg-blue-600 hover:bg-blue-700"
+                                    disabled={!usdtInput || !!inputError || txStep === "approving" || !saleInfo?.isActive}
+                                    onClick={handleApprove}
+                                  >
+                                    {txStep === "approving" ? (
+                                      <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        授权中...
+                                      </>
+                                    ) : (
+                                      `第一步：授权 ${U}`
+                                    )}
+                                  </Button>
+                                  <p className="text-xs text-gray-500 text-center flex items-center justify-center gap-1">
+                                    <span className="text-blue-400">ℹ️</span>
+                                    本次授权为无限额，后续购买无需重复操作，节省 Gas 费
+                                  </p>
+                                </div>
                               )}
 
                               {/* 购买按钮 */}
@@ -943,11 +949,17 @@ function PublicSaleTab({
                           <span>购买 PVC</span>
                         </div>
                         {needsApproval && txStep !== "approved" && (
-                          <Button className="w-full bg-blue-600 hover:bg-blue-700"
-                            disabled={!usdtInput || !!inputError || txStep === "approving" || !saleInfo?.isActive}
-                            onClick={handleApprove}>
-                            {txStep === "approving" ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />授权中...</> : `第一步：授权 ${U}`}
-                          </Button>
+                          <div className="space-y-2">
+                            <Button className="w-full bg-blue-600 hover:bg-blue-700"
+                              disabled={!usdtInput || !!inputError || txStep === "approving" || !saleInfo?.isActive}
+                              onClick={handleApprove}>
+                              {txStep === "approving" ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />授权中...</> : `第一步：授权 ${U}`}
+                            </Button>
+                            <p className="text-xs text-gray-500 text-center flex items-center justify-center gap-1">
+                              <span className="text-blue-400">ℹ️</span>
+                              本次授权为无限额，后续购买无需重复操作，节省 Gas 费
+                            </p>
+                          </div>
                         )}
                         <Button className="w-full bg-blue-600 hover:bg-blue-700"
                           disabled={!usdtInput || !!inputError || needsApproval || txStep === "buying" || !saleInfo?.isActive || kycStatus?.isKycVerified === false}
