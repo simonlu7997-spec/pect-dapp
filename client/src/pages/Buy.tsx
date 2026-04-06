@@ -135,9 +135,8 @@ export default function Buy() {
     setTxError(null);
     try {
       const usdt = new ethers.Contract(USDT_ADDRESS, ERC20_ABI, signer);
-      const decimals = await usdt.decimals();
-      const amount = ethers.parseUnits(usdtInput, decimals);
-      const tx = await usdt.approve(PRIVATE_SALE_ADDRESS, amount);
+      // 授权 MaxUint256，一次授权永久有效，无需每次购买重新授权，节省 Gas 费
+      const tx = await usdt.approve(PRIVATE_SALE_ADDRESS, ethers.MaxUint256);
       toast.info("授权交易已提交，等待确认...", { duration: 5000 });
       await tx.wait();
       await refreshAllowance();
@@ -671,8 +670,8 @@ function PublicSaleTab({
     setTxStep("approving"); setTxError(null);
     try {
       const usdt = new ethers.Contract(USDT_ADDRESS, ERC20_ABI, signer);
-      const decimals = await usdt.decimals();
-      const tx = await usdt.approve(PUBLIC_SALE_ADDRESS, ethers.parseUnits(usdtInput, decimals));
+      // 授权 MaxUint256，一次授权永久有效，无需每次购买重新授权，节省 Gas 费
+      const tx = await usdt.approve(PUBLIC_SALE_ADDRESS, ethers.MaxUint256);
       toast.info("授权交易已提交，等待确认...", { duration: 5000 });
       await tx.wait();
       await refreshAllowance();

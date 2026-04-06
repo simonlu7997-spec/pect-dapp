@@ -153,6 +153,10 @@
 
 - [x] whitelist.ts approve 路由同步调用 pvCoin.addKyc(walletAddress)，确保 KYC 通过用户可购买 PVC（已实现，仅 todo.md 未同步）
 
+## 2026-04-06 Bug 修复（十）
+
+- [x] 授权成功后过一段时间需要重新授权：根本原因是授权金额等于输入金额，购买后 allowance 被消耗为 0。已改为授权 MaxUint256，一次授权永久有效
+
 ## 2026-04-06 Bug 修复（九）
 
 - [x] 私募购买授权成功后报错“您的钉包地址未通过 KYC 白名单验证”：根本原因是 RPC 偶发超时导致 checkStatus 返回 isKycVerified:false，已修复为返回 null 并增加重试；同时修复按鈕 disabled 条件和 ERC20InsufficientAllowance 自定义错误识别
