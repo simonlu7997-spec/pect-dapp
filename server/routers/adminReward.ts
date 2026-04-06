@@ -388,6 +388,14 @@ export const adminRewardRouter = router({
           await senderTx.wait(1);
           console.log(`[AdminReward] 发送者白名单添加成功: ${senderTx.hash}`);
         }
+        // 确保 Sale 合约地址在发送者白名单中（Sale 合约向用户转账 PVC 时，from=Sale合约地址，必须在 senderWhitelist 中）
+        const isSaleContractSenderOk: boolean = await pvCoin.isSenderWhitelisted(targetAddress);
+        if (!isSaleContractSenderOk) {
+          console.log(`[AdminReward] Sale 合约 ${targetAddress} 不在发送者白名单，自动添加...`);
+          const saleSenderTx = await pvCoin.addSenderWhitelist(targetAddress);
+          await saleSenderTx.wait(1);
+          console.log(`[AdminReward] Sale 合约发送者白名单添加成功: ${saleSenderTx.hash}`);
+        }
 
         console.log(`[AdminReward] 充入 PVC: ${input.amount} PVC 到 ${input.saleType} 合约 ${targetAddress}`);
         const tx = await pvCoin.transfer(targetAddress, amountWei);

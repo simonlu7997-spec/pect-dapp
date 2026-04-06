@@ -191,6 +191,11 @@ export default function Buy() {
       if (error.code === "ACTION_REJECTED") {
         toast.error("您已取消购买操作");
       } else if (
+        error.reason?.includes("Sender not whitelisted") || error.message?.includes("Sender not whitelisted")
+      ) {
+        setTxError("合约配置异常，请联系管理员处理（PVCoin 发送者白名单未配置）");
+        toast.error("合约配置异常，请联系管理员");
+      } else if (
         error.reason?.includes("Not whitelisted") || error.message?.includes("Not whitelisted") ||
         error.reason?.includes("not whitelisted") || error.message?.includes("not whitelisted")
       ) {
@@ -700,6 +705,11 @@ function PublicSaleTab({
       const error = err as { code?: string; reason?: string; message?: string };
       if (error.code === "ACTION_REJECTED") {
         toast.error("您已取消购买操作");
+      } else if (
+        error.reason?.includes("Sender not whitelisted") || error.message?.includes("Sender not whitelisted")
+      ) {
+        setTxError("合约配置异常，请联系管理员处理（PVCoin 发送者白名单未配置）");
+        toast.error("合约配置异常，请联系管理员");
       } else if (
         error.reason?.includes("Not whitelisted") || error.message?.includes("Not whitelisted") ||
         error.reason?.includes("not whitelisted") || error.message?.includes("not whitelisted")

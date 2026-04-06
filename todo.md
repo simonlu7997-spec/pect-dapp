@@ -151,7 +151,11 @@
 
 ## 2026-04-04 功能增强（六）
 
-- [ ] whitelist.ts approve 路由同步调用 pvCoin.addKyc(walletAddress)，确保 KYC 通过用户可购买 PVC
+- [x] whitelist.ts approve 路由同步调用 pvCoin.addKyc(walletAddress)，确保 KYC 通过用户可购买 PVC（已实现，仅 todo.md 未同步）
+
+## 2026-04-06 Bug 修复（八）
+
+- [x] 公募购买授权成功后报错“您的钉包地址未通过 KYC 白名单验证”：根本原因是 PublicSale v2 合约地址未加入 PVCoin senderWhitelist，导致合约向用户转账 PVC 时 revert "Sender not whitelisted"，已手动添加并修复 depositPvcToSale 路由自动同步
 
 ## 2026-04-05 Bug 修复（七）
 
