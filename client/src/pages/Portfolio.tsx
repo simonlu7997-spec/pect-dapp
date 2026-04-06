@@ -146,7 +146,7 @@ export default function Portfolio() {
   const [, navigate] = useLocation();
   const walletAddress = useMemo(() => address || "", [address]);
 
-  const { data: purchaseHistory, isLoading: purchaseLoading, refetch: refetchPurchase } =
+  const { data: purchaseHistory, isLoading: purchaseLoading } =
     trpc.purchase.getPurchaseHistory.useQuery({ walletAddress }, { enabled: !!walletAddress });
 
   const { data: revenueInfo, isLoading: revenueLoading, refetch: refetchRevenue } =
@@ -158,25 +158,12 @@ export default function Portfolio() {
   const { data: airdropInfo, isLoading: airdropLoading, refetch: refetchAirdrop } =
     trpc.airdrop.getAirdropInfo.useQuery({ walletAddress }, { enabled: !!walletAddress, refetchInterval: 60_000 });
 
-  const totalPurchased = useMemo(() => {
-    if (!purchaseHistory) return { usdt: 0, pvc: 0 };
-    return purchaseHistory
-      .filter((tx) => tx.txType === "purchase_private" || tx.txType === "purchase_public")
-      .reduce((acc, tx) => {
-        const amt = parseFloat(tx.amount || "0");
-        if (tx.tokenSymbol === "USDT") acc.usdt += amt;
-        if (tx.tokenSymbol === "PVC") acc.pvc += amt;
-        return acc;
-      }, { usdt: 0, pvc: 0 });
-  }, [purchaseHistory]);
-
   const recentTxs = useMemo(() => {
     if (!purchaseHistory) return [];
     return [...purchaseHistory].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5);
   }, [purchaseHistory]);
 
   const handleRefreshAll = () => {
-    refetchPurchase();
     refetchRevenue();
     refetchStaking();
     refetchAirdrop();
@@ -310,6 +297,9 @@ export default function Portfolio() {
           <Button onClick={() => navigate("/buy")} className="bg-emerald-600 hover:bg-emerald-700 gap-2">
             <ShoppingCart className="w-4 h-4" />购买 PVC
           </Button>
+          <Button onClick={() => navigate("/purchase-history")} variant="outline" className="gap-2">
+            <ShoppingCart className="w-4 h-4" />购买历史
+          </Button>
           <Button onClick={() => navigate("/revenue")} variant="outline" className="gap-2">
             <TrendingUp className="w-4 h-4" />分红管理
           </Button>
@@ -323,9 +313,8 @@ export default function Portfolio() {
 
         {/* 交易记录 */}
         <Tabs defaultValue="recent">
-          <TabsList className="grid grid-cols-3 w-full max-w-sm">
+          <TabsList className="grid grid-cols-2 w-full max-w-xs">
             <TabsTrigger value="recent">近期操作</TabsTrigger>
-            <TabsTrigger value="purchase">购买记录</TabsTrigger>
             <TabsTrigger value="all">全部交易</TabsTrigger>
           </TabsList>
 
@@ -352,41 +341,6 @@ export default function Portfolio() {
                 ) : (
                   <div className="space-y-3">
                     {recentTxs.map((tx) => (
-                      <TxRow key={tx.id} tx={tx} />
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* 购买记录 */}
-          <TabsContent value="purchase">
-            <Card className="border-emerald-200">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>购买历史</CardTitle>
-                  <CardDescription>
-                    累计投入 {totalPurchased.usdt.toLocaleString("zh-CN", { maximumFractionDigits: 2 })} USDT，
-                    获得 {totalPurchased.pvc.toLocaleString("zh-CN", { maximumFractionDigits: 2 })} PVC
-                  </CardDescription>
-                </div>
-                <Button variant="ghost" size="sm" onClick={() => refetchPurchase()}>
-                  <RefreshCw className="w-4 h-4" />
-                </Button>
-              </CardHeader>
-              <CardContent>
-                {purchaseLoading ? (
-                  <div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-16 w-full" />)}</div>
-                ) : !purchaseHistory || purchaseHistory.filter(tx => tx.txType === "purchase_private" || tx.txType === "purchase_public").length === 0 ? (
-                  <div className="text-center py-12 text-gray-400">
-                    <ShoppingCart className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                    <p className="text-sm">暂无购买记录</p>
-                    <Button onClick={() => navigate("/buy")} variant="link" className="mt-2 text-emerald-600">去购买 PVC →</Button>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {purchaseHistory.filter(tx => tx.txType === "purchase_private" || tx.txType === "purchase_public").map((tx) => (
                       <TxRow key={tx.id} tx={tx} />
                     ))}
                   </div>
