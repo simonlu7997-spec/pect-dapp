@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { ethers } from "ethers";
 import { trpc } from "@/lib/trpc";
 import { useWallet } from "@/contexts/WalletContext";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +42,7 @@ type TxStep = "idle" | "approving" | "approved" | "buying" | "confirming" | "suc
 
 export default function Buy() {
   const { account, signer, isConnected, isSignedIn } = useWallet();
+  const [, navigate] = useLocation();
   const [usdtInput, setUsdtInput] = useState("");
   const [txStep, setTxStep] = useState<TxStep>("idle");
   const [txHash, setTxHash] = useState<string | null>(null);
@@ -79,11 +81,13 @@ export default function Buy() {
       setTxStep("success");
       toast.success("购买成功！PVC 代币已发送到您的钱包");
       refetchSaleInfo();
+      // 延迟 2 秒后跳转到购买历史页面，让用户看到成功提示
+      setTimeout(() => navigate("/purchase-history"), 2000);
     } else if (txConfirm.status === "failed") {
       setTxStep("error");
       setTxError("链上交易执行失败，请检查合约状态");
     }
-  }, [txConfirm, refetchSaleInfo]);
+  }, [txConfirm, refetchSaleInfo, navigate]);
 
   // 计算 PVC 数量
   const tokenPrice = parseFloat(saleInfo?.tokenPrice || "0.10");
@@ -605,6 +609,7 @@ function PublicSaleTab({
   signer: ethers.Signer | null;
   isConnected: boolean;
 }) {
+  const [, navigate] = useLocation();
   const [usdtInput, setUsdtInput] = useState("");
   const [txStep, setTxStep] = useState<TxStep>("idle");
   const [txHash, setTxHash] = useState<string | null>(null);
@@ -636,11 +641,13 @@ function PublicSaleTab({
       setTxStep("success");
       toast.success("购买成功！PVC 代币已发送到您的钱包");
       refetchSaleInfo();
+      // 延迟 2 秒后跳转到购买历史页面，让用户看到成功提示
+      setTimeout(() => navigate("/purchase-history"), 2000);
     } else if (txConfirm.status === "failed") {
       setTxStep("error");
       setTxError("链上交易执行失败，请检查合约状态");
     }
-  }, [txConfirm, refetchSaleInfo]);
+  }, [txConfirm, refetchSaleInfo, navigate]);
 
   const tokenPrice = parseFloat(saleInfo?.tokenPrice || "0.20");
   const usdtAmount = parseFloat(usdtInput) || 0;
