@@ -5,40 +5,31 @@ import { ethers } from "ethers";
 import { recordTransaction, getTransactionsByWallet } from "../db";
 
 /**
- * C2-Coin 空投合约 ABI
- * 标准 Merkle 空投合约接口（兼容 OpenZeppelin MerkleDistributor 风格）
+ * C2Coin 合约 ABI（内置空投功能）
+ * 空投相关函数直接在 C2Coin 合约中，无需独立的 Airdrop 合约
  */
-const AIRDROP_ABI = [
-  // 查询某地址是否已领取
-  "function isClaimed(address account) external view returns (bool)",
-  // 查询某地址的可领取数量
-  "function claimableAmount(address account) external view returns (uint256)",
-  // 领取空投（Merkle proof 版本）
-  "function claim(uint256 amount, bytes32[] calldata merkleProof) external",
-  // 无 Merkle proof 版本（简单白名单空投）
-  "function claim() external",
-  // 空投总量
-  "function totalAirdrop() external view returns (uint256)",
-  // 已领取总量
-  "function totalClaimed() external view returns (uint256)",
-  // 空投截止时间
-  "function claimDeadline() external view returns (uint256)",
-  // 空投是否激活
-  "function isActive() external view returns (bool)",
-];
-
-// C2-Coin ERC20 ABI
-const C2_ABI = [
+const C2COIN_AIRDROP_ABI = [
+  // 查询用户某月可领取的 C2Coin 数量
+  "function getUserMonthlyReward(address user, uint256 yearMonth) external view returns (uint256)",
+  // 查询用户某月是否已领取
+  "function isMonthlyRewardClaimed(address user, uint256 yearMonth) external view returns (bool)",
+  // 查询某月的 C2Coin 总池
+  "function getMonthlyC2CoinPool(uint256 yearMonth) external view returns (uint256)",
+  // 最新发行的年月（YYYYMM 格式）
+  "function lastIssuanceYearMonth() external view returns (uint256)",
+  // 领取空投
+  "function claimC2Coin(uint256 yearMonth) external",
+  // ERC20 基础
   "function balanceOf(address account) external view returns (uint256)",
-  "function decimals() external view returns (uint8)",
+  "function decimals() external pure returns (uint8)",
   "function symbol() external view returns (string)",
+  "function totalSupply() external view returns (uint256)",
 ];
 
 function getEnv() {
   return {
     rpcUrl: process.env.BLOCKCHAIN_RPC_URL || "https://rpc-amoy.polygon.technology",
-    airdropAddress: process.env.VITE_C2_AIRDROP_ADDRESS || process.env.C2_AIRDROP_ADDRESS,
-    c2CoinAddress: process.env.VITE_C2_COIN_ADDRESS || process.env.C2_COIN_ADDRESS,
+    c2CoinAddress: process.env.C2_COIN_ADDRESS || process.env.VITE_C2_COIN_ADDRESS,
   };
 }
 
@@ -47,9 +38,9 @@ export const airdropRouter = router({
   getAirdropInfo: publicProcedure
     .input(z.object({ walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/) }))
     .query(async ({ input }) => {
-      const { rpcUrl, airdropAddress, c2CoinAddress } = getEnv();
+      const { rpcUrl, c2CoinAddress } = getEnv();
 
-      if (!airdropAddress || airdropAddress === "0x0000000000000000000000000000000000000000") {
+      if (!c2CoinAddress) {
         return {
           contractConfigured: false,
           isActive: false,
@@ -60,65 +51,61 @@ export const airdropRouter = router({
           claimDeadline: null as number | null,
           c2Balance: "0",
           c2Symbol: "C2C",
+          currentYearMonth: 0,
         };
       }
 
       try {
         const provider = new ethers.JsonRpcProvider(rpcUrl);
-        const airdrop = new ethers.Contract(airdropAddress, AIRDROP_ABI, provider);
+        const c2Coin = new ethers.Contract(c2CoinAddress, C2COIN_AIRDROP_ABI, provider);
 
-        // 查询基础信息
-        const [isClaimed, claimableRaw, totalAirdropRaw, totalClaimedRaw] = await Promise.all([
-          airdrop.isClaimed(input.walletAddress).catch(() => false),
-          airdrop.claimableAmount(input.walletAddress).catch(() => BigInt(0)),
-          airdrop.totalAirdrop().catch(() => BigInt(0)),
-          airdrop.totalClaimed().catch(() => BigInt(0)),
+        // 获取 decimals 和 symbol
+        const [c2DecimalsRaw, c2Symbol] = await Promise.all([
+          c2Coin.decimals().catch(() => 18),
+          c2Coin.symbol().catch(() => "C2C"),
         ]);
+        const decimals = Number(c2DecimalsRaw);
 
-        // 可选字段
-        let claimDeadline: number | null = null;
-        let isActive = true;
-        try {
-          const [deadline, active] = await Promise.all([
-            airdrop.claimDeadline(),
-            airdrop.isActive(),
-          ]);
-          claimDeadline = Number(deadline) * 1000; // 转毫秒
-          isActive = active;
-        } catch {
-          // 合约不支持这些字段，忽略
+        // 获取最新发行年月（YYYYMM 格式）
+        const lastYearMonth = await c2Coin.lastIssuanceYearMonth().catch(() => BigInt(0));
+        const currentYearMonth = Number(lastYearMonth);
+
+        if (currentYearMonth === 0) {
+          // 还没有发行过空投
+          const c2BalRaw = await c2Coin.balanceOf(input.walletAddress).catch(() => BigInt(0));
+          return {
+            contractConfigured: true,
+            isActive: false,
+            isClaimed: false,
+            claimableAmount: "0",
+            totalAirdrop: "0",
+            totalClaimed: "0",
+            claimDeadline: null as number | null,
+            c2Balance: ethers.formatUnits(c2BalRaw, decimals),
+            c2Symbol: String(c2Symbol),
+            currentYearMonth: 0,
+          };
         }
 
-        // C2-Coin 余额
-        let c2Balance = "0";
-        let c2Decimals = 18;
-        let c2Symbol = "C2C";
-        if (c2CoinAddress) {
-          try {
-            const c2Coin = new ethers.Contract(c2CoinAddress, C2_ABI, provider);
-            const [bal, dec, sym] = await Promise.all([
-              c2Coin.balanceOf(input.walletAddress),
-              c2Coin.decimals(),
-              c2Coin.symbol().catch(() => "C2C"),
-            ]);
-            c2Decimals = Number(dec);
-            c2Balance = ethers.formatUnits(bal, c2Decimals);
-            c2Symbol = sym;
-          } catch {
-            // 忽略
-          }
-        }
+        // 并行查询用户当月数据
+        const [claimableRaw, isClaimed, totalPoolRaw, c2BalRaw] = await Promise.all([
+          c2Coin.getUserMonthlyReward(input.walletAddress, currentYearMonth).catch(() => BigInt(0)),
+          c2Coin.isMonthlyRewardClaimed(input.walletAddress, currentYearMonth).catch(() => false),
+          c2Coin.getMonthlyC2CoinPool(currentYearMonth).catch(() => BigInt(0)),
+          c2Coin.balanceOf(input.walletAddress).catch(() => BigInt(0)),
+        ]);
 
         return {
           contractConfigured: true,
-          isActive,
+          isActive: true,
           isClaimed: Boolean(isClaimed),
-          claimableAmount: ethers.formatUnits(claimableRaw, c2Decimals),
-          totalAirdrop: ethers.formatUnits(totalAirdropRaw, c2Decimals),
-          totalClaimed: ethers.formatUnits(totalClaimedRaw, c2Decimals),
-          claimDeadline,
-          c2Balance,
-          c2Symbol,
+          claimableAmount: ethers.formatUnits(claimableRaw, decimals),
+          totalAirdrop: ethers.formatUnits(totalPoolRaw, decimals),
+          totalClaimed: "0",
+          claimDeadline: null as number | null,
+          c2Balance: ethers.formatUnits(c2BalRaw, decimals),
+          c2Symbol: String(c2Symbol),
+          currentYearMonth,
         };
       } catch (error) {
         console.error("[Airdrop] 查询空投信息失败:", error);
@@ -132,6 +119,7 @@ export const airdropRouter = router({
           claimDeadline: null as number | null,
           c2Balance: "0",
           c2Symbol: "C2C",
+          currentYearMonth: 0,
           error: "查询链上数据失败，请稍后重试",
         };
       }
