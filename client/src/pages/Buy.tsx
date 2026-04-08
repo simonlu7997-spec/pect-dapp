@@ -222,11 +222,12 @@ export default function Buy() {
         error.reason?.includes("Not whitelisted") || error.message?.includes("Not whitelisted") ||
         error.reason?.includes("not whitelisted") || error.message?.includes("not whitelisted")
       ) {
-        setTxError("您的钉包地址未通过 KYC 白名单验证，无法参与公募购买，请先完成 KYC 申请");
+        setTxError("您的钉包地址未通过 KYC 白名单验证，无法参与私募购买，请先完成 KYC 申请");
         toast.error("KYC 验证未通过，无法购买");
-      } else if (error.reason?.includes("cap") || error.message?.includes("cap")) {
-        setTxError("公募轮已达到募资上限");
-        toast.error("公募轮已结束");
+      } else if (error.reason?.includes("Exceeds max") || error.message?.includes("Exceeds max") ||
+        error.reason?.includes("cap") || error.message?.includes("cap")) {
+        setTxError("已超过私募单用户购买上限");
+        toast.error("已达到私募购买上限");
       } else {
         const errMsg = error.reason || error.message || "未知错误";
         setTxError(`购买失败：${errMsg.slice(0, 120)}`);
