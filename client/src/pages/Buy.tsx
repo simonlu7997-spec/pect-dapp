@@ -199,9 +199,20 @@ export default function Buy() {
       }
     } catch (err: unknown) {
       setTxStep("idle");
-      const error = err as { code?: string; reason?: string; message?: string };
+      const error = err as { code?: string; reason?: string; message?: string; data?: string };
       if (error.code === "ACTION_REJECTED") {
         toast.error("您已取消购买操作");
+      } else if (
+        // ⚠️ 优先检测授权不足（ERC20InsufficientAllowance 0xfb8f41b2），避免被后续字符串匹配误判
+        error.data?.startsWith("0xfb8f41b2") || error.message?.includes("0xfb8f41b2") ||
+        error.message?.includes("ERC20InsufficientAllowance") ||
+        error.reason?.includes("Insufficient allowance") || error.message?.includes("Insufficient allowance") ||
+        error.reason?.includes("insufficient allowance") || error.message?.includes("insufficient allowance")
+      ) {
+        setTxError("授权额度不足，请返回上一步重新完成 USDT 授权");
+        toast.error("请重新完成 USDT 授权");
+        // 刷新 allowance，让授权按钮重新显示
+        refreshAllowance();
       } else if (
         error.reason?.includes("Sender not whitelisted") || error.message?.includes("Sender not whitelisted")
       ) {
@@ -211,19 +222,11 @@ export default function Buy() {
         error.reason?.includes("Not whitelisted") || error.message?.includes("Not whitelisted") ||
         error.reason?.includes("not whitelisted") || error.message?.includes("not whitelisted")
       ) {
-        setTxError("您的钉包地址未通过 KYC 白名单验证，无法参与私募购买，请先完成 KYC 申请");
+        setTxError("您的钉包地址未通过 KYC 白名单验证，无法参与公募购买，请先完成 KYC 申请");
         toast.error("KYC 验证未通过，无法购买");
       } else if (error.reason?.includes("cap") || error.message?.includes("cap")) {
-        setTxError("私募轮已达到募资上限");
-        toast.error("私募轮已结束");
-      } else if (
-        error.reason?.includes("Insufficient allowance") || error.message?.includes("Insufficient allowance") ||
-        error.reason?.includes("insufficient allowance") || error.message?.includes("insufficient allowance") ||
-        (error as any).data?.startsWith("0xfb8f41b2") || error.message?.includes("0xfb8f41b2") ||
-        error.message?.includes("ERC20InsufficientAllowance")
-      ) {
-        setTxError("授权额度不足，请返回上一步重新完成 USDT 授权");
-        toast.error("请重新完成 USDT 授权");
+        setTxError("公募轮已达到募资上限");
+        toast.error("公募轮已结束");
       } else {
         const errMsg = error.reason || error.message || "未知错误";
         setTxError(`购买失败：${errMsg.slice(0, 120)}`);
@@ -231,14 +234,9 @@ export default function Buy() {
       }
     }
   };
-
   const resetFlow = () => {
-    setTxStep("idle");
-    setTxHash(null);
-    setTxError(null);
-    setUsdtInput("");
-    refreshAllowance();
-    refetchSaleInfo();
+    setTxStep("idle"); setTxHash(null); setTxError(null); setUsdtInput("");
+    refreshAllowance(); refetchSaleInfo();
   };
 
   // ── 渲染 ────────────────────────────────────────────────────────────
@@ -735,11 +733,22 @@ function PublicSaleTab({
       if (account) {
         recordPurchaseMutation.mutate({ walletAddress: account, txHash: tx.hash, usdtAmount: usdtInput, pvcAmount, saleType: "public" });
       }
-     } catch (err: unknown) {
+    } catch (err: unknown) {
       setTxStep("idle");
-      const error = err as { code?: string; reason?: string; message?: string };
+      const error = err as { code?: string; reason?: string; message?: string; data?: string };
       if (error.code === "ACTION_REJECTED") {
         toast.error("您已取消购买操作");
+      } else if (
+        // ⚠️ 优先检测授权不足（ERC20InsufficientAllowance 0xfb8f41b2），避免被后续字符串匹配误判
+        error.data?.startsWith("0xfb8f41b2") || error.message?.includes("0xfb8f41b2") ||
+        error.message?.includes("ERC20InsufficientAllowance") ||
+        error.reason?.includes("Insufficient allowance") || error.message?.includes("Insufficient allowance") ||
+        error.reason?.includes("insufficient allowance") || error.message?.includes("insufficient allowance")
+      ) {
+        setTxError("授权额度不足，请返回上一步重新完成 USDT 授权");
+        toast.error("请重新完成 USDT 授权");
+        // 刷新 allowance，让授权按钮重新显示
+        refreshAllowance();
       } else if (
         error.reason?.includes("Sender not whitelisted") || error.message?.includes("Sender not whitelisted")
       ) {
@@ -749,19 +758,11 @@ function PublicSaleTab({
         error.reason?.includes("Not whitelisted") || error.message?.includes("Not whitelisted") ||
         error.reason?.includes("not whitelisted") || error.message?.includes("not whitelisted")
       ) {
-        setTxError("您的钉包地址未通过 KYC 白名单验证，无法参与公募购买，请先完成 KYC 申请");
+        setTxError("您的钉包地址未通过 KYC 白名单验证，无法参与私募购买，请先完成 KYC 申请");
         toast.error("KYC 验证未通过，无法购买");
       } else if (error.reason?.includes("cap") || error.message?.includes("cap")) {
-        setTxError("公募轮已达到募资上限");
-        toast.error("公募轮已结束");
-      } else if (
-        error.reason?.includes("Insufficient allowance") || error.message?.includes("Insufficient allowance") ||
-        error.reason?.includes("insufficient allowance") || error.message?.includes("insufficient allowance") ||
-        (error as any).data?.startsWith("0xfb8f41b2") || error.message?.includes("0xfb8f41b2") ||
-        error.message?.includes("ERC20InsufficientAllowance")
-      ) {
-        setTxError("授权额度不足，请返回上一步重新完成 USDT 授权");
-        toast.error("请重新完成 USDT 授权");
+        setTxError("私募轮已达到募资上限");
+        toast.error("私募轮已结束");
       } else {
         const errMsg = error.reason || error.message || "未知错误";
         setTxError(`购买失败：${errMsg.slice(0, 120)}`);
