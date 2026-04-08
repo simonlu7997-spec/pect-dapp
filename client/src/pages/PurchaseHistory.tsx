@@ -177,8 +177,8 @@ export default function PurchaseHistory() {
                 <CardContent className="py-4 text-center">
                   <p className="text-2xl font-bold text-gray-900">
                     {history!
-                      .filter(t => t.status === "confirmed" && t.tokenSymbol === "PVC")
-                      .reduce((sum, t) => sum + parseFloat(t.amount ?? "0"), 0)
+                      .filter(t => t.status === "confirmed" && (t.txType === "purchase_private" || t.txType === "purchase_public"))
+                      .reduce((sum, t) => sum + parseFloat(t.pvcAmount ?? "0"), 0)
                       .toFixed(2)}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">累计获得 PVC</p>
@@ -244,10 +244,16 @@ export default function PurchaseHistory() {
 
                         {/* 右侧：金额 */}
                         <div className="text-right shrink-0">
+                          {tx.pvcAmount && (
+                            <p className="text-base font-semibold text-green-700">
+                              +{parseFloat(tx.pvcAmount).toFixed(2)}
+                              <span className="text-xs text-gray-400 ml-1">PVC</span>
+                            </p>
+                          )}
                           {tx.amount && (
-                            <p className="text-base font-semibold text-gray-900">
-                              +{parseFloat(tx.amount).toFixed(2)}
-                              <span className="text-xs text-gray-400 ml-1">{tx.tokenSymbol ?? "PVC"}</span>
+                            <p className="text-sm text-gray-500">
+                              -{parseFloat(tx.amount).toFixed(2)}
+                              <span className="text-xs text-gray-400 ml-1">{tx.tokenSymbol ?? "USDT"}</span>
                             </p>
                           )}
                           {tx.blockNumber && (

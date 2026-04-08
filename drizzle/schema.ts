@@ -79,6 +79,7 @@ export const transactions = mysqlTable("transactions", {
   txType: mysqlEnum("txType", txTypeValues).notNull(),
   amount: decimal("amount", { precision: 36, scale: 18 }),
   tokenSymbol: varchar("tokenSymbol", { length: 16 }),
+  pvcAmount: decimal("pvcAmount", { precision: 36, scale: 18 }),  // PVC 获得数量（仅 purchase_private/purchase_public 有值）
   status: mysqlEnum("status", txStatusValues).default("pending").notNull(),
   blockNumber: bigint("blockNumber", { mode: "number" }),
   gasUsed: varchar("gasUsed", { length: 32 }),

@@ -238,6 +238,7 @@ export const purchaseRouter = router({
           txType: input.saleType === "private" ? "purchase_private" : "purchase_public",
           amount: input.usdtAmount,
           tokenSymbol: "USDT",
+          pvcAmount: input.pvcAmount,
           status: "pending",
         });
         // 推送运营通知

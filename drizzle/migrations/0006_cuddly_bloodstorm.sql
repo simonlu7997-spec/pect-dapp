@@ -1,0 +1,1 @@
+ALTER TABLE `transactions` ADD `pvcAmount` decimal(36,18);
