@@ -168,6 +168,14 @@ export default function Portfolio() {
   const { data: stakingInfo, isLoading: stakingLoading, refetch: refetchStaking } =
     trpc.staking.getStakingInfo.useQuery({ walletAddress }, { enabled: !!walletAddress, refetchInterval: 60_000 });
 
+  const { data: allMonthlyStaking, isLoading: stakingRewardsLoading, refetch: refetchStakingRewards } =
+    trpc.staking.getAllMonthlyStakingRewards.useQuery({ walletAddress }, { enabled: !!walletAddress, refetchInterval: 60_000 });
+
+  const totalClaimableStaking = useMemo(() => {
+    if (!allMonthlyStaking?.months) return "0";
+    return allMonthlyStaking.totalClaimable || "0";
+  }, [allMonthlyStaking]);
+
   const { data: airdropInfo, isLoading: airdropLoading, refetch: refetchAirdrop } =
     trpc.airdrop.getAirdropInfo.useQuery({ walletAddress }, { enabled: !!walletAddress, refetchInterval: 60_000 });
 
@@ -180,6 +188,7 @@ export default function Portfolio() {
     refetchRevenue();
     refetchAllMonthly();
     refetchStaking();
+    refetchStakingRewards();
     refetchAirdrop();
   };
 
@@ -257,10 +266,10 @@ export default function Portfolio() {
             />
             <StatCard
               label="待领取质押奖励"
-              value={formatAmount(stakingInfo?.pendingReward, 2)}
+              value={formatAmount(totalClaimableStaking, 2)}
               unit="USDT"
-              loading={stakingLoading}
-              highlight={parseFloat(stakingInfo?.pendingReward || "0") > 0}
+              loading={stakingLoading || stakingRewardsLoading}
+              highlight={parseFloat(totalClaimableStaking) > 0}
               icon={<Zap className="w-3.5 h-3.5" />}
             />
           </div>
@@ -295,9 +304,9 @@ export default function Portfolio() {
             <ActionCard
               title="领取质押奖励"
               description="C2-Coin 质押奖励，每月结算"
-              amount={stakingInfo?.pendingReward || "0"}
+              amount={totalClaimableStaking}
               unit="USDT"
-              loading={stakingLoading}
+              loading={stakingLoading || stakingRewardsLoading}
               buttonLabel="去领取"
               onClick={() => navigate("/staking")}
               color="border-blue-300"

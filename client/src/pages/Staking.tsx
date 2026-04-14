@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { ethers } from "ethers";
 import { trpc } from "@/lib/trpc";
 import { useWalletContext } from "@/contexts/WalletContext";
@@ -12,16 +12,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   BarChart3, Wallet, TrendingUp, RefreshCw, ExternalLink,
-  CheckCircle2, AlertCircle, Coins, ArrowUpRight, ArrowDownLeft,
+  CheckCircle2, AlertCircle, Coins, ArrowUpRight, ArrowDownLeft, Gift,
 } from "lucide-react";
 import { STAKINGMANAGER_ABI, C2COIN_ABI } from "@/contracts";
-// ─── 合约 ABI ────────────────────────────────────────────────────────────────────────────
-// C2Coin 精度为 6 位（合约 decimals() 返回 6）
+
+// ─── 合约 ABI ────────────────────────────────────────────────────────────────
 const C2COIN_DECIMALS = 6;
-// ABI 别名（从合约仓库自动同步，勿手动修改）
 const STAKING_MANAGER_ABI = STAKINGMANAGER_ABI;
 const ERC20_ABI = C2COIN_ABI;
-// ─── 环境变量 ────────────────────────────────────────────────────────────────────────────
+
+// ─── 环境变量 ────────────────────────────────────────────────────────────────
 const EXPLORER_URL = import.meta.env.VITE_EXPLORER_URL || "https://amoy.polygonscan.com";
 const STAKING_MANAGER_ADDRESS = import.meta.env.VITE_STAKING_MANAGER_ADDRESS || "";
 const C2_COIN_ADDRESS = import.meta.env.VITE_C2_COIN_ADDRESS || "";
@@ -45,15 +45,25 @@ export default function Staking() {
   const [stakeTxHash, setStakeTxHash] = useState<string | null>(null);
   const [stakeTxType, setStakeTxType] = useState<"stake" | "unstake" | "claim" | null>(null);
   const [isStakeProcessing, setIsStakeProcessing] = useState(false);
+  const [claimingMonth, setClaimingMonth] = useState<number | null>(null);
 
   // ── 质押查询 ──
   const { data: stakingInfo, isLoading: stakingLoading, refetch: refetchStaking } =
     trpc.staking.getStakingInfo.useQuery({ walletAddress }, { enabled: !!walletAddress, refetchInterval: 30_000 });
 
+  const { data: monthlyRewards, isLoading: rewardsLoading, refetch: refetchRewards } =
+    trpc.staking.getAllMonthlyStakingRewards.useQuery({ walletAddress }, { enabled: !!walletAddress, refetchInterval: 30_000 });
+
   const { data: stakingHistory, refetch: refetchStakingHistory } =
     trpc.staking.getStakingHistory.useQuery({ walletAddress }, { enabled: !!walletAddress });
 
   const recordStakingTx = trpc.staking.recordStakingTx.useMutation();
+
+  // 可领取奖励月份列表
+  const claimableMonths = useMemo(() =>
+    (monthlyRewards?.months || []).filter(m => !m.isClaimed && parseFloat(m.rewardAmount) > 0),
+    [monthlyRewards]
+  );
 
   // ── 质押操作 ──
   const handleStake = async () => {
@@ -84,7 +94,7 @@ export default function Staking() {
       await recordStakingTx.mutateAsync({ walletAddress, txHash: tx.hash, txType: "stake", amount: stakeAmount, tokenSymbol: "C2C" });
       await tx.wait(1);
       toast.success(`成功质押 ${stakeAmount} C2C！`);
-      setStakeAmount(""); refetchStaking(); refetchStakingHistory();
+      setStakeAmount(""); refetchStaking(); refetchStakingHistory(); refetchRewards();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "交易失败";
       if (msg.includes("user rejected")) toast.error("已取消交易");
@@ -109,7 +119,7 @@ export default function Staking() {
       await recordStakingTx.mutateAsync({ walletAddress, txHash: tx.hash, txType: "unstake", amount: unstakeAmount, tokenSymbol: "C2C" });
       await tx.wait(1);
       toast.success(`成功解除质押 ${unstakeAmount} C2C！`);
-      setUnstakeAmount(""); refetchStaking(); refetchStakingHistory();
+      setUnstakeAmount(""); refetchStaking(); refetchStakingHistory(); refetchRewards();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "交易失败";
       if (msg.includes("user rejected")) toast.error("已取消交易");
@@ -117,28 +127,48 @@ export default function Staking() {
     } finally { setIsStakeProcessing(false); setStakeTxType(null); }
   };
 
-  const handleClaimReward = async () => {
+  // 领取单月质押奖励
+  const handleClaimMonthReward = async (month: number, rewardAmount: string) => {
     if (!signer || !STAKING_MANAGER_ADDRESS) { toast.error("合约地址未配置"); return; }
-    if (!stakingInfo?.pendingReward || parseFloat(stakingInfo.pendingReward) <= 0) { toast.error("暂无可领取的奖励"); return; }
-
-    setIsStakeProcessing(true); setStakeTxType("claim");
+    setClaimingMonth(month);
     try {
       const stakingManager = new ethers.Contract(STAKING_MANAGER_ADDRESS, STAKING_MANAGER_ABI, signer);
       toast.info("请在钱包中确认领取奖励交易...");
-      // 获取当前年月（格式：YYYYMM，如 202604）
-      const now = new Date();
-      const currentMonth = now.getFullYear() * 100 + (now.getMonth() + 1);
-      const tx = await stakingManager.claimStakingReward(currentMonth);
+      const tx = await stakingManager.claimStakingReward(month);
       setStakeTxHash(tx.hash);
-      await recordStakingTx.mutateAsync({ walletAddress, txHash: tx.hash, txType: "claim_reward", amount: stakingInfo.pendingReward, tokenSymbol: "USDT" });
+      await recordStakingTx.mutateAsync({ walletAddress, txHash: tx.hash, txType: "claim_reward", amount: rewardAmount, tokenSymbol: "USDT" });
       await tx.wait(1);
-      toast.success("质押奖励领取成功！USDT 已到账");
-      refetchStaking(); refetchStakingHistory();
+      toast.success(`${month} 质押奖励领取成功！USDT 已到账`);
+      refetchStaking(); refetchStakingHistory(); refetchRewards();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "交易失败";
       if (msg.includes("user rejected")) toast.error("已取消交易");
       else toast.error(`领取失败：${msg.slice(0, 80)}`);
-    } finally { setIsStakeProcessing(false); setStakeTxType(null); }
+    } finally { setClaimingMonth(null); }
+  };
+
+  // 一键领取所有月份奖励
+  const handleClaimAllRewards = async () => {
+    if (!signer || !STAKING_MANAGER_ADDRESS) { toast.error("合约地址未配置"); return; }
+    if (claimableMonths.length === 0) { toast.error("暂无可领取的奖励"); return; }
+    setIsStakeProcessing(true); setStakeTxType("claim");
+    try {
+      for (const m of claimableMonths) {
+        setClaimingMonth(m.month);
+        const stakingManager = new ethers.Contract(STAKING_MANAGER_ADDRESS, STAKING_MANAGER_ABI, signer);
+        toast.info(`正在领取 ${m.monthLabel} 奖励，请在钱包中确认...`);
+        const tx = await stakingManager.claimStakingReward(m.month);
+        setStakeTxHash(tx.hash);
+        await recordStakingTx.mutateAsync({ walletAddress, txHash: tx.hash, txType: "claim_reward", amount: m.rewardAmount, tokenSymbol: "USDT" });
+        await tx.wait(1);
+        toast.success(`${m.monthLabel} 奖励领取成功！`);
+      }
+      refetchStaking(); refetchStakingHistory(); refetchRewards();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "交易失败";
+      if (msg.includes("user rejected")) toast.error("已取消交易");
+      else toast.error(`领取失败：${msg.slice(0, 80)}`);
+    } finally { setIsStakeProcessing(false); setStakeTxType(null); setClaimingMonth(null); }
   };
 
   // ── 未连接钱包 ──
@@ -167,7 +197,7 @@ export default function Staking() {
             <h1 className="text-3xl font-bold text-gray-900">C2-Coin 质押</h1>
             <p className="text-gray-500 mt-1">质押 C2-Coin 获取 USDT 奖励</p>
           </div>
-          <Button variant="outline" size="sm" onClick={() => { refetchStaking(); refetchStakingHistory(); }} className="gap-2">
+          <Button variant="outline" size="sm" onClick={() => { refetchStaking(); refetchStakingHistory(); refetchRewards(); }} className="gap-2">
             <RefreshCw className="w-4 h-4" />刷新
           </Button>
         </div>
@@ -189,15 +219,15 @@ export default function Staking() {
           {[
             { label: "C2C 余额", value: stakingInfo?.c2Balance, unit: "C2C", icon: <Coins className="w-3.5 h-3.5" />, color: "" },
             { label: "已质押", value: stakingInfo?.stakedAmount, unit: "C2C", icon: <BarChart3 className="w-3.5 h-3.5" />, color: "bg-gradient-to-br from-blue-50 to-indigo-50" },
-            { label: "待领取奖励", value: stakingInfo?.pendingReward, unit: "USDT", icon: <TrendingUp className="w-3.5 h-3.5" />, color: "bg-gradient-to-br from-emerald-50 to-teal-50" },
-            { label: "年化收益率", value: stakingInfo?.apy || "12", unit: "%", icon: <TrendingUp className="w-3.5 h-3.5" />, color: "" },
+            { label: "待领取奖励", value: monthlyRewards?.totalClaimable, unit: "USDT", icon: <TrendingUp className="w-3.5 h-3.5" />, color: "bg-gradient-to-br from-emerald-50 to-teal-50" },
+            { label: "全网总质押", value: stakingInfo?.totalStaked, unit: "C2C", icon: <TrendingUp className="w-3.5 h-3.5" />, color: "" },
           ].map(({ label, value, unit, icon, color }) => (
             <Card key={label} className={`border-emerald-200 ${color}`}>
               <CardHeader className="pb-2">
                 <CardDescription className="flex items-center gap-1 text-xs">{icon} {label}</CardDescription>
               </CardHeader>
               <CardContent>
-                {stakingLoading ? <Skeleton className="h-8 w-24" /> : (
+                {stakingLoading || rewardsLoading ? <Skeleton className="h-8 w-24" /> : (
                   <><p className="text-2xl font-bold text-gray-900">{formatAmount(value, 2)}</p><p className="text-xs text-gray-400">{unit}</p></>
                 )}
               </CardContent>
@@ -205,29 +235,87 @@ export default function Staking() {
           ))}
         </div>
 
-        {/* 领取奖励横幅 */}
-        {stakingInfo && parseFloat(stakingInfo.pendingReward || "0") > 0 && (
-          <Card className="border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50">
-            <CardContent className="pt-6">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        {/* 月度质押奖励列表 */}
+        {monthlyRewards && monthlyRewards.months.length > 0 && (
+          <Card className="border-emerald-200">
+            <CardHeader>
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">可领取质押奖励</p>
-                  <p className="text-3xl font-bold text-emerald-700 mt-1">{formatAmount(stakingInfo.pendingReward, 2)} USDT</p>
+                  <CardTitle className="flex items-center gap-2">
+                    <Gift className="w-5 h-5 text-emerald-600" />
+                    月度质押奖励
+                  </CardTitle>
+                  <CardDescription>
+                    待领取合计：<span className="font-semibold text-emerald-700">{formatAmount(monthlyRewards.totalClaimable, 2)} USDT</span>
+                  </CardDescription>
                 </div>
-                <Button onClick={handleClaimReward} disabled={isStakeProcessing} className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-6 text-lg font-semibold" size="lg">
-                  {isStakeProcessing && stakeTxType === "claim" ? (
-                    <><RefreshCw className="w-5 h-5 mr-2 animate-spin" />领取中...</>
-                  ) : (
-                    <><CheckCircle2 className="w-5 h-5 mr-2" />领取奖励</>
-                  )}
-                </Button>
+                {claimableMonths.length > 1 && (
+                  <Button
+                    onClick={handleClaimAllRewards}
+                    disabled={isStakeProcessing || !!claimingMonth}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+                  >
+                    {isStakeProcessing && stakeTxType === "claim" ? (
+                      <><RefreshCw className="w-4 h-4 animate-spin" />领取中...</>
+                    ) : (
+                      <><CheckCircle2 className="w-4 h-4" />一键领取全部</>
+                    )}
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {monthlyRewards.months.map((m) => (
+                  <div key={m.month} className={`flex items-center justify-between p-4 rounded-lg border ${m.isClaimed ? "bg-gray-50 border-gray-100" : parseFloat(m.rewardAmount) > 0 ? "bg-emerald-50 border-emerald-200" : "bg-gray-50 border-gray-100"}`}>
+                    <div>
+                      <p className="font-medium text-gray-900">{m.monthLabel}</p>
+                      <p className="text-sm text-gray-500">
+                        奖励：<span className={`font-semibold ${m.isClaimed ? "text-gray-400" : "text-emerald-700"}`}>
+                          {parseFloat(m.rewardAmount) > 0 ? `${formatAmount(m.rewardAmount, 4)} USDT` : "无奖励"}
+                        </span>
+                        {m.rewardPool && parseFloat(m.rewardPool) > 0 && (
+                          <span className="text-xs text-gray-400 ml-2">（奖励池 {formatAmount(m.rewardPool, 2)} USDT）</span>
+                        )}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {m.isClaimed ? (
+                        <Badge variant="secondary" className="text-xs">已领取</Badge>
+                      ) : parseFloat(m.rewardAmount) > 0 ? (
+                        <Button
+                          size="sm"
+                          onClick={() => handleClaimMonthReward(m.month, m.rewardAmount)}
+                          disabled={!!claimingMonth || isStakeProcessing}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                        >
+                          {claimingMonth === m.month ? (
+                            <><RefreshCw className="w-3.5 h-3.5 mr-1 animate-spin" />领取中</>
+                          ) : "领取"}
+                        </Button>
+                      ) : (
+                        <Badge variant="outline" className="text-xs text-gray-400">无奖励</Badge>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
         )}
 
+        {/* 无奖励时的提示 */}
+        {monthlyRewards && monthlyRewards.months.length === 0 && (
+          <Card className="border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50">
+            <CardContent className="pt-6 pb-6 text-center">
+              <Gift className="w-10 h-10 mx-auto mb-3 text-emerald-400 opacity-60" />
+              <p className="text-gray-500 text-sm">暂无质押奖励记录，质押 C2-Coin 后每月可获得 USDT 奖励</p>
+            </CardContent>
+          </Card>
+        )}
+
         {/* 交易进行中提示 */}
-        {stakeTxHash && isStakeProcessing && (
+        {stakeTxHash && (isStakeProcessing || !!claimingMonth) && (
           <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <RefreshCw className="w-4 h-4 text-blue-600 animate-spin flex-shrink-0" />
             <div className="flex-1 min-w-0">
@@ -251,7 +339,7 @@ export default function Staking() {
             <Card className="border-emerald-200">
               <CardHeader>
                 <CardTitle>质押 C2-Coin</CardTitle>
-                <CardDescription>质押您的 C2-Coin 以获取 USDT 奖励（年化 {stakingInfo?.apy || "12"}%）</CardDescription>
+                <CardDescription>质押您的 C2-Coin 以获取 USDT 奖励（每月按质押比例分配）</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-2">
@@ -262,13 +350,6 @@ export default function Staking() {
                   </div>
                   <p className="text-xs text-gray-400">可用余额：{formatAmount(stakingInfo?.c2Balance, 2)} C2C</p>
                 </div>
-                {stakeAmount && parseFloat(stakeAmount) > 0 && (
-                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 space-y-1 text-sm">
-                    <p className="text-blue-800 font-medium">预计收益</p>
-                    <p className="text-blue-600">年化收益：约 {(parseFloat(stakeAmount) * parseFloat(stakingInfo?.apy || "12") / 100).toLocaleString("zh-CN", { maximumFractionDigits: 2 })} USDT/年</p>
-                    <p className="text-xs text-blue-400">（实际收益取决于电站发电量和代币价格）</p>
-                  </div>
-                )}
                 <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 text-sm text-gray-600 space-y-1">
                   <p>• 质押前需要先授权 C2-Coin（首次质押时自动触发）</p>
                   <p>• 质押后可随时解除，无锁定期</p>
