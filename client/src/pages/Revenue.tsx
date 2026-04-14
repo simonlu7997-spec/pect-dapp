@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Wallet,
+  CalendarDays,
 } from "lucide-react";
 
 import { REVENUEDISTRIBUTOR_ABI } from "@/contracts";
@@ -25,33 +26,43 @@ const REVENUE_DISTRIBUTOR_ABI = REVENUEDISTRIBUTOR_ABI;
 const EXPLORER_URL = import.meta.env.VITE_EXPLORER_URL || "https://amoy.polygonscan.com";
 const REVENUE_DISTRIBUTOR_ADDRESS = import.meta.env.VITE_REVENUE_DISTRIBUTOR_ADDRESS || "";
 
-function formatDate(ts: number | null) {
-  if (!ts) return "—";
-  return new Date(ts).toLocaleDateString("zh-CN", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-}
-
 function formatAmount(amount: string, decimals = 4) {
   const n = parseFloat(amount);
   if (isNaN(n)) return "0";
   return n.toLocaleString("zh-CN", { maximumFractionDigits: decimals });
 }
 
+type MonthRevenue = {
+  month: number;
+  label: string;
+  revenueUsdt: string;
+  claimed: boolean;
+  claimable: boolean;
+};
+
 export default function Revenue() {
   const { account: address, isConnected, signer } = useWalletContext();
-  const [isClaiming, setIsClaiming] = useState(false);
-  const [claimTxHash, setClaimTxHash] = useState<string | null>(null);
+  // 记录每个月份的领取状态（month -> txHash）
+  const [claimingMonths, setClaimingMonths] = useState<Set<number>>(new Set());
+  const [claimTxHashes, setClaimTxHashes] = useState<Record<number, string>>({});
 
   const walletAddress = useMemo(() => address || "", [address]);
 
   const {
     data: revenueInfo,
-    isLoading,
-    refetch,
+    isLoading: isLoadingInfo,
+    refetch: refetchInfo,
   } = trpc.revenue.getRevenueInfo.useQuery(
+    { walletAddress },
+    { enabled: !!walletAddress, refetchInterval: 30_000 }
+  );
+
+  // 查询所有历史月份的分红状态
+  const {
+    data: allMonthlyRevenue,
+    isLoading: isLoadingMonths,
+    refetch: refetchMonths,
+  } = trpc.revenue.getAllMonthlyRevenue.useQuery(
     { walletAddress },
     { enabled: !!walletAddress, refetchInterval: 30_000 }
   );
@@ -64,17 +75,27 @@ export default function Revenue() {
 
   const recordClaimMutation = trpc.revenue.recordClaim.useMutation();
 
-  const handleClaim = async () => {
+  // 计算所有月份中未领取的总金额
+  const totalClaimable = useMemo(() => {
+    if (!allMonthlyRevenue?.months) return "0";
+    const total = allMonthlyRevenue.months
+      .filter((m) => m.claimable)
+      .reduce((sum, m) => sum + parseFloat(m.revenueUsdt || "0"), 0);
+    return total.toFixed(6);
+  }, [allMonthlyRevenue]);
+
+  // 领取指定月份的分红
+  const handleClaimMonth = async (monthData: MonthRevenue) => {
     if (!signer || !REVENUE_DISTRIBUTOR_ADDRESS) {
       toast.error("合约地址未配置，请联系管理员");
       return;
     }
-    if (!revenueInfo?.claimableUsdt || parseFloat(revenueInfo.claimableUsdt) <= 0) {
-      toast.error("暂无可领取的分红");
+    if (!monthData.claimable) {
+      toast.error("该月份暂无可领取的分红");
       return;
     }
 
-    setIsClaiming(true);
+    setClaimingMonths((prev) => new Set(prev).add(monthData.month));
     try {
       const contract = new ethers.Contract(
         REVENUE_DISTRIBUTOR_ADDRESS,
@@ -82,27 +103,22 @@ export default function Revenue() {
         signer
       );
 
-      toast.info("请在钉包中确认交易...");
-      // 使用后端返回的 claimMonth（最近一次分红的月份，格式：YYYYMM）
-      const claimMonth = revenueInfo.claimMonth || 0;
-      if (!claimMonth) {
-        toast.error("暂无可领取的分红月份");
-        return;
-      }
-      const tx = await contract.claimRevenue(claimMonth);
-      setClaimTxHash(tx.hash);
+      toast.info(`请在钱包中确认 ${monthData.label} 分红领取交易...`);
+      const tx = await contract.claimRevenue(monthData.month);
+      setClaimTxHashes((prev) => ({ ...prev, [monthData.month]: tx.hash }));
       toast.info("交易已提交，等待链上确认...");
 
       await recordClaimMutation.mutateAsync({
         walletAddress,
         txHash: tx.hash,
-        usdtAmount: revenueInfo.claimableUsdt,
+        usdtAmount: monthData.revenueUsdt,
         claimType: "dividend",
       });
 
       await tx.wait(1);
-      toast.success("分红领取成功！USDT 已到账");
-      refetch();
+      toast.success(`${monthData.label} 分红领取成功！${formatAmount(monthData.revenueUsdt, 2)} USDT 已到账`);
+      refetchInfo();
+      refetchMonths();
       refetchHistory();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "交易失败";
@@ -112,9 +128,29 @@ export default function Revenue() {
         toast.error(`领取失败：${msg.slice(0, 80)}`);
       }
     } finally {
-      setIsClaiming(false);
+      setClaimingMonths((prev) => {
+        const next = new Set(prev);
+        next.delete(monthData.month);
+        return next;
+      });
     }
   };
+
+  // 一键领取所有未领取月份
+  const handleClaimAll = async () => {
+    if (!allMonthlyRevenue?.months) return;
+    const claimableMonths = allMonthlyRevenue.months.filter((m) => m.claimable);
+    if (claimableMonths.length === 0) {
+      toast.error("暂无可领取的分红");
+      return;
+    }
+    // 逐月顺序领取
+    for (const monthData of claimableMonths) {
+      await handleClaimMonth(monthData);
+    }
+  };
+
+  const isLoading = isLoadingInfo || isLoadingMonths;
 
   if (!isConnected || !walletAddress) {
     return (
@@ -134,6 +170,10 @@ export default function Revenue() {
     );
   }
 
+  const months = allMonthlyRevenue?.months || [];
+  const claimableMonths = months.filter((m) => m.claimable);
+  const claimedMonths = months.filter((m) => m.claimed);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50">
       <div className="container max-w-4xl py-10 space-y-8">
@@ -142,7 +182,12 @@ export default function Revenue() {
             <h1 className="text-3xl font-bold text-gray-900">PV-Coin 分红</h1>
             <p className="text-gray-500 mt-1">查看持仓收益，领取月度 USDT 分红</p>
           </div>
-          <Button variant="outline" size="sm" onClick={() => { refetch(); refetchHistory(); }} className="gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => { refetchInfo(); refetchMonths(); refetchHistory(); }}
+            className="gap-2"
+          >
             <RefreshCw className="w-4 h-4" />
             刷新
           </Button>
@@ -158,6 +203,7 @@ export default function Revenue() {
           </div>
         )}
 
+        {/* 持仓概览 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="border-emerald-200 bg-white">
             <CardHeader className="pb-2">
@@ -166,7 +212,7 @@ export default function Revenue() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {isLoading ? <Skeleton className="h-9 w-32" /> : (
+              {isLoadingInfo ? <Skeleton className="h-9 w-32" /> : (
                 <>
                   <p className="text-3xl font-bold text-gray-900">{formatAmount(revenueInfo?.pvBalance || "0", 2)}</p>
                   <p className="text-xs text-gray-400 mt-1">PVC</p>
@@ -179,19 +225,14 @@ export default function Revenue() {
           <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50">
             <CardHeader className="pb-2">
               <CardDescription className="flex items-center gap-1.5">
-                <TrendingUp className="w-4 h-4" /> 待领取分红
+                <TrendingUp className="w-4 h-4" /> 待领取分红（合计）
               </CardDescription>
             </CardHeader>
             <CardContent>
               {isLoading ? <Skeleton className="h-9 w-32" /> : (
                 <>
-                  <p className="text-3xl font-bold text-emerald-700">{formatAmount(revenueInfo?.claimableUsdt || "0", 2)}</p>
-                  <p className="text-xs text-gray-400 mt-1">USDT</p>
-                  {revenueInfo?.hasClaimed && (
-                    <Badge variant="secondary" className="mt-2 text-xs">
-                      <CheckCircle2 className="w-3 h-3 mr-1" /> 本期已领取
-                    </Badge>
-                  )}
+                  <p className="text-3xl font-bold text-emerald-700">{formatAmount(totalClaimable, 2)}</p>
+                  <p className="text-xs text-gray-400 mt-1">USDT · 共 {claimableMonths.length} 个月份未领取</p>
                 </>
               )}
             </CardContent>
@@ -204,73 +245,140 @@ export default function Revenue() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {isLoading ? <Skeleton className="h-9 w-32" /> : (
+              {isLoadingInfo ? <Skeleton className="h-9 w-32" /> : (
                 <>
                   <p className="text-lg font-bold text-gray-900">
                     {revenueInfo?.currentMonth
-                      ? `${String(revenueInfo.currentMonth).slice(0,4)}年${String(revenueInfo.currentMonth).slice(4)}月月底`
+                      ? `${String(revenueInfo.currentMonth).slice(0, 4)}年${String(revenueInfo.currentMonth).slice(4)}月月底`
                       : "-"
                     }
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">累计已分配：{formatAmount(revenueInfo?.totalDistributed || "0", 2)} USDT</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {revenueInfo?.lastDistributionMonth
+                      ? `上次分红：${String(revenueInfo.lastDistributionMonth).slice(0, 4)}年${String(revenueInfo.lastDistributionMonth).slice(4)}月`
+                      : "暂无分红记录"
+                    }
+                  </p>
                 </>
               )}
             </CardContent>
           </Card>
         </div>
 
+        {/* 各月份分红列表 */}
         <Card className="border-emerald-200">
-          <CardHeader>
-            <CardTitle>领取 USDT 分红</CardTitle>
-            <CardDescription>每月根据您持有的 PV-Coin 比例分配电站收益，可随时领取</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
-              <div>
-                <p className="text-sm text-gray-600">本期可领取</p>
-                <p className="text-4xl font-bold text-emerald-700 mt-1">
-                  {isLoading ? <Skeleton className="h-10 w-28 inline-block" /> : `${formatAmount(revenueInfo?.claimableUsdt || "0", 2)} USDT`}
-                </p>
-                {revenueInfo?.lastDistributionMonth ? (
-                  <p className="text-xs text-gray-400 mt-1">上次分红：{String(revenueInfo.lastDistributionMonth).slice(0,4)}年{String(revenueInfo.lastDistributionMonth).slice(4)}月</p>
-                ) : null}
-              </div>
-              <Button
-                onClick={handleClaim}
-                disabled={isClaiming || isLoading || !revenueInfo?.contractConfigured || revenueInfo?.hasClaimed || parseFloat(revenueInfo?.claimableUsdt || "0") <= 0}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-6 text-lg font-semibold whitespace-nowrap"
-                size="lg"
-              >
-                {isClaiming ? (<><RefreshCw className="w-5 h-5 mr-2 animate-spin" />领取中...</>) :
-                  revenueInfo?.hasClaimed ? (<><CheckCircle2 className="w-5 h-5 mr-2" />本期已领取</>) : "领取分红"}
-              </Button>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <CalendarDays className="w-5 h-5 text-emerald-600" />
+                月度分红明细
+              </CardTitle>
+              <CardDescription className="mt-1">每月根据您持有的 PV-Coin 比例分配电站收益，可随时领取历史未领取分红</CardDescription>
             </div>
+            {claimableMonths.length > 1 && (
+              <Button
+                onClick={handleClaimAll}
+                disabled={claimingMonths.size > 0}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white whitespace-nowrap"
+                size="sm"
+              >
+                {claimingMonths.size > 0 ? (
+                  <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />领取中...</>
+                ) : (
+                  `一键领取全部（${claimableMonths.length} 个月）`
+                )}
+              </Button>
+            )}
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="space-y-3">
+                {[1, 2].map((i) => <Skeleton key={i} className="h-16 w-full" />)}
+              </div>
+            ) : months.length === 0 ? (
+              <div className="text-center py-10 text-gray-400">
+                <CalendarDays className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                <p>暂无分红记录</p>
+                <p className="text-xs mt-1">分红将在每月月底由管理员发起，请持有 PV-Coin 等待</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {months.map((monthData) => {
+                  const isClaiming = claimingMonths.has(monthData.month);
+                  const txHash = claimTxHashes[monthData.month];
 
-            {claimTxHash && (
-              <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <RefreshCw className="w-4 h-4 text-blue-600 animate-spin flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-blue-800 font-medium">交易确认中</p>
-                  <p className="text-xs text-blue-600 font-mono truncate">{claimTxHash}</p>
-                </div>
-                <a href={`${EXPLORER_URL}/tx/${claimTxHash}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 flex-shrink-0">
-                  <ExternalLink className="w-4 h-4" />
-                </a>
+                  return (
+                    <div
+                      key={monthData.month}
+                      className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg border ${
+                        monthData.claimable
+                          ? "bg-emerald-50 border-emerald-200"
+                          : "bg-gray-50 border-gray-200"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                          monthData.claimed ? "bg-emerald-500" : "bg-amber-400"
+                        }`} />
+                        <div>
+                          <p className="font-semibold text-gray-900">{monthData.label}</p>
+                          <p className="text-sm text-gray-500">
+                            可领取：<span className="font-bold text-emerald-700">{formatAmount(monthData.revenueUsdt, 4)} USDT</span>
+                          </p>
+                          {txHash && (
+                            <a
+                              href={`${EXPLORER_URL}/tx/${txHash}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-blue-500 hover:underline flex items-center gap-1 mt-0.5"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                              查看交易
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 sm:flex-shrink-0">
+                        {monthData.claimed ? (
+                          <Badge variant="secondary" className="text-xs">
+                            <CheckCircle2 className="w-3 h-3 mr-1" /> 已领取
+                          </Badge>
+                        ) : monthData.claimable ? (
+                          <Button
+                            size="sm"
+                            onClick={() => handleClaimMonth(monthData)}
+                            disabled={isClaiming || claimingMonths.size > 0}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                          >
+                            {isClaiming ? (
+                              <><RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" />领取中</>
+                            ) : "领取"}
+                          </Button>
+                        ) : (
+                          <Badge variant="outline" className="text-xs text-gray-400">
+                            无可领取
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
 
-            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 text-sm text-gray-600 space-y-1">
+            <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200 text-sm text-gray-600 space-y-1">
               <p>• 分红来自光伏电站的电费收入，每月按持仓比例分配</p>
               <p>• 领取操作需要支付少量 Gas 费用（MATIC）</p>
-              <p>• 每个分红周期只能领取一次，未领取的分红不会消失</p>
+              <p>• 历史未领取的分红不会消失，可随时补领</p>
             </div>
           </CardContent>
         </Card>
 
+        {/* 领取历史 */}
         <Card className="border-emerald-200">
           <CardHeader>
             <CardTitle>领取历史</CardTitle>
-            <CardDescription>历史分红领取记录</CardDescription>
+            <CardDescription>历史分红领取记录（含质押奖励）</CardDescription>
           </CardHeader>
           <CardContent>
             {!claimHistory || claimHistory.length === 0 ? (
@@ -283,7 +391,9 @@ export default function Revenue() {
                 {claimHistory.map((tx) => (
                   <div key={tx.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
                     <div className="flex items-center gap-3">
-                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${tx.status === "confirmed" ? "bg-emerald-500" : tx.status === "failed" ? "bg-red-500" : "bg-amber-400"}`} />
+                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                        tx.status === "confirmed" ? "bg-emerald-500" : tx.status === "failed" ? "bg-red-500" : "bg-amber-400"
+                      }`} />
                       <div>
                         <p className="text-sm font-medium text-gray-900">
                           {tx.txType === "claim_dividend" ? "USDT 分红" : "质押奖励"}{" "}
@@ -293,10 +403,18 @@ export default function Revenue() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant={tx.status === "confirmed" ? "default" : tx.status === "failed" ? "destructive" : "secondary"} className="text-xs">
+                      <Badge
+                        variant={tx.status === "confirmed" ? "default" : tx.status === "failed" ? "destructive" : "secondary"}
+                        className="text-xs"
+                      >
                         {tx.status === "confirmed" ? "已确认" : tx.status === "failed" ? "失败" : "确认中"}
                       </Badge>
-                      <a href={`${EXPLORER_URL}/tx/${tx.txHash}`} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-gray-600">
+                      <a
+                        href={`${EXPLORER_URL}/tx/${tx.txHash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-gray-400 hover:text-gray-600"
+                      >
                         <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                     </div>

@@ -227,7 +227,107 @@ export const revenueRouter = router({
       }
     }),
 
-  // ── 查询领取历史────────────────────────────────────────────────────
+  // ── 查询用户所有历史月份分红状态─────────────────────────────────────────────────────────────
+  // 返回每个分红月份的可领取金额和是否已领取，支持用户领取历史未领取的分红
+  getAllMonthlyRevenue: publicProcedure
+    .input(z.object({ walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/) }))
+    .query(async ({ input }) => {
+      const { rpcUrl, revenueDistributorAddress } = getEnv();
+
+      if (!revenueDistributorAddress) {
+        return { months: [] };
+      }
+
+      try {
+        const provider = new ethers.JsonRpcProvider(rpcUrl);
+        const revenueDistributor = new ethers.Contract(
+          revenueDistributorAddress,
+          REVENUE_DISTRIBUTOR_ABI,
+          provider
+        );
+
+        // 获取最近分红月份和当前月份
+        const [lastDistMonth, onChainCurrentMonth] = await Promise.all([
+          revenueDistributor.lastDistributionMonth().catch(() => BigInt(0)),
+          revenueDistributor.getCurrentMonth().catch(() => BigInt(0)),
+        ]);
+
+        const lastMonth = Number(lastDistMonth);
+        const currentMonth = Number(onChainCurrentMonth);
+
+        if (lastMonth === 0) {
+          return { months: [] };
+        }
+
+        // 生成从项目上线月份到最近分红月份的所有月份列表
+        // 项目上线于 2026 年 4 月，所以从 202604 开始向前遇历
+        // 如果 lastMonth < 202604，则从 lastMonth 开始；否则从 202604 开始
+        const START_MONTH = 202604; // 项目上线第一个分红月份
+        const fromMonth = Math.min(lastMonth, START_MONTH);
+
+        // 生成月份列表（从 fromMonth 到 lastMonth）
+        const monthList: number[] = [];
+        let m = fromMonth;
+        while (m <= lastMonth) {
+          monthList.push(m);
+          // 月份递增：202604 → 202605 → ... → 202612 → 202701
+          const year = Math.floor(m / 100);
+          const month = m % 100;
+          if (month === 12) {
+            m = (year + 1) * 100 + 1;
+          } else {
+            m = year * 100 + (month + 1);
+          }
+        }
+
+        // 并发查询每个月份的分红金额和领取状态
+        const results = await Promise.all(
+          monthList.map(async (month) => {
+            const [revenueRaw, claimed] = await Promise.all([
+              revenueDistributor.getUserMonthlyRevenue(
+                input.walletAddress,
+                BigInt(month)
+              ).catch(() => BigInt(0)),
+              revenueDistributor.isMonthlyRevenueClaimed(
+                input.walletAddress,
+                BigInt(month)
+              ).catch(async () =>
+                revenueDistributor.userMonthlyRevenueClaimed(
+                  input.walletAddress,
+                  BigInt(month)
+                ).catch(() => false)
+              ),
+            ]);
+
+            const revenueUsdt = ethers.formatUnits(revenueRaw, 6);
+            const yearStr = String(month).slice(0, 4);
+            const monthStr = String(month).slice(4);
+
+            return {
+              month,
+              label: `${yearStr}年${monthStr}月`,
+              revenueUsdt,
+              claimed: Boolean(claimed),
+              claimable: !claimed && Number(revenueRaw) > 0,
+            };
+          })
+        );
+
+        // 只返回有分红记录的月份（金额 > 0）
+        const monthsWithRevenue = results.filter((r) => Number(r.revenueUsdt) > 0);
+
+        return {
+          months: monthsWithRevenue,
+          currentMonth,
+          lastDistributionMonth: lastMonth,
+        };
+      } catch (error) {
+        console.error("[Revenue] 查询历史分红失败:", error);
+        return { months: [] };
+      }
+    }),
+
+  // ── 查询领取历史────────────────────────────────────────────────────────────────────
   getClaimHistory: publicProcedure
     .input(z.object({ walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/) }))
     .query(async ({ input }) => {
