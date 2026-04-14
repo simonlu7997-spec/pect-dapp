@@ -156,9 +156,8 @@ export const whitelistRouter = router({
 
       const kyc = await getKycById(input.id);
       if (!kyc) throw new TRPCError({ code: "NOT_FOUND", message: "申请记录不存在" });
-      if (kyc.status === "approved") {
-        return { success: true, message: "该申请已经审核通过", alreadyApproved: true };
-      }
+      // 如果已审批，仍然重新同步 Sale 白名单（防止之前同步失败）
+      const alreadyApproved = kyc.status === "approved";
 
       const pvCoinAddress = process.env.PV_COIN_ADDRESS;
       const deployerPrivateKey = process.env.DEPLOYER_PRIVATE_KEY;
@@ -184,23 +183,26 @@ export const whitelistRouter = router({
         let txHashKyc: string | undefined;
         let txHashSender: string | undefined;
 
-        if (!isKycVerified) {
-          const kycTx = await pvCoinContract.addKyc(kyc.walletAddress);
-          txHashKyc = kycTx.hash;
-          await kycTx.wait();
-          await recordTransaction({
-            walletAddress: kyc.walletAddress,
-            txHash: kycTx.hash,
-            txType: "whitelist",
-            status: "confirmed",
-            confirmedAt: new Date(),
-          }).catch(() => {});
-        }
+        // 如果已审批，跳过 PVCoin KYC 步骤，仅同步 Sale 白名单
+        if (!alreadyApproved) {
+          if (!isKycVerified) {
+            const kycTx = await pvCoinContract.addKyc(kyc.walletAddress);
+            txHashKyc = kycTx.hash;
+            await kycTx.wait();
+            await recordTransaction({
+              walletAddress: kyc.walletAddress,
+              txHash: kycTx.hash,
+              txType: "whitelist",
+              status: "confirmed",
+              confirmedAt: new Date(),
+            }).catch(() => {});
+          }
 
-        if (!isSenderWhitelisted) {
-          const senderTx = await pvCoinContract.addSenderWhitelist(kyc.walletAddress);
-          txHashSender = senderTx.hash;
-          await senderTx.wait();
+          if (!isSenderWhitelisted) {
+            const senderTx = await pvCoinContract.addSenderWhitelist(kyc.walletAddress);
+            txHashSender = senderTx.hash;
+            await senderTx.wait();
+          }
         }
 
         // 同步添加到 PrivateSale 和 PublicSale 白名单（合规要求）
@@ -235,11 +237,15 @@ export const whitelistRouter = router({
           );
         }
 
+        // Sale 白名单同步失败时抛出错误，不再静默吁掉
+        let saleWhitelistError: string | undefined;
         if (saleWhitelistPromises.length > 0) {
-          await Promise.all(saleWhitelistPromises).catch((err) => {
-            // 不阻塞主流程，记录错误即可
+          try {
+            await Promise.all(saleWhitelistPromises);
+          } catch (err) {
             console.error("[Whitelist] Sale 合约白名单添加失败:", err);
-          });
+            saleWhitelistError = err instanceof Error ? err.message : String(err);
+          }
         }
 
         await updateKycStatus(input.id, "approved", {
@@ -259,10 +265,13 @@ export const whitelistRouter = router({
 
         return {
           success: true,
-          message: "审核通过，已成功添加到链上白名单",
+          message: alreadyApproved
+            ? (saleWhitelistError ? "已重新同步，但部分 Sale 白名单添加失败：" + saleWhitelistError : "已重新同步 Sale 白名单")
+            : (saleWhitelistError ? "审核通过，但部分 Sale 白名单添加失败：" + saleWhitelistError : "审核通过，已成功添加到链上白名单"),
           txHashKyc,
           txHashSender,
-          alreadyApproved: false,
+          alreadyApproved,
+          saleWhitelistError,
         };
       } catch (error) {
         console.error("[Whitelist] 合约调用失败:", error);
