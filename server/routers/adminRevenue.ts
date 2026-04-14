@@ -29,6 +29,11 @@ const StakingManagerABI = [
   "function getMonthlyRewardPool(uint256 month) view returns (uint256)",
 ];
 
+// ERC20 最小 ABI（用于查询代币精度）
+const ERC20_MINIMAL_ABI = [
+  "function decimals() view returns (uint8)",
+];
+
 // 管理员权限检查中间件
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
   if (ctx.user.role !== "admin") {
@@ -175,25 +180,34 @@ export const adminRevenueRouter = router({
       const provider = new ethers.JsonRpcProvider(ENV.blockchainRpcUrl);
       const contract = new ethers.Contract(stakingAddr, StakingManagerABI, provider);
 
+      // 动态查询 C2-Coin 精度（实际是 6 位，不能硬编码 18）
+      let c2Decimals = 18;
+      if (ENV.c2CoinAddress) {
+        try {
+          const c2Token = new ethers.Contract(ENV.c2CoinAddress, ERC20_MINIMAL_ABI, provider);
+          c2Decimals = Number(await c2Token.decimals());
+        } catch { /* 使用默认值 */ }
+      }
+
       // 使用合约实际存在的函数名 getTotalStaked()
-      const totalStaked = await contract.getTotalStaked().catch(() => BigInt(0));
+      const totalStakedRaw = await contract.getTotalStaked().catch(() => BigInt(0));
 
       // 质押人数从数据库 transactions 表统计（合约无此函数）
       const { getDb } = await import("../db");
       const { transactions } = await import("../../drizzle/schema");
-      const { countDistinct } = await import("drizzle-orm");
+      const { countDistinct, eq: eqOp } = await import("drizzle-orm");
       const db = await getDb();
       let totalStakers = 0;
       if (db) {
         const result = await db
           .select({ count: countDistinct(transactions.walletAddress) })
           .from(transactions)
-          .where((await import("drizzle-orm")).eq(transactions.txType, "stake"));
+          .where(eqOp(transactions.txType, "stake"));
         totalStakers = Number(result[0]?.count ?? 0);
       }
 
       return {
-        totalStaked: ethers.formatUnits(totalStaked, 18),
+        totalStaked: ethers.formatUnits(totalStakedRaw, c2Decimals),
         totalStakers,
         contractAddress: stakingAddr,
         available: true,
