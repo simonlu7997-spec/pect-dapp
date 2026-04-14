@@ -16,17 +16,17 @@ import { ENV } from "../_core/env";
 
 // RevenueDistributor 合约 ABI（管理员相关函数）
 const RevenueDistributorABI = [
-  "function distributeRevenue(uint256 amount) external",
-  "function totalDistributed() external view returns (uint256)",
-  "function getClaimableAmount(address user) external view returns (uint256)",
-  "function totalStakers() external view returns (uint256)",
+  "function startDistribution(uint256 _totalAmount) external",
+  "function lastDistributionMonth() view returns (uint256)",
+  "function getMonthlyRevenuePool(uint256 month) view returns (uint256)",
 ];
 
 // StakingManager 合约 ABI（管理员发放奖励函数）
 const StakingManagerABI = [
-  "function distributeRewards(uint256 amount) external",
-  "function totalStaked() external view returns (uint256)",
-  "function stakerCount() external view returns (uint256)",
+  "function startMonthlyReward(uint256 _totalReward) external",
+  "function getTotalStaked() view returns (uint256)",
+  "function lastRewardMonth() view returns (uint256)",
+  "function getMonthlyRewardPool(uint256 month) view returns (uint256)",
 ];
 
 // 管理员权限检查中间件
@@ -100,7 +100,7 @@ export const adminRevenueRouter = router({
       return { success: true };
     }),
 
-  // 查询链上分红合约统计数据
+  // 查询链上分红合约统计数据（通过累加历史月份分红池计算累计分红）
   getContractStats: adminProcedure.query(async () => {
     const contractAddr = ENV.revenueDistributorAddress;
     if (!contractAddr || !ENV.blockchainRpcUrl) {
@@ -114,9 +114,37 @@ export const adminRevenueRouter = router({
     try {
       const provider = new ethers.JsonRpcProvider(ENV.blockchainRpcUrl);
       const contract = new ethers.Contract(contractAddr, RevenueDistributorABI, provider);
-      const totalDistributed = await contract.totalDistributed();
+
+      // 获取最近分红月份（格式 YYYYMM）
+      const lastMonthRaw: bigint = await contract.lastDistributionMonth();
+      const lastMonth = Number(lastMonthRaw);
+
+      if (lastMonth === 0) {
+        return {
+          totalDistributed: "0",
+          contractAddress: contractAddr,
+          available: true,
+        };
+      }
+
+      // 遍历从 202601 到 lastMonth 的所有月份，累加分红池
+      const startYear = 2026, startMonthNum = 1;
+      const lastYear = Math.floor(lastMonth / 100);
+      const lastMonthNum = lastMonth % 100;
+      const months: number[] = [];
+      let y = startYear, m = startMonthNum;
+      while (y < lastYear || (y === lastYear && m <= lastMonthNum)) {
+        months.push(y * 100 + m);
+        m++; if (m > 12) { m = 1; y++; }
+      }
+
+      const poolResults = await Promise.all(
+        months.map((month) => contract.getMonthlyRevenuePool(month).catch(() => BigInt(0)))
+      );
+      const totalWei = poolResults.reduce((acc, v) => acc + v, BigInt(0));
+
       return {
-        totalDistributed: ethers.formatUnits(totalDistributed, 6),
+        totalDistributed: ethers.formatUnits(totalWei, 6),
         contractAddress: contractAddr,
         available: true,
       };
@@ -146,13 +174,27 @@ export const adminRevenueRouter = router({
     try {
       const provider = new ethers.JsonRpcProvider(ENV.blockchainRpcUrl);
       const contract = new ethers.Contract(stakingAddr, StakingManagerABI, provider);
-      const [totalStaked, stakerCount] = await Promise.all([
-        contract.totalStaked().catch(() => BigInt(0)),
-        contract.stakerCount().catch(() => BigInt(0)),
-      ]);
+
+      // 使用合约实际存在的函数名 getTotalStaked()
+      const totalStaked = await contract.getTotalStaked().catch(() => BigInt(0));
+
+      // 质押人数从数据库 transactions 表统计（合约无此函数）
+      const { getDb } = await import("../db");
+      const { transactions } = await import("../../drizzle/schema");
+      const { countDistinct } = await import("drizzle-orm");
+      const db = await getDb();
+      let totalStakers = 0;
+      if (db) {
+        const result = await db
+          .select({ count: countDistinct(transactions.walletAddress) })
+          .from(transactions)
+          .where((await import("drizzle-orm")).eq(transactions.txType, "stake"));
+        totalStakers = Number(result[0]?.count ?? 0);
+      }
+
       return {
         totalStaked: ethers.formatUnits(totalStaked, 18),
-        totalStakers: Number(stakerCount),
+        totalStakers,
         contractAddress: stakingAddr,
         available: true,
       };
@@ -236,8 +278,8 @@ export const adminRevenueRouter = router({
         // amount 转为 USDT 最小单位（6 位小数）
         const amountWei = ethers.parseUnits(input.amount, 6);
 
-        console.log(`[AdminRevenue] Triggering distributeRevenue: amount=${input.amount} USDT`);
-        const tx = await contract.distributeRevenue(amountWei);
+        console.log(`[AdminRevenue] Triggering startDistribution: amount=${input.amount} USDT`);
+        const tx = await contract.startDistribution(amountWei);
 
         // 先记录为 pending 状态
         await recordAdminTransaction({
@@ -335,8 +377,8 @@ export const adminRevenueRouter = router({
         // amount 转为 C2-Coin 最小单位（18 位小数）
         const amountWei = ethers.parseUnits(input.amount, 18);
 
-        console.log(`[AdminRevenue] Triggering distributeRewards: amount=${input.amount} C2`);
-        const tx = await contract.distributeRewards(amountWei);
+        console.log(`[AdminRevenue] Triggering startMonthlyReward: amount=${input.amount} C2`);
+        const tx = await contract.startMonthlyReward(amountWei);
 
         // 先记录为 pending 状态
         await recordAdminTransaction({

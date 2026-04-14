@@ -1181,14 +1181,20 @@ export default function AdminRevenue() {
                           <Badge className={
                             tx.txType === "distribute_revenue"
                               ? "bg-green-900/50 text-green-400 border-green-800"
-                              : "bg-blue-900/50 text-blue-400 border-blue-800"
+                              : tx.txType === "distribute_staking_reward"
+                              ? "bg-blue-900/50 text-blue-400 border-blue-800"
+                              : "bg-purple-900/50 text-purple-400 border-purple-800"
                           }>
-                            {tx.txType === "distribute_revenue" ? "链上分红" : "质押奖励"}
+                            {tx.txType === "distribute_revenue"
+                              ? "链上分红"
+                              : tx.txType === "distribute_staking_reward"
+                              ? "质押奖励"
+                              : "C2 空投"}
                           </Badge>
                         </td>
                         <td className="py-3 px-2 text-right text-gray-200 font-semibold">
                           {tx.amount
-                            ? `${parseFloat(tx.amount).toLocaleString()} ${tx.txType === "distribute_revenue" ? "USDT" : "C2"}`
+                            ? `${parseFloat(tx.amount).toLocaleString()} ${tx.txType === "distribute_revenue" ? "USDT" : tx.txType === "distribute_staking_reward" ? "C2" : "C2"}`
                             : "—"}
                         </td>
                         <td className="py-3 px-2 text-center">
