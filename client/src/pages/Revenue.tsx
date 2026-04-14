@@ -82,11 +82,14 @@ export default function Revenue() {
         signer
       );
 
-      toast.info("请在钱包中确认交易...");
-      // 获取当前年月（格式：YYYYMM，如 202604）
-      const now = new Date();
-      const currentMonth = now.getFullYear() * 100 + (now.getMonth() + 1);
-      const tx = await contract.claimRevenue(currentMonth);
+      toast.info("请在钉包中确认交易...");
+      // 使用后端返回的 claimMonth（最近一次分红的月份，格式：YYYYMM）
+      const claimMonth = revenueInfo.claimMonth || 0;
+      if (!claimMonth) {
+        toast.error("暂无可领取的分红月份");
+        return;
+      }
+      const tx = await contract.claimRevenue(claimMonth);
       setClaimTxHash(tx.hash);
       toast.info("交易已提交，等待链上确认...");
 
@@ -203,7 +206,12 @@ export default function Revenue() {
             <CardContent>
               {isLoading ? <Skeleton className="h-9 w-32" /> : (
                 <>
-                  <p className="text-lg font-bold text-gray-900">{formatDate(revenueInfo?.nextDistributionTime || null)}</p>
+                  <p className="text-lg font-bold text-gray-900">
+                    {revenueInfo?.currentMonth
+                      ? `${String(revenueInfo.currentMonth).slice(0,4)}年${String(revenueInfo.currentMonth).slice(4)}月月底`
+                      : "-"
+                    }
+                  </p>
                   <p className="text-xs text-gray-400 mt-1">累计已分配：{formatAmount(revenueInfo?.totalDistributed || "0", 2)} USDT</p>
                 </>
               )}
@@ -223,9 +231,9 @@ export default function Revenue() {
                 <p className="text-4xl font-bold text-emerald-700 mt-1">
                   {isLoading ? <Skeleton className="h-10 w-28 inline-block" /> : `${formatAmount(revenueInfo?.claimableUsdt || "0", 2)} USDT`}
                 </p>
-                {revenueInfo?.lastDistributionTime && (
-                  <p className="text-xs text-gray-400 mt-1">上次分红：{formatDate(revenueInfo.lastDistributionTime)}</p>
-                )}
+                {revenueInfo?.lastDistributionMonth ? (
+                  <p className="text-xs text-gray-400 mt-1">上次分红：{String(revenueInfo.lastDistributionMonth).slice(0,4)}年{String(revenueInfo.lastDistributionMonth).slice(4)}月</p>
+                ) : null}
               </div>
               <Button
                 onClick={handleClaim}

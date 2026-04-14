@@ -5,14 +5,23 @@ import { ethers } from "ethers";
 import { recordTransaction, getTransactionsByWallet } from "../db";
 
 // RevenueDistributor ABI（查询和领取分红）
+// 合约函数：getUserMonthlyRevenue(address user, uint256 month) → uint256
+//           isMonthlyRevenueClaimed(address user, uint256 month) → bool
+//           lastDistributionMonth() → uint256
+//           getCurrentMonth() → uint256
+//           getMonthlyRevenuePool(uint256 month) → uint256
+//           claimRevenue(uint256 month) → void
 const REVENUE_DISTRIBUTOR_ABI = [
-  "function claimableAmount(address user) external view returns (uint256)",
-  "function totalDistributed() external view returns (uint256)",
-  "function lastDistributionTime() external view returns (uint256)",
-  "function nextDistributionTime() external view returns (uint256)",
-  "function claim() external",
-  "function hasClaimed(address user, uint256 period) external view returns (bool)",
-  "function currentPeriod() external view returns (uint256)",
+  "function getUserMonthlyRevenue(address user, uint256 month) external view returns (uint256)",
+  "function isMonthlyRevenueClaimed(address user, uint256 month) external view returns (bool)",
+  "function userMonthlyRevenue(address user, uint256 month) external view returns (uint256)",
+  "function userMonthlyRevenueClaimed(address user, uint256 month) external view returns (bool)",
+  "function lastDistributionMonth() external view returns (uint256)",
+  "function getCurrentMonth() external view returns (uint256)",
+  "function getMonthlyRevenuePool(uint256 month) external view returns (uint256)",
+  "function monthlyRevenuePool(uint256 month) external view returns (uint256)",
+  "function claimRevenue(uint256 month) external",
+  "function adjustablePvcTotalSupply() external view returns (uint256)",
 ];
 
 // PV-Coin (PVC) ERC20 ABI
@@ -40,6 +49,17 @@ function getEnv() {
   };
 }
 
+/**
+ * 获取当前年月（YYYYMM 格式），与合约 getCurrentMonth() 保持一致
+ * 合约使用 UTC 时间，这里也用 UTC
+ */
+function getCurrentYearMonth(): number {
+  const now = new Date();
+  const year = now.getUTCFullYear();
+  const month = now.getUTCMonth() + 1;
+  return year * 100 + month;
+}
+
 export const revenueRouter = router({
   // ── 查询用户分红信息（持仓 + 待领取金额）────────────────────────────
   getRevenueInfo: publicProcedure
@@ -56,11 +76,11 @@ export const revenueRouter = router({
           holdingPercent: "0",
           claimableUsdt: "0",
           totalDistributed: "0",
-          lastDistributionTime: null as number | null,
-          nextDistributionTime: null as number | null,
-          currentPeriod: 0,
+          lastDistributionMonth: 0,
+          currentMonth: 0,
           hasClaimed: false,
           c2Balance: "0",
+          claimMonth: 0,
         };
       }
 
@@ -73,38 +93,44 @@ export const revenueRouter = router({
         );
         const pvCoin = new ethers.Contract(pvCoinAddress, PVC_ABI, provider);
 
+        // 获取上月（lastDistributionMonth）作为可领取月份
+        // 合约的 lastDistributionMonth 就是最近一次 startDistribution 的月份
         const [
           pvBalance,
           pvTotalSupply,
           pvDecimals,
-          claimableRaw,
-          totalDistributedRaw,
+          lastDistMonth,
+          onChainCurrentMonth,
         ] = await Promise.all([
           pvCoin.balanceOf(input.walletAddress),
           pvCoin.totalSupply(),
           pvCoin.decimals(),
-          revenueDistributor.claimableAmount(input.walletAddress).catch(() => BigInt(0)),
-          revenueDistributor.totalDistributed().catch(() => BigInt(0)),
+          revenueDistributor.lastDistributionMonth().catch(() => BigInt(0)),
+          revenueDistributor.getCurrentMonth().catch(() => BigInt(0)),
         ]);
 
-        // 可选字段（合约可能不支持）
-        let lastDistributionTime: number | null = null;
-        let nextDistributionTime: number | null = null;
-        let currentPeriod = 0;
+        const claimMonth = Number(lastDistMonth); // 最近分红月份，如 202604
+
+        // 查询该月份的可领取金额和是否已领取
+        let claimableRaw = BigInt(0);
         let hasClaimed = false;
 
-        try {
-          const [last, next, period] = await Promise.all([
-            revenueDistributor.lastDistributionTime(),
-            revenueDistributor.nextDistributionTime(),
-            revenueDistributor.currentPeriod(),
+        if (claimMonth > 0) {
+          [claimableRaw, hasClaimed] = await Promise.all([
+            revenueDistributor.getUserMonthlyRevenue(input.walletAddress, BigInt(claimMonth))
+              .catch(() => BigInt(0)),
+            revenueDistributor.isMonthlyRevenueClaimed(input.walletAddress, BigInt(claimMonth))
+              .catch(async () => {
+                // 尝试备用函数名
+                return revenueDistributor.userMonthlyRevenueClaimed(input.walletAddress, BigInt(claimMonth))
+                  .catch(() => false);
+              }),
           ]);
-          lastDistributionTime = Number(last) * 1000; // 转为毫秒
-          nextDistributionTime = Number(next) * 1000;
-          currentPeriod = Number(period);
-          hasClaimed = await revenueDistributor.hasClaimed(input.walletAddress, currentPeriod);
-        } catch {
-          // 合约不支持这些字段，忽略
+
+          // 如果已领取，可领取金额应为 0
+          if (hasClaimed) {
+            claimableRaw = BigInt(0);
+          }
         }
 
         // C2-Coin 余额（可选）
@@ -131,7 +157,6 @@ export const revenueRouter = router({
 
         // USDT 精度（6 位）
         const claimableUsdt = ethers.formatUnits(claimableRaw, 6);
-        const totalDistributed = ethers.formatUnits(totalDistributedRaw, 6);
 
         return {
           contractConfigured: true,
@@ -139,12 +164,12 @@ export const revenueRouter = router({
           pvTotalSupply: pvTotalSupplyFormatted,
           holdingPercent,
           claimableUsdt,
-          totalDistributed,
-          lastDistributionTime,
-          nextDistributionTime,
-          currentPeriod,
+          totalDistributed: "0", // 合约无此字段，保留兼容
+          lastDistributionMonth: Number(lastDistMonth),
+          currentMonth: Number(onChainCurrentMonth),
           hasClaimed,
           c2Balance,
+          claimMonth, // 前端领取时需要传入此月份
         };
       } catch (error) {
         console.error("[Revenue] 查询分红信息失败:", error);
@@ -155,11 +180,11 @@ export const revenueRouter = router({
           holdingPercent: "0",
           claimableUsdt: "0",
           totalDistributed: "0",
-          lastDistributionTime: null as number | null,
-          nextDistributionTime: null as number | null,
-          currentPeriod: 0,
+          lastDistributionMonth: 0,
+          currentMonth: 0,
           hasClaimed: false,
           c2Balance: "0",
+          claimMonth: 0,
           error: "查询链上数据失败，请稍后重试",
         };
       }
