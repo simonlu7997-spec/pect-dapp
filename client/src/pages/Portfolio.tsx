@@ -152,6 +152,19 @@ export default function Portfolio() {
   const { data: revenueInfo, isLoading: revenueLoading, refetch: refetchRevenue } =
     trpc.revenue.getRevenueInfo.useQuery({ walletAddress }, { enabled: !!walletAddress, refetchInterval: 60_000 });
 
+  // 查询所有历史月份分红，用于计算待领取分红合计金额
+  const { data: allMonthlyRevenue, isLoading: allMonthlyLoading, refetch: refetchAllMonthly } =
+    trpc.revenue.getAllMonthlyRevenue.useQuery({ walletAddress }, { enabled: !!walletAddress, refetchInterval: 60_000 });
+
+  // 计算所有未领取月份的分红合计
+  const totalClaimableUsdt = useMemo(() => {
+    if (!allMonthlyRevenue?.months) return "0";
+    const total = allMonthlyRevenue.months
+      .filter((m) => m.claimable)
+      .reduce((sum, m) => sum + parseFloat(m.revenueUsdt || "0"), 0);
+    return total.toFixed(6);
+  }, [allMonthlyRevenue]);
+
   const { data: stakingInfo, isLoading: stakingLoading, refetch: refetchStaking } =
     trpc.staking.getStakingInfo.useQuery({ walletAddress }, { enabled: !!walletAddress, refetchInterval: 60_000 });
 
@@ -165,6 +178,7 @@ export default function Portfolio() {
 
   const handleRefreshAll = () => {
     refetchRevenue();
+    refetchAllMonthly();
     refetchStaking();
     refetchAirdrop();
   };
@@ -227,9 +241,9 @@ export default function Portfolio() {
             />
             <StatCard
               label="待领取分红"
-              value={formatAmount(revenueInfo?.claimableUsdt, 2)}
+              value={formatAmount(totalClaimableUsdt, 2)}
               unit="USDT"
-              loading={revenueLoading}
+              loading={revenueLoading || allMonthlyLoading}
               highlight
               icon={<TrendingUp className="w-3.5 h-3.5" />}
             />
@@ -259,9 +273,9 @@ export default function Portfolio() {
             <ActionCard
               title="领取 PVC 分红"
               description="持有 PV-Coin 即可按比例领取电站收益"
-              amount={revenueInfo?.claimableUsdt || "0"}
+              amount={totalClaimableUsdt}
               unit="USDT"
-              loading={revenueLoading}
+              loading={revenueLoading || allMonthlyLoading}
               buttonLabel="去领取"
               onClick={() => navigate("/revenue")}
               color="border-emerald-300"
