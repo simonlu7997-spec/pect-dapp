@@ -3,7 +3,7 @@ import { trpc } from '@/lib/trpc';
 import { useAuth } from '@/_core/hooks/useAuth';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
@@ -27,6 +27,8 @@ import {
   ChevronDown,
   ChevronUp,
   Search,
+  Zap,
+  Shield,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -57,10 +59,32 @@ const COUNTRY_MAP: Record<string, string> = {
   JP: '日本', KR: '韩国', AU: '澳大利亚', CA: '加拿大', OTHER: '其他',
 };
 
-function KycRow({ kyc, onApprove, onReject }: {
+function WhitelistBadge({ label, status }: { label: string; status: boolean | null | undefined }) {
+  if (status === null || status === undefined) {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border bg-gray-100 text-gray-500 border-gray-200">
+        {label}: 未配置
+      </span>
+    );
+  }
+  return status ? (
+    <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200">
+      <CheckCircle2 className="w-3 h-3" />
+      {label}
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border bg-red-50 text-red-600 border-red-200">
+      <XCircle className="w-3 h-3" />
+      {label}
+    </span>
+  );
+}
+
+function KycRow({ kyc, onApprove, onReject, whitelistStatus }: {
   kyc: any;
   onApprove: (id: number) => void;
   onReject: (id: number, name: string) => void;
+  whitelistStatus?: { privateWhitelisted: boolean | null; publicWhitelisted: boolean | null };
 }) {
   const [expanded, setExpanded] = useState(false);
   const cfg = STATUS_CONFIG[kyc.status as keyof typeof STATUS_CONFIG];
@@ -72,7 +96,7 @@ function KycRow({ kyc, onApprove, onReject }: {
         className="flex items-center gap-3 px-4 py-3 cursor-pointer"
         onClick={() => setExpanded(!expanded)}
       >
-        <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-4">
+        <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-5 gap-2 sm:gap-4">
           <div className="min-w-0">
             <p className="text-sm font-semibold text-gray-900 truncate">{kyc.fullName}</p>
             <p className="text-xs text-gray-400 truncate">{kyc.email}</p>
@@ -91,6 +115,13 @@ function KycRow({ kyc, onApprove, onReject }: {
               {cfg.label}
             </span>
           </div>
+          {/* Sale 白名单状态 */}
+          {kyc.status === 'approved' && whitelistStatus && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <WhitelistBadge label="私募" status={whitelistStatus.privateWhitelisted} />
+              <WhitelistBadge label="公募" status={whitelistStatus.publicWhitelisted} />
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -114,6 +145,18 @@ function KycRow({ kyc, onApprove, onReject }: {
                 拒绝
               </Button>
             </>
+          )}
+          {/* 已通过但白名单缺失时，显示重新同步按钮 */}
+          {kyc.status === 'approved' && whitelistStatus && (whitelistStatus.privateWhitelisted === false || whitelistStatus.publicWhitelisted === false) && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-amber-200 text-amber-600 hover:bg-amber-50 text-xs h-7 px-3"
+              onClick={(e) => { e.stopPropagation(); onApprove(kyc.id); }}
+            >
+              <RefreshCw className="w-3 h-3 mr-1" />
+              同步
+            </Button>
           )}
           {expanded ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
         </div>
@@ -145,6 +188,35 @@ function KycRow({ kyc, onApprove, onReject }: {
             <p className="text-xs text-gray-400 mb-0.5">钱包地址</p>
             <p className="text-xs font-mono text-gray-700 break-all">{kyc.walletAddress}</p>
           </div>
+
+          {/* Sale 白名单详细状态 */}
+          {kyc.status === 'approved' && whitelistStatus && (
+            <div>
+              <p className="text-xs text-gray-400 mb-1">Sale 合约白名单状态</p>
+              <div className="flex gap-3">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-gray-500">私募：</span>
+                  {whitelistStatus.privateWhitelisted === null ? (
+                    <span className="text-xs text-gray-400">未配置</span>
+                  ) : whitelistStatus.privateWhitelisted ? (
+                    <span className="text-xs text-emerald-600 font-medium">✓ 已在白名单</span>
+                  ) : (
+                    <span className="text-xs text-red-600 font-medium">✗ 未在白名单</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-gray-500">公募：</span>
+                  {whitelistStatus.publicWhitelisted === null ? (
+                    <span className="text-xs text-gray-400">未配置</span>
+                  ) : whitelistStatus.publicWhitelisted ? (
+                    <span className="text-xs text-emerald-600 font-medium">✓ 已在白名单</span>
+                  ) : (
+                    <span className="text-xs text-red-600 font-medium">✗ 未在白名单</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {kyc.reviewNote && (
             <div>
@@ -186,7 +258,6 @@ function KycRow({ kyc, onApprove, onReject }: {
 }
 
 export default function AdminKyc() {
-  // auth.me 已统一返回 SIWE 钱包用户，无需重复调用 siweAuth.me
   const { user, loading } = useAuth();
   const isAdmin = user?.role === 'admin';
   const [, navigate] = useLocation();
@@ -198,11 +269,36 @@ export default function AdminKyc() {
   const [rejectDialog, setRejectDialog] = useState<{ id: number; name: string } | null>(null);
   const [rejectNote, setRejectNote] = useState('');
 
+  // 批量同步弹窗
+  const [showSyncDialog, setShowSyncDialog] = useState(false);
+
   // 查询申请列表
   const { data: applications, isLoading, refetch } = trpc.whitelist.listApplications.useQuery(
     { status: statusFilter === 'all' ? undefined : statusFilter },
     { enabled: isAdmin }
   );
+
+  // 查询所有已审批用户的 Sale 白名单状态
+  const { data: whitelistData, refetch: refetchWhitelist, isLoading: isLoadingWhitelist } = trpc.whitelist.batchGetSaleWhitelistStatus.useQuery(
+    undefined,
+    { enabled: isAdmin }
+  );
+
+  // 构建白名单状态映射
+  const whitelistMap = new Map<string, { privateWhitelisted: boolean | null; publicWhitelisted: boolean | null }>();
+  if (whitelistData?.results) {
+    for (const r of whitelistData.results) {
+      whitelistMap.set(r.walletAddress.toLowerCase(), {
+        privateWhitelisted: r.privateWhitelisted,
+        publicWhitelisted: r.publicWhitelisted,
+      });
+    }
+  }
+
+  // 统计白名单缺失数量
+  const missingWhitelistCount = whitelistData?.results?.filter(
+    r => r.privateWhitelisted === false || r.publicWhitelisted === false
+  ).length || 0;
 
   // 审核通过
   const approveMutation = trpc.whitelist.approve.useMutation({
@@ -210,6 +306,7 @@ export default function AdminKyc() {
       toast.success(data.message);
       setApproveId(null);
       refetch();
+      refetchWhitelist();
     },
     onError: (err) => {
       toast.error(err.message || '审核操作失败');
@@ -227,6 +324,19 @@ export default function AdminKyc() {
     },
     onError: (err) => {
       toast.error(err.message || '操作失败');
+    },
+  });
+
+  // 批量同步白名单
+  const batchSyncMutation = trpc.whitelist.batchSyncWhitelist.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message);
+      setShowSyncDialog(false);
+      refetchWhitelist();
+    },
+    onError: (err) => {
+      toast.error(err.message || '批量同步失败');
+      setShowSyncDialog(false);
     },
   });
 
@@ -288,16 +398,54 @@ export default function AdminKyc() {
               <p className="text-sm text-gray-500">管理白名单申请，审核通过后自动上链</p>
             </div>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refetch()}
-            className="gap-2"
-          >
-            <RefreshCw className="w-4 h-4" />
-            刷新
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowSyncDialog(true)}
+              className="gap-2 border-blue-200 text-blue-600 hover:bg-blue-50"
+            >
+              <Zap className="w-4 h-4" />
+              批量同步白名单
+              {missingWhitelistCount > 0 && (
+                <Badge variant="destructive" className="ml-1 h-5 min-w-5 px-1.5 text-xs">
+                  {missingWhitelistCount}
+                </Badge>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { refetch(); refetchWhitelist(); }}
+              className="gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              刷新
+            </Button>
+          </div>
         </div>
+
+        {/* 白名单缺失警告 */}
+        {missingWhitelistCount > 0 && (
+          <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm text-amber-800 font-medium">
+                {missingWhitelistCount} 个已审批用户的 Sale 合约白名单不完整
+              </p>
+              <p className="text-xs text-amber-600 mt-0.5">
+                这些用户虽然通过了 KYC 审核，但在私募或公募合约中未添加白名单，无法参与购买。点击"批量同步白名单"一键修复。
+              </p>
+            </div>
+            <Button
+              size="sm"
+              className="bg-amber-500 hover:bg-amber-600 text-white text-xs"
+              onClick={() => setShowSyncDialog(true)}
+            >
+              立即同步
+            </Button>
+          </div>
+        )}
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
@@ -365,6 +513,7 @@ export default function AdminKyc() {
                 kyc={kyc}
                 onApprove={(id) => setApproveId(id)}
                 onReject={(id, name) => setRejectDialog({ id, name })}
+                whitelistStatus={whitelistMap.get(kyc.walletAddress.toLowerCase())}
               />
             ))}
           </div>
@@ -380,7 +529,7 @@ export default function AdminKyc() {
               确认审核通过
             </DialogTitle>
             <DialogDescription>
-              通过后将调用 PVCoin 合约，将该钱包地址添加到链上白名单。此操作将消耗 Gas 费用，且不可撤销。
+              通过后将调用 PVCoin 合约，将该钱包地址添加到链上白名单（包括私募和公募合约）。此操作将消耗 Gas 费用。
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2">
@@ -429,6 +578,75 @@ export default function AdminKyc() {
               {rejectMutation.isPending ? (
                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" />处理中...</>
               ) : '确认拒绝'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 批量同步白名单弹窗 */}
+      <Dialog open={showSyncDialog} onOpenChange={() => !batchSyncMutation.isPending && setShowSyncDialog(false)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-blue-500" />
+              批量同步白名单
+            </DialogTitle>
+            <DialogDescription>
+              将所有已审批 KYC 用户一键同步到当前配置的私募和公募 Sale 合约白名单。
+              已在白名单中的用户会自动跳过，只添加缺失的地址。
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* 当前状态概览 */}
+          <div className="py-2 space-y-2">
+            {isLoadingWhitelist ? (
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                正在查询链上白名单状态...
+              </div>
+            ) : whitelistData?.results && whitelistData.results.length > 0 ? (
+              <div className="bg-gray-50 rounded-lg p-3 space-y-1.5">
+                <p className="text-sm font-medium text-gray-700">
+                  已审批用户：{whitelistData.results.length} 个
+                </p>
+                <div className="flex gap-4 text-xs">
+                  <span className="text-emerald-600">
+                    私募白名单完整：{whitelistData.results.filter(r => r.privateWhitelisted === true).length}
+                  </span>
+                  <span className="text-red-600">
+                    私募白名单缺失：{whitelistData.results.filter(r => r.privateWhitelisted === false).length}
+                  </span>
+                </div>
+                <div className="flex gap-4 text-xs">
+                  <span className="text-emerald-600">
+                    公募白名单完整：{whitelistData.results.filter(r => r.publicWhitelisted === true).length}
+                  </span>
+                  <span className="text-red-600">
+                    公募白名单缺失：{whitelistData.results.filter(r => r.publicWhitelisted === false).length}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">暂无已审批用户</p>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowSyncDialog(false)} disabled={batchSyncMutation.isPending}>
+              取消
+            </Button>
+            <Button
+              className="bg-blue-600 hover:bg-blue-700"
+              disabled={batchSyncMutation.isPending || missingWhitelistCount === 0}
+              onClick={() => batchSyncMutation.mutate()}
+            >
+              {batchSyncMutation.isPending ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />同步中（请勿关闭）...</>
+              ) : missingWhitelistCount === 0 ? (
+                '所有用户已在白名单中'
+              ) : (
+                `同步 ${missingWhitelistCount} 个缺失地址`
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

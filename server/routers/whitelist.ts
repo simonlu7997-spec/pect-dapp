@@ -344,4 +344,232 @@ export const whitelistRouter = router({
 
       return { success: true, message: "已拒绝该申请" };
     }),
+
+  // ── 查询指定钱包在 Sale 合约中的白名单状态 ──────────────────────────
+  getSaleWhitelistStatus: protectedProcedure
+    .input(z.object({ walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/) }))
+    .query(async ({ input, ctx }) => {
+      if (ctx.user.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "需要管理员权限" });
+      }
+
+      const rpcUrl = process.env.BLOCKCHAIN_RPC_URL || "https://rpc-amoy.polygon.technology";
+      const privateSaleAddress = process.env.PRIVATE_SALE_ADDRESS;
+      const publicSaleAddress = process.env.PUBLIC_SALE_ADDRESS;
+      const provider = new ethers.JsonRpcProvider(rpcUrl);
+
+      let privateWhitelisted: boolean | null = null;
+      let publicWhitelisted: boolean | null = null;
+
+      try {
+        if (privateSaleAddress && privateSaleAddress !== "0x0000000000000000000000000000000000000000") {
+          const contract = new ethers.Contract(privateSaleAddress, SaleWhitelistABI, provider);
+          privateWhitelisted = await contract.isWhitelisted(input.walletAddress);
+        }
+      } catch (err) {
+        console.error("[Whitelist] 查询 PrivateSale 白名单失败:", err);
+      }
+
+      try {
+        if (publicSaleAddress && publicSaleAddress !== "0x0000000000000000000000000000000000000000") {
+          const contract = new ethers.Contract(publicSaleAddress, SaleWhitelistABI, provider);
+          publicWhitelisted = await contract.isWhitelisted(input.walletAddress);
+        }
+      } catch (err) {
+        console.error("[Whitelist] 查询 PublicSale 白名单失败:", err);
+      }
+
+      return { privateWhitelisted, publicWhitelisted };
+    }),
+
+  // ── 批量查询所有已审批用户的 Sale 白名单状态 ──────────────────────────
+  batchGetSaleWhitelistStatus: protectedProcedure
+    .query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "需要管理员权限" });
+      }
+
+      const rpcUrl = process.env.BLOCKCHAIN_RPC_URL || "https://rpc-amoy.polygon.technology";
+      const privateSaleAddress = process.env.PRIVATE_SALE_ADDRESS;
+      const publicSaleAddress = process.env.PUBLIC_SALE_ADDRESS;
+      const provider = new ethers.JsonRpcProvider(rpcUrl);
+
+      // 获取所有已审批的 KYC 用户
+      const approvedList = await listKycApplications("approved");
+      if (approvedList.length === 0) return { results: [] };
+
+      const results: Array<{
+        walletAddress: string;
+        fullName: string;
+        privateWhitelisted: boolean | null;
+        publicWhitelisted: boolean | null;
+      }> = [];
+
+      for (const kyc of approvedList) {
+        let privateWl: boolean | null = null;
+        let publicWl: boolean | null = null;
+
+        try {
+          if (privateSaleAddress && privateSaleAddress !== "0x0000000000000000000000000000000000000000") {
+            const contract = new ethers.Contract(privateSaleAddress, SaleWhitelistABI, provider);
+            privateWl = await contract.isWhitelisted(kyc.walletAddress);
+          }
+        } catch { privateWl = null; }
+
+        try {
+          if (publicSaleAddress && publicSaleAddress !== "0x0000000000000000000000000000000000000000") {
+            const contract = new ethers.Contract(publicSaleAddress, SaleWhitelistABI, provider);
+            publicWl = await contract.isWhitelisted(kyc.walletAddress);
+          }
+        } catch { publicWl = null; }
+
+        results.push({
+          walletAddress: kyc.walletAddress,
+          fullName: kyc.fullName,
+          privateWhitelisted: privateWl,
+          publicWhitelisted: publicWl,
+        });
+      }
+
+      return { results };
+    }),
+
+  // ── 管理员：批量同步所有已审批用户到 Sale 合约白名单 ──────────────────
+  batchSyncWhitelist: protectedProcedure
+    .mutation(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "需要管理员权限" });
+      }
+
+      const deployerPrivateKey = process.env.DEPLOYER_PRIVATE_KEY;
+      const rpcUrl = process.env.BLOCKCHAIN_RPC_URL || "https://rpc-amoy.polygon.technology";
+      const privateSaleAddress = process.env.PRIVATE_SALE_ADDRESS;
+      const publicSaleAddress = process.env.PUBLIC_SALE_ADDRESS;
+
+      if (!deployerPrivateKey) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "部署者私钥未配置" });
+      }
+
+      const provider = new ethers.JsonRpcProvider(rpcUrl);
+      const deployerWallet = new ethers.Wallet(deployerPrivateKey, provider);
+
+      // 获取所有已审批的 KYC 用户
+      const approvedList = await listKycApplications("approved");
+      if (approvedList.length === 0) {
+        return { success: true, message: "没有已审批的用户需要同步", synced: 0, failed: 0, details: [] };
+      }
+
+      const allAddresses = approvedList.map(k => k.walletAddress);
+      const details: Array<{ walletAddress: string; fullName: string; privateSale: string; publicSale: string }> = [];
+      let syncedCount = 0;
+      let failedCount = 0;
+
+      // 逐个检查并添加到私募白名单
+      if (privateSaleAddress && privateSaleAddress !== "0x0000000000000000000000000000000000000000") {
+        const privateSaleContract = new ethers.Contract(privateSaleAddress, SaleWhitelistABI, deployerWallet);
+        const needsAdding: string[] = [];
+
+        for (const addr of allAddresses) {
+          try {
+            const isIn = await privateSaleContract.isWhitelisted(addr);
+            if (!isIn) needsAdding.push(addr);
+          } catch (err) {
+            console.error(`[BatchSync] 查询 PrivateSale 白名单失败 ${addr}:`, err);
+          }
+        }
+
+        if (needsAdding.length > 0) {
+          try {
+            // 批量添加（合约支持 address[] 参数）
+            const tx = await privateSaleContract.addToWhitelist(needsAdding);
+            await tx.wait();
+            console.log(`[BatchSync] PrivateSale 批量添加 ${needsAdding.length} 个地址成功, tx: ${tx.hash}`);
+            needsAdding.forEach(addr => {
+              const kyc = approvedList.find(k => k.walletAddress === addr);
+              const existing = details.find(d => d.walletAddress === addr);
+              if (existing) {
+                existing.privateSale = "已同步";
+              } else {
+                details.push({ walletAddress: addr, fullName: kyc?.fullName || "", privateSale: "已同步", publicSale: "待处理" });
+              }
+            });
+            syncedCount += needsAdding.length;
+          } catch (err) {
+            console.error("[BatchSync] PrivateSale 批量添加失败:", err);
+            needsAdding.forEach(addr => {
+              const kyc = approvedList.find(k => k.walletAddress === addr);
+              const existing = details.find(d => d.walletAddress === addr);
+              if (existing) {
+                existing.privateSale = "失败";
+              } else {
+                details.push({ walletAddress: addr, fullName: kyc?.fullName || "", privateSale: "失败", publicSale: "待处理" });
+              }
+            });
+            failedCount += needsAdding.length;
+          }
+        }
+      }
+
+      // 逐个检查并添加到公募白名单
+      if (publicSaleAddress && publicSaleAddress !== "0x0000000000000000000000000000000000000000") {
+        const publicSaleContract = new ethers.Contract(publicSaleAddress, SaleWhitelistABI, deployerWallet);
+        const needsAdding: string[] = [];
+
+        for (const addr of allAddresses) {
+          try {
+            const isIn = await publicSaleContract.isWhitelisted(addr);
+            if (!isIn) needsAdding.push(addr);
+          } catch (err) {
+            console.error(`[BatchSync] 查询 PublicSale 白名单失败 ${addr}:`, err);
+          }
+        }
+
+        if (needsAdding.length > 0) {
+          try {
+            const tx = await publicSaleContract.addToWhitelist(needsAdding);
+            await tx.wait();
+            console.log(`[BatchSync] PublicSale 批量添加 ${needsAdding.length} 个地址成功, tx: ${tx.hash}`);
+            needsAdding.forEach(addr => {
+              const kyc = approvedList.find(k => k.walletAddress === addr);
+              const existing = details.find(d => d.walletAddress === addr);
+              if (existing) {
+                existing.publicSale = "已同步";
+              } else {
+                details.push({ walletAddress: addr, fullName: kyc?.fullName || "", privateSale: "已在白名单", publicSale: "已同步" });
+              }
+            });
+            syncedCount += needsAdding.length;
+          } catch (err) {
+            console.error("[BatchSync] PublicSale 批量添加失败:", err);
+            needsAdding.forEach(addr => {
+              const kyc = approvedList.find(k => k.walletAddress === addr);
+              const existing = details.find(d => d.walletAddress === addr);
+              if (existing) {
+                existing.publicSale = "失败";
+              } else {
+                details.push({ walletAddress: addr, fullName: kyc?.fullName || "", privateSale: "已在白名单", publicSale: "失败" });
+              }
+            });
+            failedCount += needsAdding.length;
+          }
+        }
+      }
+
+      // 标记已在白名单中的用户
+      for (const kyc of approvedList) {
+        if (!details.find(d => d.walletAddress === kyc.walletAddress)) {
+          details.push({ walletAddress: kyc.walletAddress, fullName: kyc.fullName, privateSale: "已在白名单", publicSale: "已在白名单" });
+        }
+      }
+
+      return {
+        success: true,
+        message: syncedCount > 0
+          ? `同步完成：${syncedCount} 个地址已添加${failedCount > 0 ? `，${failedCount} 个失败` : ""}`
+          : (failedCount > 0 ? `同步失败：${failedCount} 个地址添加失败` : "所有用户已在白名单中，无需同步"),
+        synced: syncedCount,
+        failed: failedCount,
+        details,
+      };
+    }),
 });
