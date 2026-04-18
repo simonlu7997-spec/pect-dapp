@@ -279,7 +279,7 @@ export const purchaseRouter = router({
       }
     }),
 
-  // ── 查询用户购买历史（数据库）──────────────────────────────────────
+  // ── 查询用户购买历史（数据库）───────────────────────────────────────────────
   getPurchaseHistory: publicProcedure
     .input(z.object({ walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/) }))
     .query(async ({ input }) => {
@@ -287,5 +287,12 @@ export const purchaseRouter = router({
       return txs.filter(
         (tx) => tx.txType === "purchase_private" || tx.txType === "purchase_public"
       );
+    }),
+
+  // ── 查询用户全部链上操作历史（不过滤类型）───────────────────────────────
+  getAllTransactions: publicProcedure
+    .input(z.object({ walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/) }))
+    .query(async ({ input }) => {
+      return getTransactionsByWallet(input.walletAddress.toLowerCase());
     }),
 });

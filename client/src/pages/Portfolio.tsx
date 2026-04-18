@@ -149,6 +149,10 @@ export default function Portfolio() {
   const { data: purchaseHistory, isLoading: purchaseLoading } =
     trpc.purchase.getPurchaseHistory.useQuery({ walletAddress }, { enabled: !!walletAddress });
 
+  // 全部链上操作记录（包含分红、空投、质押、质押奖励等）
+  const { data: allTransactions, isLoading: allTxLoading, refetch: refetchAllTx } =
+    trpc.purchase.getAllTransactions.useQuery({ walletAddress }, { enabled: !!walletAddress, refetchInterval: 60_000 });
+
   const { data: revenueInfo, isLoading: revenueLoading, refetch: refetchRevenue } =
     trpc.revenue.getRevenueInfo.useQuery({ walletAddress }, { enabled: !!walletAddress, refetchInterval: 60_000 });
 
@@ -180,9 +184,11 @@ export default function Portfolio() {
     trpc.airdrop.getAirdropInfo.useQuery({ walletAddress }, { enabled: !!walletAddress, refetchInterval: 60_000 });
 
   const recentTxs = useMemo(() => {
-    if (!purchaseHistory) return [];
-    return [...purchaseHistory].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5);
-  }, [purchaseHistory]);
+    if (!allTransactions) return [];
+    return [...allTransactions]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 5);
+  }, [allTransactions]);
 
   const handleRefreshAll = () => {
     refetchRevenue();
@@ -190,6 +196,7 @@ export default function Portfolio() {
     refetchStaking();
     refetchStakingRewards();
     refetchAirdrop();
+    refetchAllTx();
   };
 
   if (!isConnected || !walletAddress) {
@@ -375,21 +382,26 @@ export default function Portfolio() {
           {/* 全部交易 */}
           <TabsContent value="all">
             <Card className="border-emerald-200">
-              <CardHeader>
-                <CardTitle>全部交易记录</CardTitle>
-                <CardDescription>包含购买、质押、领取等所有链上操作</CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>全部交易记录</CardTitle>
+                  <CardDescription>包含购买、质押、领取分红、领取空投、质押奖励等所有链上操作</CardDescription>
+                </div>
+                <Button variant="ghost" size="sm" onClick={handleRefreshAll}>
+                  <RefreshCw className="w-4 h-4" />
+                </Button>
               </CardHeader>
               <CardContent>
-                {purchaseLoading ? (
+                {allTxLoading ? (
                   <div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-16 w-full" />)}</div>
-                ) : !purchaseHistory || purchaseHistory.length === 0 ? (
+                ) : !allTransactions || allTransactions.length === 0 ? (
                   <div className="text-center py-12 text-gray-400">
                     <BarChart3 className="w-10 h-10 mx-auto mb-3 opacity-30" />
                     <p className="text-sm">暂无交易记录</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {purchaseHistory.map((tx) => (
+                    {allTransactions.map((tx) => (
                       <TxRow key={tx.id} tx={tx} />
                     ))}
                   </div>
