@@ -104,11 +104,15 @@ export default function Buy() {
   const minPurchase = parseFloat(saleInfo?.minPurchase || "400");
   const maxPurchase = parseFloat(saleInfo?.maxPurchase || "20000");
   const userBalance = parseFloat(saleInfo?.userUsdtBalance || "0");
+  const userPurchasedAmount = parseFloat(saleInfo?.userPurchased || "0");
+  const remainingQuota = Math.max(0, maxPurchase - userPurchasedAmount);
   const inputError = usdtInput
     ? usdtAmount < minPurchase
       ? `最低购买 ${minPurchase} ${U}`
-      : usdtAmount > maxPurchase
-      ? `最高购买 ${maxPurchase} ${U}`
+      : usdtAmount > remainingQuota
+      ? remainingQuota <= 0
+        ? `您已达到私募购买上限（${maxPurchase} ${U}）`
+        : `超出剩余可购额度（剩余 ${remainingQuota.toFixed(2)} ${U}）`
       : usdtAmount > userBalance
       ? `${U} 余额不足（当前 ${userBalance.toFixed(2)} ${U}）`
       : null
@@ -471,6 +475,14 @@ export default function Buy() {
                                   <AlertCircle className="w-3 h-3" /> {inputError}
                                 </p>
                               )}
+                              {account && saleInfo && (
+                                <p className="text-xs text-gray-500 flex items-center gap-1">
+                                  <span>您还可购买：</span>
+                                  <span className={`font-semibold ${remainingQuota <= 0 ? 'text-red-500' : 'text-green-600'}`}>
+                                    {remainingQuota <= 0 ? '已达上限' : `${remainingQuota.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${U}`}
+                                  </span>
+                                </p>
+                              )}
                             </div>
 
                             {/* 换算结果 */}
@@ -670,11 +682,15 @@ function PublicSaleTab({
   const minPurchase = parseFloat(saleInfo?.minPurchase || "100");
   const maxPurchase = parseFloat(saleInfo?.maxPurchase || "10000");
   const userBalance = parseFloat(saleInfo?.userUsdtBalance || "0");
+  const userPurchasedAmount = parseFloat(saleInfo?.userPurchased || "0");
+  const remainingQuota = Math.max(0, maxPurchase - userPurchasedAmount);
   const inputError = usdtInput
     ? usdtAmount < minPurchase
       ? `最低购买 ${minPurchase} ${U}`
-      : usdtAmount > maxPurchase
-      ? `最高购买 ${maxPurchase} ${U}`
+      : usdtAmount > remainingQuota
+      ? remainingQuota <= 0
+        ? `您已达到公募购买上限（${maxPurchase} ${U}）`
+        : `超出剩余可购额度（剩余 ${remainingQuota.toFixed(2)} ${U}）`
       : usdtAmount > userBalance
       ? `${U} 余额不足（当前 ${userBalance.toFixed(2)} ${U}）`
       : null
@@ -953,6 +969,14 @@ function PublicSaleTab({
                         {inputError && (
                           <p className="text-xs text-red-500 flex items-center gap-1">
                             <AlertCircle className="w-3 h-3" /> {inputError}
+                          </p>
+                        )}
+                        {account && saleInfo && (
+                          <p className="text-xs text-gray-500 flex items-center gap-1">
+                            <span>您还可购买：</span>
+                            <span className={`font-semibold ${remainingQuota <= 0 ? 'text-red-500' : 'text-blue-600'}`}>
+                              {remainingQuota <= 0 ? '已达上限' : `${remainingQuota.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${U}`}
+                            </span>
                           </p>
                         )}
                       </div>

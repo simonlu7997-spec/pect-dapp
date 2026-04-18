@@ -249,3 +249,11 @@
 
 - [x] 私募轮：代币价格改为 0.08 tUSDT，最低购买 400 tUSDT，最高购买 20000 tUSDT
 - [x] 公募轮：代币价格改为 0.1 tUSDT，最低购买 100 tUSDT，最高购买 10000 tUSDT
+
+## 2026-04-18 链上参数更新 + 购买页面剩余额度提示
+
+- [x] 调用 PrivateSale.setExchangeRate(12500000) 更新私募兑换率（0.08 USDT/PVC = 12.5 PVC/USDT，精度 10^6）
+- [x] 调用 PrivateSale.setMaxPerUser(20000 * 10^6) 更新私募每人上限
+- [x] 调用 PublicSale.setExchangeRate(10000000) 更新公募兑换率（0.1 USDT/PVC = 10 PVC/USDT，精度 10^6）
+- [x] 调用 PublicSale.setMaxPerUser(10000 * 10^6) 更新公募每人上限
+- [x] 购买页面输入框下方添加"您还可购买 X tUSDT"剩余额度提示
