@@ -40,6 +40,8 @@ vi.mock("ethers", () => {
     getStakedAmount: vi.fn().mockResolvedValue(BigInt(100_000_000)),
     startDistribution: vi.fn().mockResolvedValue(mockTx),
     calculateRevenuesBatch: vi.fn().mockResolvedValue(mockTx),
+    balanceOf: vi.fn().mockResolvedValue(BigInt(10_000_000_000)), // 10000 USDT (6 decimals)
+    decimals: vi.fn().mockResolvedValue(6),
   };
   return {
     ethers: {

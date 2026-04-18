@@ -104,8 +104,8 @@ describe("getPublicSaleInfo - 合约未配置时的降级逻辑", () => {
 
     expect(result.contractConfigured).toBe(false);
     expect(result.isActive).toBe(false);
-    expect(result.tokenPrice).toBe("0.20");
-    expect(result.exchangeRate).toBe(5);
+    expect(result.tokenPrice).toBe("0.10");
+    expect(result.exchangeRate).toBe(10);
     expect(result.userUsdtBalance).toBe("0");
     expect(result.userAllowance).toBe("0");
     expect(result.userPurchased).toBe("0");
@@ -143,9 +143,9 @@ describe("getPrivateSaleInfo - 合约未配置时的降级逻辑", () => {
 
     expect(result.contractConfigured).toBe(false);
     expect(result.isActive).toBe(false);
-    expect(result.tokenPrice).toBe("0.10");
-    expect(result.exchangeRate).toBe(10);
-    expect(result.maxPurchase).toBe("100000");
+    expect(result.tokenPrice).toBe("0.08");
+    expect(result.exchangeRate).toBe(12.5);
+    expect(result.maxPurchase).toBe("20000");
     expect(result.userUsdtBalance).toBe("0");
   });
 });

@@ -96,13 +96,13 @@ export default function Buy() {
   }, [txConfirm, refetchSaleInfo, navigate]);
 
   // 计算 PVC 数量
-  const tokenPrice = parseFloat(saleInfo?.tokenPrice || "0.10");
+  const tokenPrice = parseFloat(saleInfo?.tokenPrice || "0.08");
   const usdtAmount = parseFloat(usdtInput) || 0;
   const pvcAmount = tokenPrice > 0 ? (usdtAmount / tokenPrice).toFixed(2) : "0";
 
   // 验证输入
-  const minPurchase = parseFloat(saleInfo?.minPurchase || "500");
-  const maxPurchase = parseFloat(saleInfo?.maxPurchase || "10000");
+  const minPurchase = parseFloat(saleInfo?.minPurchase || "400");
+  const maxPurchase = parseFloat(saleInfo?.maxPurchase || "20000");
   const userBalance = parseFloat(saleInfo?.userUsdtBalance || "0");
   const inputError = usdtInput
     ? usdtAmount < minPurchase
@@ -664,11 +664,11 @@ function PublicSaleTab({
     }
   }, [txConfirm, refetchSaleInfo, navigate]);
 
-  const tokenPrice = parseFloat(saleInfo?.tokenPrice || "0.20");
+  const tokenPrice = parseFloat(saleInfo?.tokenPrice || "0.10");
   const usdtAmount = parseFloat(usdtInput) || 0;
   const pvcAmount = tokenPrice > 0 ? (usdtAmount / tokenPrice).toFixed(2) : "0";
   const minPurchase = parseFloat(saleInfo?.minPurchase || "100");
-  const maxPurchase = parseFloat(saleInfo?.maxPurchase || "50000");
+  const maxPurchase = parseFloat(saleInfo?.maxPurchase || "10000");
   const userBalance = parseFloat(saleInfo?.userUsdtBalance || "0");
   const inputError = usdtInput
     ? usdtAmount < minPurchase
@@ -797,7 +797,7 @@ function PublicSaleTab({
             <CardContent className="space-y-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-500">代币价格</span>
-                <span className="font-semibold">{saleInfo?.tokenPrice ?? "0.20"} {U}/PVC</span>
+                <span className="font-semibold">{saleInfo?.tokenPrice ?? "0.10"} {U}/PVC</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">最低购买</span>
@@ -805,7 +805,7 @@ function PublicSaleTab({
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">最高购买</span>
-                <span className="font-semibold">{saleInfo?.maxPurchase ?? "50,000"} {U}</span>
+                <span className="font-semibold">{saleInfo?.maxPurchase ?? "10,000"} {U}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">锁仓期</span>

@@ -109,8 +109,8 @@ async function fetchSaleInfo(
     exchangeRate: pvcPerUsdt,             // PVC per USDT（已除以 10^6）
     totalRaised: totalRaisedUsdt,         // 等价 USDT
     hardCap: "0",                         // 合约无 hardCap
-    minPurchase: "1",                     // 合约无 minPurchase，默认 1 USDT
-    maxPurchase: maxPerUserFormatted,     // 每人上限
+    minPurchase: "1",                     // 合约无 minPurchase，由调用方覆盖
+    maxPurchase: maxPerUserFormatted,     // 每人上限（由调用方覆盖）
     progressPercent,
     userPurchased,
     userUsdtBalance,
@@ -131,12 +131,12 @@ export const purchaseRouter = router({
         return {
           contractConfigured: false,
           isActive: false,
-          tokenPrice: "0.10",
-          exchangeRate: 10,
+          tokenPrice: "0.08",
+          exchangeRate: 12.5,
           totalRaised: "0",
           hardCap: "80000",
-          minPurchase: "500",
-          maxPurchase: "100000",
+          minPurchase: "400",
+          maxPurchase: "20000",
           progressPercent: 0,
           userPurchased: "0",
           userUsdtBalance: "0",
@@ -147,18 +147,19 @@ export const purchaseRouter = router({
       }
 
       try {
-        return await fetchSaleInfo(rpcUrl, privateSaleAddress, usdtAddress, input.walletAddress);
+        const info = await fetchSaleInfo(rpcUrl, privateSaleAddress, usdtAddress, input.walletAddress);
+        return { ...info, minPurchase: "400", maxPurchase: "20000" };
       } catch (error) {
         console.error("[Purchase] 查询私募轮信息失败:", error);
         return {
           contractConfigured: true,
           isActive: false,
-          tokenPrice: "0.10",
-          exchangeRate: 10,
+          tokenPrice: "0.08",
+          exchangeRate: 12.5,
           totalRaised: "0",
           hardCap: "80000",
-          minPurchase: "500",
-          maxPurchase: "100000",
+          minPurchase: "400",
+          maxPurchase: "20000",
           progressPercent: 0,
           userPurchased: "0",
           userUsdtBalance: "0",
@@ -180,12 +181,12 @@ export const purchaseRouter = router({
         return {
           contractConfigured: false,
           isActive: false,
-          tokenPrice: "0.20",
-          exchangeRate: 5,
+          tokenPrice: "0.10",
+          exchangeRate: 10,
           totalRaised: "0",
           hardCap: "200000",
           minPurchase: "100",
-          maxPurchase: "50000",
+          maxPurchase: "10000",
           progressPercent: 0,
           userPurchased: "0",
           userUsdtBalance: "0",
@@ -196,18 +197,19 @@ export const purchaseRouter = router({
       }
 
       try {
-        return await fetchSaleInfo(rpcUrl, publicSaleAddress, usdtAddress, input.walletAddress);
+        const info = await fetchSaleInfo(rpcUrl, publicSaleAddress, usdtAddress, input.walletAddress);
+        return { ...info, minPurchase: "100", maxPurchase: "10000" };
       } catch (error) {
         console.error("[Purchase] 查询公募轮信息失败:", error);
         return {
           contractConfigured: true,
           isActive: false,
-          tokenPrice: "0.20",
-          exchangeRate: 5,
+          tokenPrice: "0.10",
+          exchangeRate: 10,
           totalRaised: "0",
           hardCap: "200000",
           minPurchase: "100",
-          maxPurchase: "50000",
+          maxPurchase: "10000",
           progressPercent: 0,
           userPurchased: "0",
           userUsdtBalance: "0",
