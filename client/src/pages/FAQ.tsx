@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronDown } from "lucide-react";
-import walletConnectionGuide from "@/data/walletGuide";
 
 interface FAQItem {
   category: string;
   items: Array<{
     q: string;
-    a: string;
+    a: string | string[];
   }>;
 }
 
@@ -34,11 +33,11 @@ const faqData: FAQItem[] = [
     items: [
       {
         q: "PV-Coin 和 C2-Coin 有什么区别？",
-        a: "PV-Coin 是收益权代币，持有者可以获得电站运营收益的分红。C2-Coin 是碳额排代币，可以质押获得额外收益，同时支持项目的碳中和目标。"
+        a: "PV-Coin 是收益权代币，持有者可以获得电站运营收益的分红。C2-Coin 是碳减排权益代币，可以质押获得额外收益，同时支持项目的碳中和目标。"
       },
       {
         q: "PV-Coin 如何分红？",
-        a: "PV-Coin 持有者每月可获得电站收益的分红。分红金额根据持仓比例和当月电站实际收益计算，自动分配到用户钱包。"
+        a: "PV-Coin 持有者每月可获得电站收益的分红。分红金额根据持仓比例和当月电站实际收益计算，用户需在项目网站（www.pect-dapp.io）中领取分红。"
       },
       {
         q: "C2-Coin 有什么用？",
@@ -46,7 +45,7 @@ const faqData: FAQItem[] = [
       },
       {
         q: "代币的最大供应量是多少？",
-        a: "PV-Coin 最大供应量为 400 万枚。C2-Coin 的供应量根据电站发电量和碳抵消需求动态调整。"
+        a: "PV-Coin 最大供应量为 400 万枚。C2-Coin 根据电站实际发电量动态铸造，按 1 吨 CO₂ = 1,000 枚 C2-Coin 的比例发行，年发行量约 382,990 枚。"
       }
     ]
   },
@@ -55,11 +54,11 @@ const faqData: FAQItem[] = [
     items: [
       {
         q: "如何购买 PV-Coin 和 C2-Coin？",
-        a: "首先在 DApp 中连接钱包，然后进入购买页面。选择要购买的代币类型和数量，确认交易即可。需要注意的是，只有白名单成员才能购买 PV-Coin。"
+        a: "首先在 DApp 中连接钱包，然后进入购买页面。选择要购买的代币类型和数量，确认交易即可。需要注意的是，只有白名单成员才能购买 PV-Coin。C2-Coin 不用购买，按 PV-Coin 持有数量每月空投。"
       },
       {
         q: "最少购买数量是多少？",
-        a: "PV-Coin 最少购买 100 枚，C2-Coin 最少购买 1000 枚。"
+        a: "私募最少购买 5000 枚 PV-Coin，公募最少购买 1000 枚 PV-Coin。"
       },
       {
         q: "如何加入白名单？",
@@ -67,7 +66,7 @@ const faqData: FAQItem[] = [
       },
       {
         q: "可以卖出代币吗？",
-        a: "可以。在资产页面可以查看持仓，点击卖出按钮即可将代币卖出。卖出价格由市场供需决定。"
+        a: "可以。目前支持的交易所为 Uniswap，PV-Coin 的购买者和接收者需先进行白名单认证，C2-Coin 可以自由交易。卖出价格由市场供需决定。"
       }
     ]
   },
@@ -80,15 +79,29 @@ const faqData: FAQItem[] = [
       },
       {
         q: "质押收益如何计算？",
-        a: "质押收益 = 质押数量 x 年化收益率 / 12。年化收益率根据项目运营情况动态调整。"
+        a: [
+          "C2-Coin 质押奖励来自年度分红池的 10%，即约 4,573 USDT/年。计算公式为：",
+          "用户年度质押奖励 = 4,573 x (您的质押数量 / 全网总质押量) USDT",
+          "用户月度质押奖励 = 年度奖励 / 12",
+          "例如：全网质押 191,495 枚，您质押 1,000 枚，则年度奖励约为 4,573 x (1,000 / 191,495) ≈ 23.9 USDT，月度约 2 USDT。实际收益随全网质押率变化而波动。"
+        ]
       },
       {
         q: "可以随时取消质押吗？",
         a: "可以。在质押页面可以随时取消质押，取消后 C2-Coin 会立即返还到钱包。"
       },
       {
-        q: "分红什么时候发放？",
-        a: "PV-Coin 分红每月月底发放，C2-Coin 质押奖励每月月底发放。具体时间会在 DApp 中提前公告。"
+        q: "分红、空投、质押奖励什么时候发放？",
+        a: "PV-Coin 分红每月 1 号发放，C2-Coin 空投每月 1 号发放，C2-Coin 质押奖励每月 1 号发放。"
+      },
+      {
+        q: "空投如何计算？",
+        a: [
+          "C2-Coin 空投根据您持有的 PV-Coin 数量按比例分配。电站每年根据实际发电量铸造约 382,990 枚 C2-Coin，按 1 吨 CO₂ = 1,000 枚的比例发行。",
+          "计算公式：",
+          "您的月度空投 = 382,990 / 12 x (您的 PV-Coin 持有量 / 参与分红的 PV-Coin 总量)",
+          "例如：持有 100,000 枚 PV-Coin（占参与分红总量 3,000,000 枚的 3.33%），则月度空投约 382,990 / 12 x 3.33% ≈ 1,063 枚 C2-Coin，年度约 12,750 枚。"
+        ]
       }
     ]
   },
@@ -97,7 +110,7 @@ const faqData: FAQItem[] = [
     items: [
       {
         q: "PECT 部署在哪个区块链网络？",
-        a: "PECT 部署在 Polygon 区块链上，具有低手续费、高速交易的特点。目前在 Polygon Amoy 测试网进行测试。"
+        a: "PECT 部署在 Polygon 区块链上，具有低手续费、高速交易的特点。"
       },
       {
         q: "如何连接钱包？",
@@ -106,6 +119,17 @@ const faqData: FAQItem[] = [
       {
         q: "需要支付 Gas 费吗？",
         a: "是的，所有区块链交易都需要支付 Gas 费。Polygon 网络的 Gas 费相对较低，通常为几分钱。"
+      },
+      {
+        q: "Gas 费过低导致交易失败怎么办？",
+        a: [
+          "如果交易因 Gas 费过低而失败，请按以下步骤处理：",
+          "1. 在 MetaMask 中点击'编辑'Gas 设置，将 Gas Price 适当提高（建议提高 20%-50%）。",
+          "2. 也可以选择'高级'模式，手动输入更高的 Max Fee 和 Max Priority Fee。",
+          "3. 如果交易已卡在 Pending 状态，可以在 MetaMask 中选择'加速'或'取消'该笔交易，然后以更高 Gas 费重新发起。",
+          "4. 可以在 Polygon Gas Station（https://gasstation.polygon.technology）查看当前推荐的 Gas 价格。",
+          "5. 网络拥堵时建议等待几分钟后再重试，或选择非高峰时段（UTC 时间凌晨）进行交易。"
+        ]
       },
       {
         q: "如何查看交易记录？",
@@ -125,21 +149,10 @@ const faqData: FAQItem[] = [
         a: "私钥无法恢复。如果忘记了私钥，可以使用备份的助记词导入钱包。如果都没有，账户中的资产将无法访问。"
       },
       {
-        q: "如何进行 KYC 认证？",
-        a: "在白名单页面填写个人信息，上传身份证明文件。我们会在 3-5 个工作日内完成审核。"
-      },
-      {
         q: "个人信息会被泄露吗？",
         a: "我们严格遵守数据保护法规，所有个人信息都经过加密存储。我们不会将用户信息分享给第三方。"
       }
     ]
-  },
-  {
-    category: "钱包连接",
-    items: (walletConnectionGuide.sections.find(s => s.id === "faq")?.faqs || []).map(faq => ({
-      q: faq.question,
-      a: faq.answer
-    }))
   }
 ];
 
@@ -148,6 +161,19 @@ export default function FAQ() {
 
   const toggleExpand = (id: string) => {
     setExpandedIndex(expandedIndex === id ? null : id);
+  };
+
+  const renderAnswer = (a: string | string[]) => {
+    if (Array.isArray(a)) {
+      return (
+        <div className="space-y-2">
+          {a.map((line, i) => (
+            <p key={i} className="text-gray-600 leading-relaxed">{line}</p>
+          ))}
+        </div>
+      );
+    }
+    return <p className="text-gray-600 leading-relaxed">{a}</p>;
   };
 
   return (
@@ -176,7 +202,7 @@ export default function FAQ() {
                   const isExpanded = expandedIndex === itemId;
 
                   return (
-                    <Card 
+                    <Card
                       key={itemIndex}
                       className="border-2 border-gray-200 hover:border-green-300 transition-colors cursor-pointer"
                       onClick={() => toggleExpand(itemId)}
@@ -186,16 +212,14 @@ export default function FAQ() {
                           <CardTitle className="text-base font-semibold text-gray-900">
                             {item.q}
                           </CardTitle>
-                          <ChevronDown 
-                            className={`w-5 h-5 text-green-600 transition-transform ${isExpanded ? "transform rotate-180" : ""}`}
+                          <ChevronDown
+                            className={`w-5 h-5 text-green-600 transition-transform shrink-0 ml-2 ${isExpanded ? "transform rotate-180" : ""}`}
                           />
                         </div>
                       </CardHeader>
                       {isExpanded && (
                         <CardContent className="pt-0">
-                          <p className="text-gray-600 leading-relaxed">
-                            {item.a}
-                          </p>
+                          {renderAnswer(item.a)}
                         </CardContent>
                       )}
                     </Card>
@@ -216,21 +240,21 @@ export default function FAQ() {
               如果您没有找到需要的答案，请通过以下方式联系我们：
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <a 
-                href="mailto:support@pect.io"
+              <a
+                href="mailto:support@pect-dapp.io"
                 className="p-4 rounded-lg bg-white border border-green-200 hover:border-green-600 transition-colors text-center"
               >
                 <p className="font-semibold text-gray-900 mb-1">邮件</p>
-                <p className="text-sm text-gray-600">support@pect.io</p>
+                <p className="text-sm text-gray-600">support@pect-dapp.io</p>
               </a>
-              <a 
+              <a
                 href="#"
                 className="p-4 rounded-lg bg-white border border-green-200 hover:border-green-600 transition-colors text-center"
               >
                 <p className="font-semibold text-gray-900 mb-1">Discord</p>
                 <p className="text-sm text-gray-600">加入社区讨论</p>
               </a>
-              <a 
+              <a
                 href="#"
                 className="p-4 rounded-lg bg-white border border-green-200 hover:border-green-600 transition-colors text-center"
               >

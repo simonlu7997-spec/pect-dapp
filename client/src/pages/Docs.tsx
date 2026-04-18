@@ -1,14 +1,31 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, FileText, Wallet } from "lucide-react";
+import { Download, FileText, Wallet, Copy, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import walletConnectionGuide from "@/data/walletGuide";
 
+const CONTRACT_ADDRESSES = [
+  { name: "PV-Coin (PVC)", address: "0x60F1E9deA2cBE622Bc86562f2bb62e2A9A479D0D" },
+  { name: "C2-Coin (C2C)", address: "0x1E9e7977dA3542c32d1cF62122Ab76fe35C90Ff1" },
+  { name: "PrivateSale", address: "0x81D5B063cF16FF7EC56491596b379314C8f28411" },
+  { name: "PublicSale", address: "0x44F8E4C74caC9196DF8038041A64716081Ba04e1" },
+  { name: "RevenueDistributor", address: "0x40434E74aF82225451d06C664FDF28229c53b8f1" },
+  { name: "StakingManager", address: "0x063F639D7f0dEE9410b1C84d74cfe89c27cb426e" },
+];
+
 export default function Docs() {
   const [showWalletGuide, setShowWalletGuide] = useState(false);
+  const [showContractAddresses, setShowContractAddresses] = useState(false);
   const [selectedSection, setSelectedSection] = useState("overview");
+  const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
+
+  const handleCopy = (address: string) => {
+    navigator.clipboard.writeText(address);
+    setCopiedAddress(address);
+    setTimeout(() => setCopiedAddress(null), 2000);
+  };
 
   const documents = [
     {
@@ -22,28 +39,28 @@ export default function Docs() {
       title: "PECT 白皮书（中文版）",
       description: "详细介绍 PECT 项目的技术架构、代币经济学和发展路线图",
       icon: "📄",
-      downloadUrl: "#",
-      version: "v6.0"
+      downloadUrl: "https://d2xsxph8kpxj0f.cloudfront.net/310519663279243720/8stZafG66C8pumsuGH6Z2q/PECT_Whitepaper_v6.1_CN_110db6ae.pdf",
+      version: "v6.1"
     },
     {
       title: "PECT Whitepaper (English)",
       description: "Comprehensive overview of PECT's technical architecture, tokenomics and roadmap",
       icon: "📋",
-      downloadUrl: "#",
-      version: "v6.0"
+      downloadUrl: "https://d2xsxph8kpxj0f.cloudfront.net/310519663279243720/8stZafG66C8pumsuGH6Z2q/PECT_Whitepaper_v6.1_EN_da0498cb.pdf",
+      version: "v6.1"
     },
     {
-      title: "智能合约审计报告",
-      description: "第三方安全审计机构对 PECT 智能合约的审计结果和安全评估",
+      title: "智能合约审计报告（中文版）",
+      description: "PECT 智能合约安全审计报告，包含漏洞分析、风险评级和修复建议",
       icon: "🔐",
-      downloadUrl: "#",
-      version: "Latest"
+      downloadUrl: "https://d2xsxph8kpxj0f.cloudfront.net/310519663279243720/8stZafG66C8pumsuGH6Z2q/PECT_Smart_Contract_Audit_CN_1b73efb9.pdf",
+      version: "v1.0"
     },
     {
-      title: "API 文档",
-      description: "DApp 前端与区块链交互的 API 接口文档和集成指南",
-      icon: "🔗",
-      downloadUrl: "#",
+      title: "PECT Smart Contract Audit Report",
+      description: "Security audit report for PECT smart contracts, including vulnerability analysis and recommendations",
+      icon: "🛡️",
+      downloadUrl: "https://d2xsxph8kpxj0f.cloudfront.net/310519663279243720/8stZafG66C8pumsuGH6Z2q/PECT_Smart_Contract_Audit_EN_0959a9cc.pdf",
       version: "v1.0"
     }
   ];
@@ -93,7 +110,7 @@ export default function Docs() {
               <CardContent className="space-y-4">
                 <p className="text-gray-600 text-sm">{doc.description}</p>
                 {doc.isGuide ? (
-                  <Button 
+                  <Button
                     className="w-full bg-emerald-600 hover:bg-emerald-700"
                     onClick={() => {
                       setSelectedSection("overview");
@@ -104,11 +121,9 @@ export default function Docs() {
                     查看指南
                   </Button>
                 ) : (
-                  <Button 
+                  <Button
                     className="w-full bg-green-600 hover:bg-green-700"
-                    onClick={() => {
-                      alert("文档下载功能即将推出");
-                    }}
+                    onClick={() => window.open(doc.downloadUrl, "_blank")}
                   >
                     <Download className="w-4 h-4 mr-2" />
                     下载文档
@@ -126,34 +141,22 @@ export default function Docs() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <a 
-                href="#" 
+              <a
+                href="https://github.com/simonlu7997-spec/pect-contracts"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-100 transition-colors"
               >
-                <FileText className="w-5 h-5 text-green-600" />
+                <ExternalLink className="w-5 h-5 text-green-600" />
                 <span className="text-gray-700">GitHub 代码仓库</span>
               </a>
-              <a 
-                href="#" 
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-100 transition-colors"
-              >
-                <FileText className="w-5 h-5 text-green-600" />
-                <span className="text-gray-700">Polygon Amoy 测试网</span>
-              </a>
-              <a 
-                href="#" 
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-100 transition-colors"
+              <button
+                onClick={() => setShowContractAddresses(true)}
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-100 transition-colors text-left"
               >
                 <FileText className="w-5 h-5 text-green-600" />
                 <span className="text-gray-700">合约地址</span>
-              </a>
-              <a 
-                href="#" 
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-100 transition-colors"
-              >
-                <FileText className="w-5 h-5 text-green-600" />
-                <span className="text-gray-700">开发者指南</span>
-              </a>
+              </button>
             </div>
           </CardContent>
         </Card>
@@ -168,7 +171,7 @@ export default function Docs() {
               {walletConnectionGuide.description}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="flex gap-4 h-[60vh]">
             {/* Navigation */}
             <div className="w-40 border-r border-gray-200">
@@ -199,6 +202,39 @@ export default function Docs() {
                 </div>
               </ScrollArea>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Contract Addresses Dialog */}
+      <Dialog open={showContractAddresses} onOpenChange={setShowContractAddresses}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>PECT 合约地址</DialogTitle>
+            <DialogDescription>
+              以下为部署在 Polygon Amoy 测试网的合约地址，点击复制按钮可复制地址
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            {CONTRACT_ADDRESSES.map((item) => (
+              <div key={item.address} className="flex items-center justify-between gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-gray-500 mb-1">{item.name}</p>
+                  <p className="text-xs font-mono text-gray-800 break-all">{item.address}</p>
+                </div>
+                <button
+                  onClick={() => handleCopy(item.address)}
+                  className="shrink-0 p-1.5 rounded hover:bg-gray-200 transition-colors"
+                  title="复制地址"
+                >
+                  {copiedAddress === item.address ? (
+                    <span className="text-xs text-green-600 font-medium">已复制</span>
+                  ) : (
+                    <Copy className="w-4 h-4 text-gray-500" />
+                  )}
+                </button>
+              </div>
+            ))}
           </div>
         </DialogContent>
       </Dialog>

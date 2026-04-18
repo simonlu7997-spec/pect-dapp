@@ -128,7 +128,7 @@ export default function Home() {
               </Button>
               </div>
             </div>
-            <div className="relative rounded-2xl h-96 flex items-center justify-center text-white text-center p-8 overflow-hidden bg-cover bg-center" style={{backgroundImage: "url('https://d2xsxph8kpxj0f.cloudfront.net/310519663279243720/8stZafG66C8pumsuGH6Z2q/solar-farm-hero-nGwzt2hTC5h7FqfYLRJBo4.webp')"}}>
+            <div className="relative rounded-2xl h-96 flex items-center justify-center text-white text-center p-8 overflow-hidden bg-cover bg-center" style={{backgroundImage: "url('https://d2xsxph8kpxj0f.cloudfront.net/310519663279243720/8stZafG66C8pumsuGH6Z2q/rooftop-solar-hero-QJ5SgxZinTrPSxpYwsVqqU.webp')"}}>
               <div className="absolute inset-0 bg-black opacity-30"></div>
             </div>
           </div>

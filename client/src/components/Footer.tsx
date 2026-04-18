@@ -36,7 +36,7 @@ export default function Footer() {
           <div>
             <h4 className="font-semibold text-white mb-4">资源</h4>
             <ul className="space-y-2 text-sm">
-              <li><a href="/docs" className="hover:text-emerald-400 transition-colors">文档</a></li>
+              <li><a href="/docs" className="hover:text-emerald-400 transition-colors">项目文档</a></li>
               <li><a href="/faq" className="hover:text-emerald-400 transition-colors">常见问题</a></li>
               <li><a href="/contact" className="hover:text-emerald-400 transition-colors">联系我们</a></li>
             </ul>

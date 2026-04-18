@@ -150,7 +150,21 @@ Android 上哪个浏览器最好用？
 4. 交易确认
    - 在确认任何交易前，仔细检查交易详情
    - 确认接收方地址是正确的
-   - 检查 Gas 费用是否合理`,
+   - 检查 Gas 费用是否合理
+
+Gas 费过低导致交易失败怎么办？
+
+如果交易因 Gas 费过低而失败，请按以下步骤处理：
+
+1. 在 MetaMask 中点击'编辑' Gas 设置，将 Gas Price 适当提高（建议提高 20%-50%）。
+
+2. 也可以选择'高级'模式，手动输入更高的 Max Fee 和 Max Priority Fee。
+
+3. 如果交易已卡在 Pending 状态，可以在 MetaMask 中选择'加速'或'取消'该笔交易，然后以更高 Gas 费重新发起。
+
+4. 可以在 Polygon Gas Station（https://gasstation.polygon.technology）查看当前推荐的 Gas 价格。
+
+5. 网络拥堵时建议等待几分钟后再重试，或选择非高峰时段（UTC 时间凌晨）进行交易。`,
     },
     {
       id: "supported-wallets",
