@@ -1,4 +1,4 @@
-import { eq, desc, asc, inArray, and } from "drizzle-orm";
+import { eq, desc, asc, inArray, and, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
@@ -177,6 +177,31 @@ export async function getTransactionsByWallet(walletAddress: string) {
     .where(eq(transactions.walletAddress, walletAddress.toLowerCase()))
     .orderBy(desc(transactions.createdAt))
     .limit(50);
+}
+
+export async function getTransactionsByWalletPaged(
+  walletAddress: string,
+  page: number,
+  pageSize: number,
+) {
+  const db = await getDb();
+  if (!db) return { items: [], total: 0 };
+  const offset = (page - 1) * pageSize;
+  const [items, countResult] = await Promise.all([
+    db
+      .select()
+      .from(transactions)
+      .where(eq(transactions.walletAddress, walletAddress.toLowerCase()))
+      .orderBy(desc(transactions.createdAt))
+      .limit(pageSize)
+      .offset(offset),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(transactions)
+      .where(eq(transactions.walletAddress, walletAddress.toLowerCase())),
+  ]);
+  const total = Number(countResult[0]?.count ?? 0);
+  return { items, total };
 }
 
 export async function listPendingTransactions() {

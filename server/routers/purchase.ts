@@ -2,7 +2,7 @@ import { router, publicProcedure } from "../_core/trpc";
 import { notifyOwner } from "../_core/notification";
 import { z } from "zod";
 import { ethers } from "ethers";
-import { recordTransaction, getTransactionsByWallet } from "../db";
+import { recordTransaction, getTransactionsByWallet, getTransactionsByWalletPaged } from "../db";
 
 // PrivateSale / PublicSale 合约 ABI（对照合约实际函数名）
 // 合约实际函数：exchangeRate, totalSold, maxPerUser, saleStartTime, saleEndTime, paused, purchaseAmount, purchase
@@ -289,10 +289,20 @@ export const purchaseRouter = router({
       );
     }),
 
-  // ── 查询用户全部链上操作历史（不过滤类型）───────────────────────────────
+  // ── 查询用户全部链上操作历史（支持分页）───────────────────────────────
   getAllTransactions: publicProcedure
-    .input(z.object({ walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/) }))
+    .input(
+      z.object({
+        walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
+        page: z.number().int().min(1).default(1),
+        pageSize: z.number().int().min(1).max(100).default(20),
+      })
+    )
     .query(async ({ input }) => {
-      return getTransactionsByWallet(input.walletAddress.toLowerCase());
+      return getTransactionsByWalletPaged(
+        input.walletAddress.toLowerCase(),
+        input.page,
+        input.pageSize,
+      );
     }),
 });

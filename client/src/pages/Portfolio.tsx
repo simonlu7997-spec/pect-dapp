@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useWalletContext } from "@/contexts/WalletContext";
 import { Button } from "@/components/ui/button";
@@ -149,9 +149,14 @@ export default function Portfolio() {
   const { data: purchaseHistory, isLoading: purchaseLoading } =
     trpc.purchase.getPurchaseHistory.useQuery({ walletAddress }, { enabled: !!walletAddress });
 
-  // 全部链上操作记录（包含分红、空投、质押、质押奖励等）
-  const { data: allTransactions, isLoading: allTxLoading, refetch: refetchAllTx } =
-    trpc.purchase.getAllTransactions.useQuery({ walletAddress }, { enabled: !!walletAddress, refetchInterval: 60_000 });
+  // 全部链上操作记录（分页，每页 20 条）
+  const [txPage, setTxPage] = useState(1);
+  const PAGE_SIZE = 20;
+  const { data: allTxData, isLoading: allTxLoading, refetch: refetchAllTx } =
+    trpc.purchase.getAllTransactions.useQuery(
+      { walletAddress, page: 1, pageSize: txPage * PAGE_SIZE },
+      { enabled: !!walletAddress, refetchInterval: 60_000 },
+    );
 
   const { data: revenueInfo, isLoading: revenueLoading, refetch: refetchRevenue } =
     trpc.revenue.getRevenueInfo.useQuery({ walletAddress }, { enabled: !!walletAddress, refetchInterval: 60_000 });
@@ -183,12 +188,11 @@ export default function Portfolio() {
   const { data: airdropInfo, isLoading: airdropLoading, refetch: refetchAirdrop } =
     trpc.airdrop.getAirdropInfo.useQuery({ walletAddress }, { enabled: !!walletAddress, refetchInterval: 60_000 });
 
+  // 近期 5 条（取第一页的前 5 条）
   const recentTxs = useMemo(() => {
-    if (!allTransactions) return [];
-    return [...allTransactions]
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 5);
-  }, [allTransactions]);
+    if (!allTxData?.items) return [];
+    return allTxData.items.slice(0, 5);
+  }, [allTxData]);
 
   const handleRefreshAll = () => {
     refetchRevenue();
@@ -392,18 +396,41 @@ export default function Portfolio() {
                 </Button>
               </CardHeader>
               <CardContent>
-                {allTxLoading ? (
+                {allTxLoading && !allTxData ? (
                   <div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-16 w-full" />)}</div>
-                ) : !allTransactions || allTransactions.length === 0 ? (
+                ) : !allTxData?.items || allTxData.items.length === 0 ? (
                   <div className="text-center py-12 text-gray-400">
                     <BarChart3 className="w-10 h-10 mx-auto mb-3 opacity-30" />
                     <p className="text-sm">暂无交易记录</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {allTransactions.map((tx) => (
+                    {allTxData.items.map((tx) => (
                       <TxRow key={tx.id} tx={tx} />
                     ))}
+                    {/* 加载更多按钮 */}
+                    {allTxData.items.length < allTxData.total && (
+                      <div className="pt-4 text-center">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setTxPage(p => p + 1)}
+                          disabled={allTxLoading}
+                          className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                        >
+                          {allTxLoading ? (
+                            <span className="flex items-center gap-2">
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin" />加载中…
+                            </span>
+                          ) : (
+                            `加载更多（已显示 ${allTxData.items.length} / 共 ${allTxData.total} 条）`
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                    {allTxData.items.length >= allTxData.total && allTxData.total > PAGE_SIZE && (
+                      <p className="text-center text-xs text-gray-400 pt-3">已显示全部 {allTxData.total} 条记录</p>
+                    )}
                   </div>
                 )}
               </CardContent>
