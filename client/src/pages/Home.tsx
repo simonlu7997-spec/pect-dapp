@@ -28,7 +28,7 @@ const ORACLE_FALLBACK = [
 
 const faqs = [
   { q: "PV-Coin 如何分红？", a: "PV-Coin 持有者每月可获得电站收益的分红，分红金额根据持仓比例计算。" },
-  { q: "C2-Coin 有什么用？", a: "C2-Coin 是碳额排代币，可用于质押获得额外收益，同时支持项目的碳中和目标。" },
+  { q: "C2-Coin 有什么用？", a: "C2-Coin 是碳减排权益代币，可用于质押获得额外收益，同时支持项目的碳中和目标。" },
   { q: "如何质押 C2-Coin？", a: "在质押页面输入要质押的 C2-Coin 数量，批准后即可质押，每月获得奖励。" },
 ];
 
@@ -210,7 +210,7 @@ export default function Home() {
             <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-white">
               <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-t-lg">
                 <CardTitle>C2-Coin</CardTitle>
-                <CardDescription className="text-blue-100">碳额排代币</CardDescription>
+                <CardDescription className="text-blue-100">碳减排权益代币</CardDescription>
               </CardHeader>
               <CardContent className="pt-6 space-y-4">
                 <div>
