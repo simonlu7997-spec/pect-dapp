@@ -299,3 +299,24 @@
 - [x] 管理后台新增 /admin/announcements 页面
 - [x] 首页导航栏新增公告铃铛图标（显示未读数量徽章）
 - [x] 点击铃铛图标弹出公告列表弹窗
+
+## 2026-05-01 安全审计修复
+
+### M-01：Owner 单点控制风险（DApp 层面缓解）
+- [ ] 管理后台敏感操作（修改兑换率、紧急提取、修改总供应量）增加二次确认弹窗
+- [ ] 管理后台首页显示 Owner 地址和安全状态面板
+- [ ] 在网站底部/关于页面公示合约地址和 Owner 地址
+
+### M-02：DateHelper 日期计算精度误差（合约层面）
+- [ ] 克隆合约代码仓库，修改 DateHelper.sol 替换为精确 Unix 时间戳月份边界计算
+- [ ] 同步更新使用 DateHelper 的合约（C2Coin、RevenueDistributor、StakingManager、ElectricityPriceOracle）
+- [ ] 重新部署修复后的合约到测试网，更新 DApp 合约地址
+
+## 2026-05-01 安全审计修复（已完成）
+
+- [x] M-02：重写 DateHelper.sol 使用精确 Unix 时间戳月份边界算法（通过 17 项测试）
+- [x] M-01：新增 adminSecurity tRPC 路由（合约地址公示 + 链上 Owner 验证）
+- [x] M-01：新增管理后台 /admin/security 安全中心页面
+- [x] M-01：Navbar 管理员菜单新增「安全中心」入口
+- [x] M-01：AdminRevenue 中敏感操作（分红/质押奖励/Approve/PVC 充值）均已有 AlertDialog 二次确认
+- [x] 编写 adminSecurity.test.ts 测试（153 项全部通过）

@@ -22,6 +22,7 @@ import AdminRevenue from "./pages/AdminRevenue";
 import AdminStations from "./pages/AdminStations";
 import AdminAirdrop from "./pages/AdminAirdrop";
 import AdminAnnouncements from "./pages/AdminAnnouncements";
+import AdminSecurity from "./pages/AdminSecurity";
 import PurchaseHistory from "./pages/PurchaseHistory";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -47,6 +48,7 @@ function Router() {
       <Route path={"/admin/stations"} component={AdminStations} />
       <Route path={"/admin/airdrop"} component={AdminAirdrop} />
       <Route path={"/admin/announcements"} component={AdminAnnouncements} />
+      <Route path={"/admin/security"} component={AdminSecurity} />
       <Route path={"/purchase-history"} component={PurchaseHistory} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}

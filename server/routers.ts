@@ -14,6 +14,7 @@ import { airdropRouter } from "./routers/airdrop";
 import { adminAirdropRouter } from "./routers/adminAirdrop";
 import { adminRewardRouter } from "./routers/adminReward";
 import { announcementsRouter } from "./routers/announcements";
+import { adminSecurityRouter } from "./routers/adminSecurity";
 
 export const appRouter = router({
   // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -63,6 +64,8 @@ export const appRouter = router({
   adminReward: adminRewardRouter,
   // 公告系统（用户查看 + 管理员发布）
   announcements: announcementsRouter,
+  // 安全中心：合约地址透明度 + M-01 Owner 风险缓解
+  adminSecurity: adminSecurityRouter,
 });
 
 export type AppRouter = typeof appRouter;
