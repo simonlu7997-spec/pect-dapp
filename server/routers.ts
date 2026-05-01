@@ -13,6 +13,7 @@ import { stationsPublicRouter } from "./routers/stationsPublic";
 import { airdropRouter } from "./routers/airdrop";
 import { adminAirdropRouter } from "./routers/adminAirdrop";
 import { adminRewardRouter } from "./routers/adminReward";
+import { announcementsRouter } from "./routers/announcements";
 
 export const appRouter = router({
   // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -60,6 +61,8 @@ export const appRouter = router({
   adminAirdrop: adminAirdropRouter,
   // 管理后台：质押奖励/分红手动触发和历史查询
   adminReward: adminRewardRouter,
+  // 公告系统（用户查看 + 管理员发布）
+  announcements: announcementsRouter,
 });
 
 export type AppRouter = typeof appRouter;

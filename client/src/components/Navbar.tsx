@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import {
   Menu, X, Wallet, LogOut, QrCode, CheckCircle, UserCircle,
   ChevronDown, Copy, ExternalLink, ShieldCheck, Users, BarChart3,
-  Zap, TrendingUp, Gift, Layers, ShoppingCart, PieChart,
+  Zap, TrendingUp, Gift, Layers, ShoppingCart, PieChart, Bell, Megaphone,
 } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
+import { Badge } from "@/components/ui/badge";
 
 // ─── 我的资产子菜单项 ─────────────────────────────────────────────────────────
 const assetSubItems = [
@@ -25,6 +27,160 @@ const assetSubItems = [
   { label: "C2 空投", href: "/airdrop", icon: Gift, desc: "C2-Coin 空投" },
   { label: "质押管理", href: "/staking", icon: Layers, desc: "C2-Coin 质押" },
 ];
+
+// ─── 公告弹窗组件 ─────────────────────────────────────────────────────────────
+function AnnouncementPanel({ onClose }: { onClose: () => void }) {
+  const { user } = useAuth();
+  const isLoggedIn = !!user;
+
+  const { data, isLoading } = trpc.announcements.list.useQuery({ limit: 20, offset: 0 });
+  const { data: readData, refetch: refetchReadIds } = trpc.announcements.getReadIds.useQuery(
+    undefined,
+    { enabled: isLoggedIn }
+  );
+  const markAllReadMutation = trpc.announcements.markAllRead.useMutation({
+    onSuccess: () => refetchReadIds(),
+  });
+
+  const announcements = data?.announcements ?? [];
+  const readIds = new Set(readData?.readIds ?? []);
+  const unreadItems = announcements.filter((a) => !readIds.has(a.id));
+
+  // 打开弹窗时，自动标记所有未读为已读（延迟 1 秒，让用户先看到）
+  useEffect(() => {
+    if (!isLoggedIn || unreadItems.length === 0) return;
+    const timer = setTimeout(() => {
+      markAllReadMutation.mutate({ announcementIds: unreadItems.map((a) => a.id) });
+    }, 1000);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn, announcements.length]);
+
+  return (
+    <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
+      {/* 头部 */}
+      <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-violet-50 to-purple-50 border-b border-gray-100">
+        <div className="flex items-center gap-2">
+          <Megaphone className="w-4 h-4 text-violet-600" />
+          <span className="text-sm font-semibold text-violet-900">项目公告</span>
+          {unreadItems.length > 0 && (
+            <span className="px-1.5 py-0.5 bg-red-500 text-white text-xs rounded-full font-bold">
+              {unreadItems.length}
+            </span>
+          )}
+        </div>
+        <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* 公告列表 */}
+      <div className="max-h-96 overflow-y-auto">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="w-5 h-5 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : announcements.length === 0 ? (
+          <div className="text-center py-10 text-gray-400">
+            <Megaphone className="w-8 h-8 mx-auto mb-2 opacity-30" />
+            <p className="text-sm">暂无公告</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {announcements.map((item) => {
+              const isUnread = isLoggedIn && !readIds.has(item.id);
+              return (
+                <div
+                  key={item.id}
+                  className={`px-4 py-3 transition-colors ${isUnread ? "bg-violet-50/60" : "hover:bg-gray-50"}`}
+                >
+                  <div className="flex items-start gap-2">
+                    {isUnread && (
+                      <div className="w-1.5 h-1.5 rounded-full bg-violet-500 mt-1.5 flex-shrink-0" />
+                    )}
+                    <div className={isUnread ? "" : "pl-3.5"}>
+                      <p className={`text-sm font-medium leading-snug ${isUnread ? "text-gray-900" : "text-gray-700"}`}>
+                        {item.title}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1 leading-relaxed whitespace-pre-line">
+                        {item.content}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1.5">
+                        {item.publishedAt
+                          ? new Date(item.publishedAt).toLocaleDateString("zh-CN", {
+                              year: "numeric", month: "2-digit", day: "2-digit",
+                            })
+                          : ""}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* 底部提示 */}
+      {!isLoggedIn && announcements.length > 0 && (
+        <div className="px-4 py-2.5 bg-gray-50 border-t border-gray-100">
+          <p className="text-xs text-gray-400 text-center">连接钱包后可追踪已读状态</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── 公告铃铛按钮 ─────────────────────────────────────────────────────────────
+function AnnouncementBell() {
+  const { user } = useAuth();
+  const isLoggedIn = !!user;
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const { data: listData } = trpc.announcements.list.useQuery(
+    { limit: 20, offset: 0 },
+    { refetchInterval: 60_000 }
+  );
+  const { data: readData } = trpc.announcements.getReadIds.useQuery(
+    undefined,
+    { enabled: isLoggedIn, refetchInterval: 60_000 }
+  );
+
+  const announcements = listData?.announcements ?? [];
+  const readIds = new Set(readData?.readIds ?? []);
+  const unreadCount = isLoggedIn
+    ? announcements.filter((a) => !readIds.has(a.id)).length
+    : announcements.length;
+
+  // 点击外部关闭
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    if (open) document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="relative p-2 rounded-full text-gray-500 hover:text-violet-700 hover:bg-violet-50 transition-colors"
+        title="项目公告"
+      >
+        <Bell className="w-5 h-5" />
+        {unreadCount > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-0.5 leading-none">
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </span>
+        )}
+      </button>
+
+      {open && <AnnouncementPanel onClose={() => setOpen(false)} />}
+    </div>
+  );
+}
 
 // ─── WalletButton ─────────────────────────────────────────────────────────────
 function WalletButton() {
@@ -201,11 +357,13 @@ export default function Navbar() {
   const isAssetActive = assetSubItems.some((i) => location === i.href);
   const isAdminActive = location.startsWith("/admin");
 
-  // 顶层导航（不含资产子项）
-  const topNavItems = [
-    { label: "购买", href: "/buy", icon: ShoppingCart },
-    { label: "数据分析", href: "/analytics", icon: BarChart3 },
-    { label: "白名单", href: "/whitelist", icon: Users },
+  // 管理后台菜单项
+  const adminMenuItems = [
+    { href: "/admin/kyc", label: "KYC 审核", icon: Users },
+    { href: "/admin/revenue", label: "分红管理", icon: BarChart3 },
+    { href: "/admin/airdrop", label: "空投管理", icon: Gift },
+    { href: "/admin/stations", label: "电站管理", icon: Zap },
+    { href: "/admin/announcements", label: "公告管理", icon: Megaphone },
   ];
 
   return (
@@ -317,12 +475,7 @@ export default function Navbar() {
                       </p>
                     </div>
                     <div className="py-1">
-                      {[
-                        { href: "/admin/kyc", label: "KYC 审核", icon: Users },
-                        { href: "/admin/revenue", label: "分红管理", icon: BarChart3 },
-                        { href: "/admin/airdrop", label: "空投管理", icon: Gift },
-                        { href: "/admin/stations", label: "电站管理", icon: Zap },
-                      ].map(({ href, label, icon: Icon }) => (
+                      {adminMenuItems.map(({ href, label, icon: Icon }) => (
                         <button
                           key={href}
                           onClick={() => { setLocation(href); setShowAdminMenu(false); }}
@@ -340,8 +493,9 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Right Side */}
-          <div className="flex items-center gap-3">
+          {/* Right Side：公告铃铛 + 钱包按钮 + 移动端菜单 */}
+          <div className="flex items-center gap-2">
+            <AnnouncementBell />
             <WalletButton />
             <button
               onClick={() => setIsOpen(!isOpen)}
@@ -439,12 +593,7 @@ export default function Navbar() {
 
                 {mobileAdminOpen && (
                   <div className="mt-1 ml-4 border-l-2 border-violet-100 pl-3 space-y-0.5">
-                    {[
-                      { href: "/admin/kyc", label: "KYC 审核", icon: Users },
-                      { href: "/admin/revenue", label: "分红管理", icon: BarChart3 },
-                      { href: "/admin/airdrop", label: "空投管理", icon: Gift },
-                      { href: "/admin/stations", label: "电站管理", icon: Zap },
-                    ].map(({ href, label, icon: Icon }) => (
+                    {adminMenuItems.map(({ href, label, icon: Icon }) => (
                       <button
                         key={href}
                         onClick={() => setLocation(href)}

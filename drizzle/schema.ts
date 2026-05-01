@@ -182,3 +182,31 @@ export const adminTransactions = mysqlTable("admin_transactions", {
 });
 export type AdminTransaction = typeof adminTransactions.$inferSelect;
 export type InsertAdminTransaction = typeof adminTransactions.$inferInsert;
+
+/**
+ * 公告表（管理员发布项目公告）
+ */
+export const announcements = mysqlTable("announcements", {
+  id: serial("id").primaryKey(),
+  title: varchar("title", { length: 256 }).notNull(),
+  content: text("content").notNull(),
+  isPublished: boolean("isPublished").default(false).notNull(),
+  publishedAt: timestamp("publishedAt"),
+  createdBy: varchar("createdBy", { length: 42 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+export type Announcement = typeof announcements.$inferSelect;
+export type InsertAnnouncement = typeof announcements.$inferInsert;
+
+/**
+ * 公告已读记录表（记录用户已读哪些公告）
+ */
+export const announcementReads = mysqlTable("announcement_reads", {
+  id: serial("id").primaryKey(),
+  announcementId: int("announcementId").notNull(),
+  walletAddress: varchar("walletAddress", { length: 42 }).notNull(),
+  readAt: timestamp("readAt").defaultNow().notNull(),
+});
+export type AnnouncementRead = typeof announcementReads.$inferSelect;
+export type InsertAnnouncementRead = typeof announcementReads.$inferInsert;
