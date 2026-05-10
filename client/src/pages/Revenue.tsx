@@ -248,10 +248,11 @@ export default function Revenue() {
               {isLoadingInfo ? <Skeleton className="h-9 w-32" /> : (
                 <>
                   <p className="text-lg font-bold text-gray-900">
-                    {revenueInfo?.currentMonth
-                      ? `${String(revenueInfo.currentMonth).slice(0, 4)}年${String(revenueInfo.currentMonth).slice(4)}月月底`
-                      : "-"
-                    }
+                    {(() => {
+                      const now = new Date();
+                      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+                      return `${nextMonth.getFullYear()}年${nextMonth.getMonth() + 1}月1日`;
+                    })()}
                   </p>
                   <p className="text-xs text-gray-400 mt-1">
                     {revenueInfo?.lastDistributionMonth

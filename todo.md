@@ -320,3 +320,16 @@
 - [x] M-01：Navbar 管理员菜单新增「安全中心」入口
 - [x] M-01：AdminRevenue 中敏感操作（分红/质押奖励/Approve/PVC 充值）均已有 AlertDialog 二次确认
 - [x] 编写 adminSecurity.test.ts 测试（153 项全部通过）
+
+## 2026-05-01 合约安全加固（M-01 完整修复）
+
+- [ ] 新增 TimeLock.sol 合约（24-48 小时延迟队列）
+- [ ] PrivateSale.sol：setExchangeRate / setMaxPerUser 通过 TimeLock 执行
+- [ ] PublicSale.sol：setExchangeRate / setMaxPerUser 通过 TimeLock 执行
+- [ ] PVCoin.sol：adjustTotalSupply（若存在）通过 TimeLock 执行
+- [ ] PrivateSale.sol：emergencyWithdraw 限制为只能提取超过已分配总量的余额
+- [ ] PublicSale.sol：emergencyWithdraw 限制为只能提取超过已分配总量的余额
+- [ ] RevenueDistributor.sol：emergencyWithdraw 限制为超额余额
+- [ ] 编写 Owner 迁移脚本 scripts/transferOwnership.js（transferOwnership 到 Gnosis Safe 地址）
+- [ ] 编写 TimeLock 和 emergencyWithdraw 修改的 Hardhat 测试用例
+- [ ] 提交合约代码到 GitHub
