@@ -333,3 +333,20 @@
 - [ ] 编写 Owner 迁移脚本 scripts/transferOwnership.js（transferOwnership 到 Gnosis Safe 地址）
 - [ ] 编写 TimeLock 和 emergencyWithdraw 修改的 Hardhat 测试用例
 - [ ] 提交合约代码到 GitHub
+
+## 2026-05-12 电站现场图片自动更新
+
+- [x] 数据库新增 station_snapshots 表（deviceSerial/channelNo/stationName/imageUrl/capturedAt）
+- [x] 配置海康互联 Secrets（HIK_APP_ACCESS_TOKEN/HIK_USER_ACCESS_TOKEN）
+- [x] 后端实现海康互联抓图 API 调用（无加密，直接传 Token 请求头）
+- [x] 后端实现每天定时自动抓图任务（每日 08:00 UTC+8）
+- [x] 后端新增 tRPC 接口：查询三个电站最新图片（stationSnapshots.getLatest）
+- [x] 后端新增 tRPC 接口：管理员手动触发抓图（stationSnapshots.triggerCapture）
+- [x] 前端新增 /stations 电站现场页面（按电站分组展示最新图片）
+- [x] 首页"实时视频"按钮改为"电站现场"并跳转到 /stations 页面
+- [x] 编写 hikiotService.test.ts 测试（170/170 全部通过）
+
+## 2026-05-12 电站现场图片（续）
+
+- [x] 首页"实时视频"按钮改为"电站现场"，跳转 /stations
+- [x] 配置海康互联 HIK_APP_ACCESS_TOKEN 和 HIK_USER_ACCESS_TOKEN 环境变量

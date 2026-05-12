@@ -57,6 +57,13 @@
       "when": 1777622766607,
       "tag": "0007_adorable_oracle",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1778583917516,
+      "tag": "0008_brave_shadow_king",
+      "breakpoints": true
     }
   ]
 }

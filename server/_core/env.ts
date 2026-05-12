@@ -17,4 +17,9 @@ export const ENV = {
   stakingManagerAddress: process.env.VITE_STAKING_MANAGER_ADDRESS ?? "",
   revenueDistributorAddress: process.env.VITE_REVENUE_DISTRIBUTOR_ADDRESS ?? "",
   c2CoinAddress: process.env.VITE_C2_COIN_ADDRESS ?? "",
+  // 海康互联开放平台
+  hikAppKey: process.env.HIK_APP_KEY ?? "",
+  hikAppSecret: process.env.HIK_APP_SECRET ?? "",
+  hikAppAccessToken: process.env.HIK_APP_ACCESS_TOKEN ?? "",
+  hikUserAccessToken: process.env.HIK_USER_ACCESS_TOKEN ?? "",
 };

@@ -24,6 +24,7 @@ import AdminAirdrop from "./pages/AdminAirdrop";
 import AdminAnnouncements from "./pages/AdminAnnouncements";
 import AdminSecurity from "./pages/AdminSecurity";
 import PurchaseHistory from "./pages/PurchaseHistory";
+import Stations from "./pages/Stations";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 
@@ -50,6 +51,7 @@ function Router() {
       <Route path={"/admin/announcements"} component={AdminAnnouncements} />
       <Route path={"/admin/security"} component={AdminSecurity} />
       <Route path={"/purchase-history"} component={PurchaseHistory} />
+      <Route path={"/stations"} component={Stations} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

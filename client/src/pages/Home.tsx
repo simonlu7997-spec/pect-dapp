@@ -135,9 +135,9 @@ export default function Home() {
                 size="lg"
                 variant="outline"
                 className="border-2 border-blue-600 text-blue-600 hover:bg-blue-50 px-8 py-6 text-lg"
-                onClick={() => navigate("/live-video")}
+                onClick={() => navigate("/stations")}
               >
-                实时视频
+                电站现场
               </Button>
               </div>
             </div>

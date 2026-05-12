@@ -10,6 +10,7 @@ import { serveStatic, setupVite } from "./vite";
 import { startPoller } from "../poller";
 import { startAirdropScheduler } from "../airdropScheduler";
 import { startRewardScheduler } from "../rewardScheduler";
+import { startHikiotScheduler } from "../hikiotScheduler";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -99,6 +100,7 @@ async function startServer() {
     // Start monthly reward schedulers (staking: 00:00, airdrop: 00:05, revenue: 00:10)
     startRewardScheduler(); // 质押奖励（00:00）和分红（00:10）
     startAirdropScheduler(); // C2Coin 空投（00:05）
+    startHikiotScheduler(); // 电站现场每日自动抓图（08:00 UTC+8）
   });
 }
 

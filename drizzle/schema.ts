@@ -210,3 +210,18 @@ export const announcementReads = mysqlTable("announcement_reads", {
 });
 export type AnnouncementRead = typeof announcementReads.$inferSelect;
 export type InsertAnnouncementRead = typeof announcementReads.$inferInsert;
+
+/**
+ * 电站现场快照表（海康互联每日自动抓图）
+ */
+export const stationSnapshots = mysqlTable("station_snapshots", {
+  id: serial("id").primaryKey(),
+  deviceSerial: varchar("deviceSerial", { length: 32 }).notNull(),  // 设备序列号
+  channelNo: int("channelNo").notNull(),                             // 通道号（1 或 2）
+  stationName: varchar("stationName", { length: 128 }).notNull(),   // 电站名称（工商局/电动科技/汽车零部件）
+  imageUrl: text("imageUrl").notNull(),                              // 图片 URL（海康互联返回）
+  capturedAt: timestamp("capturedAt").notNull(),                     // 抓图时间
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type StationSnapshot = typeof stationSnapshots.$inferSelect;
+export type InsertStationSnapshot = typeof stationSnapshots.$inferInsert;
