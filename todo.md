@@ -350,3 +350,9 @@
 
 - [x] 首页"实时视频"按钮改为"电站现场"，跳转 /stations
 - [x] 配置海康互联 HIK_APP_ACCESS_TOKEN 和 HIK_USER_ACCESS_TOKEN 环境变量
+
+## 2026-05-12 摄像头配置 + 管理后台手动抓图
+
+- [x] 配置 HIK_DEVICE_1/HIK_DEVICE_2/HIK_DEVICE_3 摄像头序列号 Secrets
+- [x] 在 /admin/stations 页面添加"立即抓图"按钮（调用 stationSnapshots.triggerCapture）
+- [x] 抓图结果弹窗展示（成功/失败数量）

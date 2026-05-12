@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Plus, Trash2, Pencil, ArrowLeft, Zap, MapPin, Factory } from "lucide-react";
+import { Plus, Trash2, Pencil, ArrowLeft, Zap, MapPin, Factory, Camera, CheckCircle, XCircle } from "lucide-react";
 
 type StationForm = {
   name: string;
@@ -153,6 +153,16 @@ export default function AdminStations() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<{ id: number } | null>(null);
   const [form, setForm] = useState<StationForm>(emptyForm);
+  const [captureResultOpen, setCaptureResultOpen] = useState(false);
+  const [captureResult, setCaptureResult] = useState<{ successCount: number; failedCount: number } | null>(null);
+
+  const captureMutation = trpc.stationSnapshots.triggerCapture.useMutation({
+    onSuccess: (result) => {
+      setCaptureResult(result ?? { successCount: 0, failedCount: 0 });
+      setCaptureResultOpen(true);
+    },
+    onError: (err) => toast.error(`抓图失败：${err.message}`),
+  });
 
   const { data, refetch, isLoading } = trpc.adminStations.list.useQuery(undefined, {
     enabled: isAdmin,
@@ -261,6 +271,20 @@ export default function AdminStations() {
               <h1 className="text-lg font-bold">电站资产管理</h1>
             </div>
           </div>
+          <div className="flex items-center gap-2">
+          {/* 立即抓图按钮 */}
+          <Button
+            variant="outline"
+            className="border-blue-600 text-blue-400 hover:bg-blue-900/20"
+            onClick={() => captureMutation.mutate()}
+            disabled={captureMutation.isPending}
+          >
+            {captureMutation.isPending ? (
+              <><div className="animate-spin rounded-full h-4 w-4 border-t-2 border-blue-400 mr-1" />抓图中...</>
+            ) : (
+              <><Camera className="w-4 h-4 mr-1" />立即抓图</>
+            )}
+          </Button>
           <Dialog open={createOpen} onOpenChange={(open) => { setCreateOpen(open); if (!open) setForm(emptyForm); }}>
             <DialogTrigger asChild>
               <Button className="bg-green-600 hover:bg-green-700 text-white">
@@ -283,6 +307,7 @@ export default function AdminStations() {
               </form>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
       </div>
 
@@ -448,6 +473,48 @@ export default function AdminStations() {
           </CardContent>
         </Card>
       </div>
+
+      {/* 抓图结果弹窗 */}
+      <Dialog open={captureResultOpen} onOpenChange={setCaptureResultOpen}>
+        <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Camera className="w-5 h-5 text-blue-400" />
+              抓图结果
+            </DialogTitle>
+          </DialogHeader>
+          {captureResult && (
+            <div className="space-y-4 py-2">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-green-900/30 border border-green-700">
+                <CheckCircle className="w-6 h-6 text-green-400 shrink-0" />
+                <div>
+                  <p className="text-sm text-gray-400">抓图成功</p>
+                  <p className="text-2xl font-bold text-green-400">{captureResult.successCount} 张</p>
+                </div>
+              </div>
+              {captureResult.failedCount > 0 && (
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-red-900/30 border border-red-700">
+                  <XCircle className="w-6 h-6 text-red-400 shrink-0" />
+                  <div>
+                    <p className="text-sm text-gray-400">抓图失败</p>
+                    <p className="text-2xl font-bold text-red-400">{captureResult.failedCount} 张</p>
+                  </div>
+                </div>
+              )}
+              {captureResult.successCount > 0 && (
+                <p className="text-sm text-gray-400 text-center">
+                  图片已保存到数据库，可前往
+                  <a href="/stations" className="text-blue-400 hover:underline mx-1">电站现场</a>
+                  页面查看。
+                </p>
+              )}
+            </div>
+          )}
+          <div className="flex justify-end pt-2">
+            <Button variant="ghost" onClick={() => setCaptureResultOpen(false)}>关闭</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
