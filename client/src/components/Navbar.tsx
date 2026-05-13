@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import {
   Menu, X, Wallet, LogOut, QrCode, CheckCircle, UserCircle,
   ChevronDown, Copy, ExternalLink, ShieldCheck, Users, BarChart3,
-  Zap, TrendingUp, Gift, Layers, ShoppingCart, PieChart, Bell, Megaphone, ShieldAlert,
+  Zap, TrendingUp, Gift, Layers, ShoppingCart, PieChart, Bell, Megaphone, ShieldAlert, MessageSquare,
 } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -365,6 +365,7 @@ export default function Navbar() {
     { href: "/admin/stations", label: "电站管理", icon: Zap },
     { href: "/admin/announcements", label: "公告管理", icon: Megaphone },
     { href: "/admin/security", label: "安全中心", icon: ShieldAlert },
+    { href: "/admin/messages", label: "留言管理", icon: MessageSquare },
   ];
 
   return (

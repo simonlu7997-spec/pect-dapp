@@ -363,3 +363,11 @@
 - [x] 后端实现 tRPC contact.submit 路由（存库 + Resend 邮件 + notifyOwner）
 - [x] 前端 Contact.tsx 接入 tRPC，替换 alert 占位逻辑
 - [x] 编写 contact.submit 测试用例（13 个测试，183/183 全部通过）
+
+## 2026-05-13 留言管理 + 防垃圾提交
+
+- [x] 后端 contact.submit 添加防刷限流（同一邮筱每小时最多 3 次）
+- [x] 后端新增 contact.list 接口（管理员查询所有留言，支持分页）
+- [x] 前端新增 /admin/messages 留言管理页面（列表 + 时间 + 邮件快捷回复）
+- [x] 管理员导航菜单添加"留言管理"入口
+- [x] 编写限流和留言列表测试用例（193/193 全部通过）

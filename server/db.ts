@@ -1,4 +1,4 @@
-import { eq, desc, asc, inArray, and, sql } from "drizzle-orm";
+import { eq, desc, asc, inArray, and, sql, count, gte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
@@ -411,4 +411,51 @@ export async function insertContactMessage(data: {
     subject: data.subject,
     message: data.message,
   });
+}
+
+/**
+ * 查询联系我们留言列表（管理员用，按时间倒序，支持分页）
+ */
+export async function getContactMessages(opts: {
+  page: number;
+  pageSize: number;
+}): Promise<{ items: typeof contactMessages.$inferSelect[]; total: number }> {
+  const db = await getDb();
+  if (!db) return { items: [], total: 0 };
+
+  const offset = (opts.page - 1) * opts.pageSize;
+
+  const [items, countRows] = await Promise.all([
+    db
+      .select()
+      .from(contactMessages)
+      .orderBy(desc(contactMessages.createdAt))
+      .limit(opts.pageSize)
+      .offset(offset),
+    db.select({ count: count() }).from(contactMessages),
+  ]);
+
+  return { items, total: countRows[0]?.count ?? 0 };
+}
+
+/**
+ * 统计某邮箱在指定时间窗口内的提交次数（防刷限流）
+ */
+export async function countContactMessagesByEmail(
+  email: string,
+  since: Date
+): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+
+  const rows = await db
+    .select({ count: count() })
+    .from(contactMessages)
+    .where(
+      and(
+        eq(contactMessages.email, email),
+        gte(contactMessages.createdAt, since)
+      )
+    );
+  return rows[0]?.count ?? 0;
 }
