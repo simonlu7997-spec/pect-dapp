@@ -54,7 +54,7 @@ export default function Footer() {
                 <Twitter className="w-5 h-5" />
               </a>
               <a
-                href="https://t.me/PECT_Official"
+                href="https://t.me/PECT_OFCL"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-emerald-400 transition-colors"

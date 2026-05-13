@@ -48,8 +48,8 @@ export default function Contact() {
       icon: Send,
       title: "Telegram",
       description: "加入 Telegram 群组",
-      content: "t.me/PECT_Official",
-      link: "https://t.me/PECT_Official"
+      content: "t.me/PECT_OFCL",
+      link: "https://t.me/PECT_OFCL"
     },
     {
       icon: MessageCircle,
