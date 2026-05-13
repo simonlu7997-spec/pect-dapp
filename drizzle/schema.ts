@@ -225,3 +225,17 @@ export const stationSnapshots = mysqlTable("station_snapshots", {
 });
 export type StationSnapshot = typeof stationSnapshots.$inferSelect;
 export type InsertStationSnapshot = typeof stationSnapshots.$inferInsert;
+
+/**
+ * 联系我们留言表
+ */
+export const contactMessages = mysqlTable("contact_messages", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 128 }).notNull(),
+  email: varchar("email", { length: 320 }).notNull(),
+  subject: varchar("subject", { length: 256 }).notNull(),
+  message: text("message").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type ContactMessage = typeof contactMessages.$inferSelect;
+export type InsertContactMessage = typeof contactMessages.$inferInsert;

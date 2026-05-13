@@ -20,6 +20,7 @@ import {
   adminTransactions,
   InsertAdminTransaction,
   type AdminTransaction,
+  contactMessages,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -391,4 +392,23 @@ export async function getPvcHolderAddresses(): Promise<string[]> {
       )
     );
   return rows.map((r) => r.walletAddress);
+}
+
+/**
+ * 插入联系我们留言
+ */
+export async function insertContactMessage(data: {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+}): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(contactMessages).values({
+    name: data.name,
+    email: data.email,
+    subject: data.subject,
+    message: data.message,
+  });
 }

@@ -239,3 +239,83 @@ export async function sendRejectedEmail(opts: {
     return false;
   }
 }
+
+function buildContactNotificationEmail(opts: {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  submittedAt: string;
+}): string {
+  const content = `
+    <h2 style="margin:0 0 16px;font-size:20px;color:#111827;">📬 新留言通知</h2>
+    <p style="margin:0 0 20px;color:#6b7280;font-size:14px;">您在 PECT DApp 网站收到了一条新的联系留言。</p>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border-radius:8px;padding:20px;margin-bottom:20px;">
+      <tr><td style="padding:6px 0;">
+        <span style="color:#6b7280;font-size:13px;display:block;">姓名</span>
+        <span style="color:#111827;font-size:15px;font-weight:600;">${opts.name}</span>
+      </td></tr>
+      <tr><td style="padding:6px 0;border-top:1px solid #e5e7eb;">
+        <span style="color:#6b7280;font-size:13px;display:block;">邮箱</span>
+        <span style="color:#111827;font-size:15px;"><a href="mailto:${opts.email}" style="color:#059669;">${opts.email}</a></span>
+      </td></tr>
+      <tr><td style="padding:6px 0;border-top:1px solid #e5e7eb;">
+        <span style="color:#6b7280;font-size:13px;display:block;">主题</span>
+        <span style="color:#111827;font-size:15px;font-weight:600;">${opts.subject}</span>
+      </td></tr>
+      <tr><td style="padding:6px 0;border-top:1px solid #e5e7eb;">
+        <span style="color:#6b7280;font-size:13px;display:block;">提交时间</span>
+        <span style="color:#111827;font-size:15px;">${opts.submittedAt}</span>
+      </td></tr>
+    </table>
+
+    <div style="background:#f0fdf4;border-left:4px solid #059669;border-radius:4px;padding:16px;margin-bottom:20px;">
+      <p style="margin:0 0 8px;color:#6b7280;font-size:13px;">消息内容</p>
+      <p style="margin:0;color:#111827;font-size:15px;line-height:1.6;white-space:pre-wrap;">${opts.message}</p>
+    </div>
+
+    <p style="margin:0;color:#6b7280;font-size:13px;">
+      您可以直接回复此邮件，或发送邮件至 <a href="mailto:${opts.email}" style="color:#059669;">${opts.email}</a> 与用户联系。
+    </p>
+  `;
+  return baseLayout(content);
+}
+
+export async function sendContactNotificationEmail(opts: {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+}): Promise<boolean> {
+  const resend = getResend();
+  if (!resend) {
+    console.warn("[Email] RESEND_API_KEY not configured, skipping contact notification email");
+    return false;
+  }
+  try {
+    const submittedAt = new Date().toLocaleString("zh-CN", {
+      timeZone: "Asia/Shanghai",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    const { error } = await resend.emails.send({
+      from: FROM,
+      to: "26725856@qq.com",
+      subject: `📬 PECT DApp 新留言：${opts.subject}`,
+      html: buildContactNotificationEmail({ ...opts, submittedAt }),
+    });
+    if (error) {
+      console.error("[Email] Failed to send contact notification email:", error);
+      return false;
+    }
+    console.log(`[Email] Contact notification email sent for subject: ${opts.subject}`);
+    return true;
+  } catch (err) {
+    console.error("[Email] Error sending contact notification email:", err);
+    return false;
+  }
+}

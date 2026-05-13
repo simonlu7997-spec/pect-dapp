@@ -356,3 +356,10 @@
 - [x] 配置 HIK_DEVICE_1/HIK_DEVICE_2/HIK_DEVICE_3 摄像头序列号 Secrets
 - [x] 在 /admin/stations 页面添加"立即抓图"按钮（调用 stationSnapshots.triggerCapture）
 - [x] 抓图结果弹窗展示（成功/失败数量）
+
+## 2026-05-13 联系我们表单功能
+
+- [x] 数据库新增 contact_messages 表（name/email/subject/message/createdAt）
+- [x] 后端实现 tRPC contact.submit 路由（存库 + Resend 邮件 + notifyOwner）
+- [x] 前端 Contact.tsx 接入 tRPC，替换 alert 占位逻辑
+- [x] 编写 contact.submit 测试用例（13 个测试，183/183 全部通过）

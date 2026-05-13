@@ -64,6 +64,13 @@
       "when": 1778583917516,
       "tag": "0008_brave_shadow_king",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1778653744368,
+      "tag": "0009_dizzy_vampiro",
+      "breakpoints": true
     }
   ]
 }

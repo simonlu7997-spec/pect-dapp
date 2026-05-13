@@ -1,7 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Mail, MessageCircle, Github, Twitter, Linkedin, MapPin, Phone } from "lucide-react";
+import { Mail, MessageCircle, Github, Twitter, MapPin, Phone, CheckCircle2, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 
 export default function Contact() {
   const [formData, setFormData] = useState({
@@ -10,11 +12,21 @@ export default function Contact() {
     subject: "",
     message: ""
   });
+  const [submitted, setSubmitted] = useState(false);
+
+  const submitMutation = trpc.contact.submit.useMutation({
+    onSuccess: () => {
+      setSubmitted(true);
+      setFormData({ name: "", email: "", subject: "", message: "" });
+    },
+    onError: (err) => {
+      toast.error(`发送失败：${err.message || "请稍后重试，或直接发送邮件至 support@pect.io"}`);
+    },
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    alert("感谢您的留言，我们会尽快回复您！");
-    setFormData({ name: "", email: "", subject: "", message: "" });
+    submitMutation.mutate(formData);
   };
 
   const contactMethods = [
@@ -107,71 +119,102 @@ export default function Contact() {
                 <CardTitle>发送消息</CardTitle>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {submitted ? (
+                  /* 成功状态 */
+                  <div className="flex flex-col items-center justify-center py-12 text-center space-y-4">
+                    <CheckCircle2 className="w-16 h-16 text-green-500" />
+                    <h3 className="text-xl font-semibold text-gray-900">消息已发送！</h3>
+                    <p className="text-gray-600 max-w-sm">
+                      感谢您的留言，我们通常在 24 小时内回复。
+                    </p>
+                    <Button
+                      variant="outline"
+                      className="mt-4 border-green-500 text-green-600 hover:bg-green-50"
+                      onClick={() => setSubmitted(false)}
+                    >
+                      再次发送
+                    </Button>
+                  </div>
+                ) : (
+                  /* 表单 */
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          姓名
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.name}
+                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          placeholder="您的姓名"
+                          required
+                          disabled={submitMutation.isPending}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          邮箱
+                        </label>
+                        <input
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          placeholder="您的邮箱"
+                          required
+                          disabled={submitMutation.isPending}
+                        />
+                      </div>
+                    </div>
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        姓名
+                        主题
                       </label>
                       <input
                         type="text"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        value={formData.subject}
+                        onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        placeholder="您的姓名"
+                        placeholder="消息主题"
                         required
+                        disabled={submitMutation.isPending}
                       />
                     </div>
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        邮箱
+                        消息内容
                       </label>
-                      <input
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        placeholder="您的邮箱"
+                      <textarea
+                        value={formData.message}
+                        onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                        rows={5}
+                        placeholder="请输入您的消息..."
                         required
+                        disabled={submitMutation.isPending}
                       />
                     </div>
-                  </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      主题
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.subject}
-                      onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      placeholder="消息主题"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      消息内容
-                    </label>
-                    <textarea
-                      value={formData.message}
-                      onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
-                      rows={5}
-                      placeholder="请输入您的消息..."
-                      required
-                    />
-                  </div>
-
-                  <Button
-                    type="submit"
-                    className="w-full bg-green-600 hover:bg-green-700 text-white py-2"
-                  >
-                    发送消息
-                  </Button>
-                </form>
+                    <Button
+                      type="submit"
+                      className="w-full bg-green-600 hover:bg-green-700 text-white py-2"
+                      disabled={submitMutation.isPending}
+                    >
+                      {submitMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          发送中...
+                        </>
+                      ) : (
+                        "发送消息"
+                      )}
+                    </Button>
+                  </form>
+                )}
               </CardContent>
             </Card>
           </div>
