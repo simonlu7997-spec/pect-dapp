@@ -20,7 +20,7 @@ export default function Contact() {
       setFormData({ name: "", email: "", subject: "", message: "" });
     },
     onError: (err) => {
-      toast.error(`发送失败：${err.message || "请稍后重试，或直接发送邮件至 support@pect.io"}`);
+      toast.error(`发送失败：${err.message || "请稍后重试，或直接发送邮件至 contact@pect-dapp.io"}`);
     },
   });
 
@@ -34,8 +34,8 @@ export default function Contact() {
       icon: Mail,
       title: "邮件",
       description: "发送邮件给我们",
-      content: "support@pect.io",
-      link: "mailto:support@pect.io"
+      content: "contact@pect-dapp.io",
+      link: "mailto:contact@pect-dapp.io"
     },
     {
       icon: Twitter,
@@ -56,14 +56,14 @@ export default function Contact() {
       title: "Discord",
       description: "加入我们的社区",
       content: "PECT Community",
-      link: "#"
+      link: "https://discord.gg/6DGzsQpw4"
     },
     {
       icon: Github,
       title: "GitHub",
       description: "查看开源代码",
       content: "PECT-Project",
-      link: "https://github.com/PECT-Project"
+      link: "https://github.com/simonlu7997-spec/pect-contracts"
     },
   ];
 

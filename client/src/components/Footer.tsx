@@ -1,9 +1,7 @@
-import { Mail, Github, Twitter } from "lucide-react";
+import { Mail, Github, Twitter, MessageCircle, Send } from "lucide-react";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
-
-
 
   return (
     <footer className="bg-gray-900 text-gray-300 py-12 mt-20">
@@ -46,13 +44,47 @@ export default function Footer() {
           <div>
             <h4 className="font-semibold text-white mb-4">关注我们</h4>
             <div className="flex gap-4">
-              <a href="#" className="hover:text-emerald-400 transition-colors">
+              <a
+                href="https://x.com/PECT_Official"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-emerald-400 transition-colors"
+                title="Twitter / X"
+              >
                 <Twitter className="w-5 h-5" />
               </a>
-              <a href="#" className="hover:text-emerald-400 transition-colors">
+              <a
+                href="https://t.me/PECT_Official"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-emerald-400 transition-colors"
+                title="Telegram"
+              >
+                <Send className="w-5 h-5" />
+              </a>
+              <a
+                href="https://discord.gg/6DGzsQpw4"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-emerald-400 transition-colors"
+                title="Discord"
+              >
+                <MessageCircle className="w-5 h-5" />
+              </a>
+              <a
+                href="https://github.com/simonlu7997-spec/pect-contracts"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-emerald-400 transition-colors"
+                title="GitHub"
+              >
                 <Github className="w-5 h-5" />
               </a>
-              <a href="#" className="hover:text-emerald-400 transition-colors">
+              <a
+                href="mailto:contact@pect-dapp.io"
+                className="hover:text-emerald-400 transition-colors"
+                title="邮件"
+              >
                 <Mail className="w-5 h-5" />
               </a>
             </div>
