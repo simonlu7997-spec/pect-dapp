@@ -45,7 +45,7 @@ export default function Footer() {
             <h4 className="font-semibold text-white mb-4">关注我们</h4>
             <div className="flex gap-4">
               <a
-                href="https://x.com/uuhp70044"
+                href="https://x.com/PECT_OFCL"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-emerald-400 transition-colors"
