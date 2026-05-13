@@ -26,6 +26,9 @@ import AdminSecurity from "./pages/AdminSecurity";
 import AdminMessages from "./pages/AdminMessages";
 import PurchaseHistory from "./pages/PurchaseHistory";
 import Stations from "./pages/Stations";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
+import Disclaimer from "./pages/Disclaimer";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 
@@ -54,6 +57,9 @@ function Router() {
       <Route path={"/admin/messages"} component={AdminMessages} />
       <Route path={"/purchase-history"} component={PurchaseHistory} />
       <Route path={"/stations"} component={Stations} />
+      <Route path={"/privacy"} component={Privacy} />
+      <Route path={"/terms"} component={Terms} />
+      <Route path={"/disclaimer"} component={Disclaimer} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

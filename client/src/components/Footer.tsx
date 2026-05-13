@@ -95,8 +95,9 @@ export default function Footer() {
           <div className="flex flex-col md:flex-row justify-between items-center text-sm text-gray-400">
             <p>&copy; {currentYear} PECT. All rights reserved.</p>
             <div className="flex gap-6 mt-4 md:mt-0">
-              <a href="#" className="hover:text-emerald-400 transition-colors">隐私政策</a>
-              <a href="#" className="hover:text-emerald-400 transition-colors">服务条款</a>
+              <a href="/privacy" className="hover:text-emerald-400 transition-colors">隐私政策</a>
+              <a href="/terms" className="hover:text-emerald-400 transition-colors">服务条款</a>
+              <a href="/disclaimer" className="hover:text-emerald-400 transition-colors">免责声明</a>
             </div>
           </div>
         </div>
