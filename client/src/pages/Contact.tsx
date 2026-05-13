@@ -41,8 +41,8 @@ export default function Contact() {
       icon: Twitter,
       title: "Twitter / X",
       description: "关注我们的最新动态",
-      content: "@PECT_Official",
-      link: "https://x.com/PECT_Official"
+      content: "@uuhp70044",
+      link: "https://x.com/uuhp70044"
     },
     {
       icon: Send,
