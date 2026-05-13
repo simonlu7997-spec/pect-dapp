@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Mail, MessageCircle, Github, Twitter, MapPin, Phone, CheckCircle2, Loader2 } from "lucide-react";
+import { Mail, Github, Twitter, MessageCircle, Send, CheckCircle2, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -38,6 +38,20 @@ export default function Contact() {
       link: "mailto:support@pect.io"
     },
     {
+      icon: Twitter,
+      title: "Twitter / X",
+      description: "关注我们的最新动态",
+      content: "@PECT_Official",
+      link: "https://x.com/PECT_Official"
+    },
+    {
+      icon: Send,
+      title: "Telegram",
+      description: "加入 Telegram 群组",
+      content: "t.me/PECT_Official",
+      link: "https://t.me/PECT_Official"
+    },
+    {
       icon: MessageCircle,
       title: "Discord",
       description: "加入我们的社区",
@@ -45,33 +59,12 @@ export default function Contact() {
       link: "#"
     },
     {
-      icon: Twitter,
-      title: "Twitter",
-      description: "关注我们的最新动态",
-      content: "@PECT_Official",
-      link: "#"
-    },
-    {
       icon: Github,
       title: "GitHub",
       description: "查看开源代码",
       content: "PECT-Project",
-      link: "#"
+      link: "https://github.com/PECT-Project"
     },
-    {
-      icon: MapPin,
-      title: "地址",
-      description: "访问我们的办公室",
-      content: "中国，北京",
-      link: "#"
-    },
-    {
-      icon: Phone,
-      title: "电话",
-      description: "拨打我们的热线",
-      content: "+86 (10) 1234-5678",
-      link: "tel:+861012345678"
-    }
   ];
 
   return (
@@ -87,7 +80,7 @@ export default function Contact() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Contact Methods */}
           <div className="lg:col-span-1 space-y-4">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">联系方式</h2>
@@ -97,6 +90,8 @@ export default function Contact() {
                 <a
                   key={index}
                   href={method.link}
+                  target={method.link.startsWith("http") ? "_blank" : undefined}
+                  rel={method.link.startsWith("http") ? "noopener noreferrer" : undefined}
                   className="block p-4 rounded-lg bg-white border-2 border-gray-200 hover:border-green-300 hover:shadow-lg transition-all"
                 >
                   <div className="flex items-start gap-3">
@@ -219,41 +214,6 @@ export default function Contact() {
             </Card>
           </div>
         </div>
-
-        {/* FAQ Section */}
-        <Card className="border-2 border-green-200 bg-gradient-to-br from-green-50 to-white">
-          <CardHeader>
-            <CardTitle>常见问题</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">响应时间</h3>
-                <p className="text-gray-600 text-sm">
-                  我们通常在 24 小时内回复所有邮件。对于紧急问题，请通过 Discord 或电话联系我们。
-                </p>
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">支持语言</h3>
-                <p className="text-gray-600 text-sm">
-                  我们支持中文、英文和日文。请在邮件中注明您的首选语言。
-                </p>
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">技术支持</h3>
-                <p className="text-gray-600 text-sm">
-                  如需技术支持，请提供您的钱包地址和详细的问题描述，以便我们快速定位问题。
-                </p>
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">商务合作</h3>
-                <p className="text-gray-600 text-sm">
-                  如有商务合作意向，请发送邮件至 business@pect.io，我们会尽快与您联系。
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
