@@ -5,6 +5,7 @@ import {
   insertContactMessage,
   getContactMessages,
   countContactMessagesByEmail,
+  markContactMessageRead,
 } from "../db";
 import { sendContactNotificationEmail } from "../email";
 import { notifyOwner } from "../_core/notification";
@@ -72,5 +73,20 @@ export const contactRouter = router({
     )
     .query(async ({ input }) => {
       return getContactMessages(input);
+    }),
+
+  /**
+   * 管理员标记留言已读/未读
+   */
+  markRead: adminProcedure
+    .input(
+      z.object({
+        id: z.number().int().positive(),
+        isRead: z.boolean(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      await markContactMessageRead(input.id, input.isRead);
+      return { success: true };
     }),
 });

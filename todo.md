@@ -379,3 +379,12 @@
 - [x] 撰写免责声明（中英双语）
 - [x] 创建 /privacy、/terms、/disclaimer 三个子页面（支持中英切换）
 - [x] Footer 添加隐私政策、服务条款、免责声明链接
+
+## 2026-05-16 留言已读/未读标记功能
+
+- [x] 数据库 contact_messages 表添加 isRead 字段（boolean，默认 false）并推送 schema
+- [x] 后端 server/db.ts 添加 markContactMessageRead 函数
+- [x] 后端新增 contact.markRead tRPC 接口（管理员标记已读/未读）
+- [x] 前端 AdminMessages.tsx 重写：添加已读/未读标记功能（乐观更新）
+- [x] 编写 contact.markRead 测试用例（6 个测试，199/199 全部通过）
+- [x] email.ts 中所有邮件底部链接更新为 www.pect-dapp.io

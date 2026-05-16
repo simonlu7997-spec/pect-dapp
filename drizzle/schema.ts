@@ -235,6 +235,7 @@ export const contactMessages = mysqlTable("contact_messages", {
   email: varchar("email", { length: 320 }).notNull(),
   subject: varchar("subject", { length: 256 }).notNull(),
   message: text("message").notNull(),
+  isRead: boolean("isRead").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 export type ContactMessage = typeof contactMessages.$inferSelect;

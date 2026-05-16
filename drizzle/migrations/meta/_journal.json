@@ -71,6 +71,13 @@
       "when": 1778653744368,
       "tag": "0009_dizzy_vampiro",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1778898995064,
+      "tag": "0010_first_shinobi_shaw",
+      "breakpoints": true
     }
   ]
 }

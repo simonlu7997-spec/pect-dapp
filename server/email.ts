@@ -125,7 +125,7 @@ function buildApprovedEmail(opts: {
     </ul>
 
     <div style="text-align:center;margin-top:28px;">
-      <a href="https://pectdapp-8stzafg6.manus.space/buy"
+      <a href="https://www.pect-dapp.io/buy"
          style="display:inline-block;background:${BRAND_COLOR};color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;font-size:14px;">
         立即购买 PVCoin →
       </a>
@@ -169,7 +169,7 @@ function buildRejectedEmail(opts: {
     </p>
 
     <div style="text-align:center;margin-top:28px;">
-      <a href="https://pectdapp-8stzafg6.manus.space/whitelist"
+      <a href="https://www.pect-dapp.io/whitelist"
          style="display:inline-block;background:#6b7280;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;font-size:14px;">
         重新申请 →
       </a>

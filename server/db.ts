@@ -459,3 +459,18 @@ export async function countContactMessagesByEmail(
     );
   return rows[0]?.count ?? 0;
 }
+
+/**
+ * 将指定留言标记为已读/未读
+ */
+export async function markContactMessageRead(
+  id: number,
+  isRead: boolean
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .update(contactMessages)
+    .set({ isRead })
+    .where(eq(contactMessages.id, id));
+}

@@ -19,6 +19,8 @@ import {
   ChevronRight,
   Loader2,
   ExternalLink,
+  Circle,
+  CheckCircle2,
 } from "lucide-react";
 
 type ContactMessage = {
@@ -27,6 +29,7 @@ type ContactMessage = {
   email: string;
   subject: string;
   message: string;
+  isRead: boolean;
   createdAt: Date;
 };
 
@@ -40,14 +43,50 @@ export default function AdminMessages() {
   const [page, setPage] = useState(1);
   const [selectedMsg, setSelectedMsg] = useState<ContactMessage | null>(null);
 
+  const utils = trpc.useUtils();
+
   const { data, isLoading } = trpc.contact.list.useQuery(
     { page, pageSize: PAGE_SIZE },
     { enabled: isAdmin }
   );
 
+  const markReadMutation = trpc.contact.markRead.useMutation({
+    onMutate: async ({ id, isRead }) => {
+      // 乐观更新：立即更新本地缓存
+      await utils.contact.list.cancel();
+      const prev = utils.contact.list.getData({ page, pageSize: PAGE_SIZE });
+      if (prev) {
+        utils.contact.list.setData(
+          { page, pageSize: PAGE_SIZE },
+          {
+            ...prev,
+            items: prev.items.map((m) =>
+              m.id === id ? { ...m, isRead } : m
+            ),
+          }
+        );
+      }
+      // 同步更新弹窗中的消息
+      if (selectedMsg?.id === id) {
+        setSelectedMsg((prev) => prev ? { ...prev, isRead } : prev);
+      }
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      // 回滚
+      if (ctx?.prev) {
+        utils.contact.list.setData({ page, pageSize: PAGE_SIZE }, ctx.prev);
+      }
+    },
+    onSettled: () => {
+      utils.contact.list.invalidate();
+    },
+  });
+
   const messages = (data?.items ?? []) as ContactMessage[];
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const unreadCount = messages.filter((m) => !m.isRead).length;
 
   // ── 权限检查 ──────────────────────────────────────────────────────────────
   if (loading) {
@@ -82,6 +121,19 @@ export default function AdminMessages() {
   const mailtoLink = (msg: ContactMessage) =>
     `mailto:${msg.email}?subject=Re: ${encodeURIComponent(msg.subject)}&body=${encodeURIComponent(`您好 ${msg.name}，\n\n感谢您的留言。\n\n---\n原始留言：\n${msg.message}`)}`;
 
+  const handleOpenMsg = (msg: ContactMessage) => {
+    setSelectedMsg(msg);
+    // 打开详情时自动标记为已读
+    if (!msg.isRead) {
+      markReadMutation.mutate({ id: msg.id, isRead: true });
+    }
+  };
+
+  const toggleRead = (e: React.MouseEvent, msg: ContactMessage) => {
+    e.stopPropagation();
+    markReadMutation.mutate({ id: msg.id, isRead: !msg.isRead });
+  };
+
   // ── 渲染 ──────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 py-10">
@@ -111,6 +163,11 @@ export default function AdminMessages() {
                 共 {total} 条
               </Badge>
             )}
+            {unreadCount > 0 && (
+              <Badge className="bg-red-500 text-white">
+                {unreadCount} 条未读
+              </Badge>
+            )}
           </div>
         </div>
 
@@ -136,9 +193,24 @@ export default function AdminMessages() {
                 {messages.map((msg) => (
                   <div
                     key={msg.id}
-                    className="flex items-start gap-4 px-6 py-4 hover:bg-green-50 cursor-pointer transition-colors"
-                    onClick={() => setSelectedMsg(msg)}
+                    className={`flex items-start gap-4 px-6 py-4 hover:bg-green-50 cursor-pointer transition-colors ${
+                      !msg.isRead ? "bg-blue-50/40" : ""
+                    }`}
+                    onClick={() => handleOpenMsg(msg)}
                   >
+                    {/* 已读/未读指示点 */}
+                    <button
+                      className="mt-1 flex-shrink-0 text-blue-500 hover:text-blue-700 transition-colors"
+                      onClick={(e) => toggleRead(e, msg)}
+                      title={msg.isRead ? "标记为未读" : "标记为已读"}
+                    >
+                      {msg.isRead ? (
+                        <CheckCircle2 className="w-4 h-4 text-gray-300 hover:text-gray-500" />
+                      ) : (
+                        <Circle className="w-4 h-4 fill-blue-500 text-blue-500" />
+                      )}
+                    </button>
+
                     {/* 头像占位 */}
                     <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                       <span className="text-green-700 font-semibold text-sm">
@@ -149,12 +221,15 @@ export default function AdminMessages() {
                     {/* 内容 */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-gray-900 text-sm">
+                        <span className={`font-semibold text-sm ${!msg.isRead ? "text-gray-900" : "text-gray-600"}`}>
                           {msg.name}
                         </span>
                         <span className="text-gray-400 text-xs">{msg.email}</span>
+                        {!msg.isRead && (
+                          <span className="text-xs text-blue-600 font-medium">未读</span>
+                        )}
                       </div>
-                      <p className="text-sm font-medium text-gray-800 mt-0.5 truncate">
+                      <p className={`text-sm mt-0.5 truncate ${!msg.isRead ? "font-medium text-gray-800" : "text-gray-600"}`}>
                         {msg.subject}
                       </p>
                       <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">
@@ -238,9 +313,37 @@ export default function AdminMessages() {
                   <p className="text-gray-500 text-xs mb-1">主题</p>
                   <p className="font-medium text-gray-900">{selectedMsg.subject}</p>
                 </div>
-                <div className="col-span-2">
+                <div>
                   <p className="text-gray-500 text-xs mb-1">提交时间</p>
                   <p className="text-gray-700">{formatDate(selectedMsg.createdAt)}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500 text-xs mb-1">状态</p>
+                  <button
+                    className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full transition-colors ${
+                      selectedMsg.isRead
+                        ? "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                        : "bg-blue-100 text-blue-600 hover:bg-blue-200"
+                    }`}
+                    onClick={() =>
+                      markReadMutation.mutate({
+                        id: selectedMsg.id,
+                        isRead: !selectedMsg.isRead,
+                      })
+                    }
+                  >
+                    {selectedMsg.isRead ? (
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        已读（点击标为未读）
+                      </>
+                    ) : (
+                      <>
+                        <Circle className="w-3.5 h-3.5 fill-blue-500" />
+                        未读（点击标为已读）
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
 

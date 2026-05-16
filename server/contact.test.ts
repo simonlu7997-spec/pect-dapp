@@ -7,6 +7,7 @@ vi.mock("./db", () => ({
   insertContactMessage: vi.fn().mockResolvedValue(undefined),
   getContactMessages: vi.fn().mockResolvedValue({ items: [], total: 0 }),
   countContactMessagesByEmail: vi.fn().mockResolvedValue(0),
+  markContactMessageRead: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("./email", () => ({
@@ -22,6 +23,7 @@ import {
   insertContactMessage,
   getContactMessages,
   countContactMessagesByEmail,
+  markContactMessageRead,
 } from "./db";
 import { sendContactNotificationEmail } from "./email";
 import { notifyOwner } from "./_core/notification";
@@ -322,6 +324,61 @@ describe("contact.list", () => {
     const caller = appRouter.createCaller(ctx);
     await expect(
       caller.contact.list({ page: 1, pageSize: 101 })
+    ).rejects.toThrow();
+  });
+});
+
+// ── contact.markRead 接口测试 ─────────────────────────────────────────────
+describe("contact.markRead", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("管理员可以标记留言为已读", async () => {
+    const ctx = createAdminContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.contact.markRead({ id: 1, isRead: true });
+    expect(result.success).toBe(true);
+    expect(markContactMessageRead).toHaveBeenCalledWith(1, true);
+  });
+
+  it("管理员可以标记留言为未读", async () => {
+    const ctx = createAdminContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.contact.markRead({ id: 5, isRead: false });
+    expect(result.success).toBe(true);
+    expect(markContactMessageRead).toHaveBeenCalledWith(5, false);
+  });
+
+  it("普通用户无权标记留言（FORBIDDEN）", async () => {
+    const ctx = createUserContext();
+    const caller = appRouter.createCaller(ctx);
+    await expect(
+      caller.contact.markRead({ id: 1, isRead: true })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("未登录用户无权标记留言", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    await expect(
+      caller.contact.markRead({ id: 1, isRead: true })
+    ).rejects.toThrow();
+  });
+
+  it("id 必须为正整数（id=0 时抛出错误）", async () => {
+    const ctx = createAdminContext();
+    const caller = appRouter.createCaller(ctx);
+    await expect(
+      caller.contact.markRead({ id: 0, isRead: true })
+    ).rejects.toThrow();
+  });
+
+  it("id 为负数时抛出错误", async () => {
+    const ctx = createAdminContext();
+    const caller = appRouter.createCaller(ctx);
+    await expect(
+      caller.contact.markRead({ id: -1, isRead: true })
     ).rejects.toThrow();
   });
 });
