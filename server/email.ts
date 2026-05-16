@@ -54,7 +54,7 @@ function baseLayout(content: string): string {
             <td style="padding:16px 32px 24px;border-top:1px solid #f0f0f0;">
               <p style="margin:0;font-size:12px;color:#9ca3af;text-align:center;">
                 此邮件由 ${BRAND_NAME} 系统自动发送，请勿直接回复。<br />
-                如有疑问，请联系 <a href="mailto:support@pect.io" style="color:${BRAND_COLOR};">support@pect.io</a>
+                如有疑问，请联系 <a href="mailto:contact@pect-dapp.io" style="color:${BRAND_COLOR};">contact@pect-dapp.io</a>
               </p>
             </td>
           </tr>
