@@ -304,7 +304,7 @@ export async function sendContactNotificationEmail(opts: {
     });
     const { error } = await resend.emails.send({
       from: FROM,
-      to: "26725856@qq.com",
+      to: "contact@pect-dapp.io",
       subject: `📬 PECT DApp 新留言：${opts.subject}`,
       html: buildContactNotificationEmail({ ...opts, submittedAt }),
     });
