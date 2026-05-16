@@ -378,12 +378,11 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
 
           {/* Logo */}
-          <button onClick={() => setLocation("/")} className="flex items-center hover:opacity-80 transition-opacity">
-            <img
-              src="https://d2xsxph8kpxj0f.cloudfront.net/310519663279243720/8stZafG66C8pumsuGH6Z2q/pect-logo-navbar-JG7F66Jku9ZovLNHnxkcXq.png"
-              alt="PECT Logo"
-              className="h-10 w-auto"
-            />
+          <button onClick={() => setLocation("/")} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center shadow-sm">
+              <span className="text-white font-bold text-sm">P</span>
+            </div>
+            <span className="font-bold text-lg text-emerald-900 hidden sm:inline">PECT</span>
           </button>
 
           {/* ── 桌面端导航 ── */}
