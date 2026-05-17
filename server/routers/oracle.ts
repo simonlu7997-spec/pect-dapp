@@ -4,7 +4,7 @@
  * 数据来源：revenue_records 表（由管理员录入）
  */
 import { publicProcedure, router } from "../_core/trpc";
-import { getRevenueStats, listRevenueRecords } from "../db";
+import { getRevenueStats, listRevenueRecords, listStations } from "../db";
 
 export const oracleRouter = router({
   /**
@@ -23,11 +23,16 @@ export const oracleRouter = router({
   }),
 
   /**
-   * 获取最近 12 期分红记录（用于首页历史数据展示）
+   * 获取最近 N 期分红记录（用于数据分析图表）
+   * 返回按时间正序排列的数据，方便图表展示趋势
    */
   getRecentRecords: publicProcedure.query(async () => {
-    const records = await listRevenueRecords(12);
-    return records.map(r => ({
+    const records = await listRevenueRecords(24);
+    // 返回时间正序（最旧在前），方便图表展示趋势
+    const sorted = [...records].sort(
+      (a, b) => a.periodYear - b.periodYear || a.periodMonth - b.periodMonth
+    );
+    return sorted.map(r => ({
       id: r.id,
       periodLabel: r.periodLabel,
       periodYear: r.periodYear,
@@ -38,6 +43,22 @@ export const oracleRouter = router({
       exchangeRate: r.exchangeRate,
       txHash: r.txHash,
       createdAt: r.createdAt,
+    }));
+  }),
+
+  /**
+   * 获取各电站发电量/收入对比数据（用于数据分析页面柱状图）
+   * 数据来源：stations 表的 annualGeneration / annualRevenue 字段
+   */
+  getStationBreakdown: publicProcedure.query(async () => {
+    const stationList = await listStations(true); // 只返回活跃电站
+    return stationList.map(s => ({
+      id: s.id,
+      name: s.name,
+      capacity: s.capacity,
+      location: s.location,
+      annualGeneration: s.annualGeneration, // kWh/year
+      annualRevenue: s.annualRevenue,       // RMB/year
     }));
   }),
 });
