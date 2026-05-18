@@ -115,7 +115,7 @@ export default function Home() {
               <p className="text-xl text-gray-600">
                 稳定收益 + 环保价值
               </p>
-              <div className="flex gap-4">
+              <div className="grid grid-cols-2 gap-4 max-w-md">
                 <Button 
                   size="lg"
                   className="bg-green-600 hover:bg-green-700 text-white px-8 py-6 text-lg"
@@ -123,30 +123,30 @@ export default function Home() {
                 >
                   立即购买
                 </Button>
-              <Button 
-                size="lg"
-                variant="outline"
-                className="border-2 border-green-600 text-green-600 hover:bg-green-50 px-8 py-6 text-lg"
-                onClick={() => navigate("/docs")}
-              >
-                了解更多
-              </Button>
-              <Button 
-                size="lg"
-                variant="outline"
-                className="border-2 border-blue-600 text-blue-600 hover:bg-blue-50 px-8 py-6 text-lg"
-                onClick={() => navigate("/stations")}
-              >
-                电站现场
-              </Button>
-              <Button 
-                size="lg"
-                variant="outline"
-                className="border-2 border-amber-500 text-amber-600 hover:bg-amber-50 px-8 py-6 text-lg"
-                onClick={() => navigate("/calculator")}
-              >
-                估算收益
-              </Button>
+                <Button 
+                  size="lg"
+                  variant="outline"
+                  className="border-2 border-amber-500 text-amber-600 hover:bg-amber-50 bg-transparent px-8 py-6 text-lg"
+                  onClick={() => navigate("/calculator")}
+                >
+                  估算收益
+                </Button>
+                <Button 
+                  size="lg"
+                  variant="outline"
+                  className="border-2 border-green-600 text-green-600 hover:bg-green-50 bg-transparent px-8 py-6 text-lg"
+                  onClick={() => navigate("/docs")}
+                >
+                  了解更多
+                </Button>
+                <Button 
+                  size="lg"
+                  variant="outline"
+                  className="border-2 border-blue-600 text-blue-600 hover:bg-blue-50 bg-transparent px-8 py-6 text-lg"
+                  onClick={() => navigate("/stations")}
+                >
+                  电站现场
+                </Button>
               </div>
             </div>
             <div className="relative rounded-2xl h-96 flex items-center justify-center text-white text-center p-8 overflow-hidden bg-cover bg-center" style={{backgroundImage: "url('https://d2xsxph8kpxj0f.cloudfront.net/310519663279243720/8stZafG66C8pumsuGH6Z2q/rooftop-solar-hero-QJ5SgxZinTrPSxpYwsVqqU.webp')"}}>
