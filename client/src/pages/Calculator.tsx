@@ -1,7 +1,7 @@
 /**
  * 收益计算器页面 — 按白皮书 V6.1 公式
  *
- * 核心公式（§5.3.2）：
+ * 核心公式（）：
  *   前24个月：单位代币月分红 = 41,155 ÷ 3,000,000 ÷ 12 = 0.00114 USDT/枚（75%代币参与）
  *   24个月后：单位代币月分红 = 41,155 ÷ 4,000,000 ÷ 12 = 0.00086 USDT/枚（100%代币参与）
  *
@@ -203,14 +203,6 @@ function ResultCard({ result, investUsdt }: { result: CalcResult; investUsdt: nu
             <span className="text-gray-500">投入金额</span>
             <span className="font-semibold">{fmt(investUsdt)} USDT</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500">预期回本周期</span>
-            <span className="font-semibold">
-              {result.paybackMonths > 0 && isFinite(result.paybackMonths)
-                ? `约 ${result.paybackMonths} 个月（${(result.paybackMonths / 12).toFixed(1)} 年）`
-                : "—"}
-            </span>
-          </div>
           {result.lockMonths > 0 && (
             <div className="flex justify-between">
               <span className="text-gray-500">锁仓期内预期收益</span>
@@ -390,7 +382,7 @@ export default function Calculator() {
           <h1 className="text-4xl font-bold text-gray-900 mb-3">预期收益估算</h1>
           <p className="text-gray-500 max-w-xl mx-auto">
             输入您的投入金额，对比私募与公募两种参与方式的预期分红收益。
-            <span className="text-emerald-600 font-medium"> 数据依据白皮书 V6.1 §5.3.2 公式计算。</span>
+            <span className="text-emerald-600 font-medium"> 数据依据白皮书 V6.1 公式计算。</span>
           </p>
         </div>
 
@@ -434,7 +426,7 @@ export default function Calculator() {
             <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex gap-2 text-xs text-amber-700">
               <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
               <span>
-                收益基于白皮书 V6.1 §5.3.2 公式：年度 PV-Coin 基础分红池 41,155 USDT，
+                收益基于白皮书 V6.1 公式：年度 PV-Coin 基础分红池 41,155 USDT，
                 前 24 个月 75% 代币参与分红（月分红 0.00114 USDT/枚，年化 13.72%），
                 24 个月后 100% 代币参与分红（月分红 0.00086 USDT/枚，年化 10.29%）。
                 实际分红受电站发电量、电价、汇率等因素影响，不构成投资承诺。
@@ -490,14 +482,6 @@ export default function Calculator() {
                     <span className="text-gray-500">锁仓期</span>
                     <span className="font-semibold text-amber-600">3 个月</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">预期回本</span>
-                    <span className="font-semibold">
-                      {privateResult.paybackMonths > 0
-                        ? `约 ${privateResult.paybackMonths} 月（${(privateResult.paybackMonths / 12).toFixed(1)} 年）`
-                        : "—"}
-                    </span>
-                  </div>
                 </CardContent>
               </Card>
 
@@ -529,14 +513,6 @@ export default function Calculator() {
                   <div className="flex justify-between">
                     <span className="text-gray-500">锁仓期</span>
                     <span className="font-semibold text-green-600">无锁仓</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">预期回本</span>
-                    <span className="font-semibold">
-                      {publicResult.paybackMonths > 0
-                        ? `约 ${publicResult.paybackMonths} 月（${(publicResult.paybackMonths / 12).toFixed(1)} 年）`
-                        : "—"}
-                    </span>
                   </div>
                 </CardContent>
               </Card>
@@ -604,7 +580,7 @@ export default function Calculator() {
             {/* 收益率对比说明 */}
             <Card className="mt-6 bg-gray-50 border-gray-200">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-gray-600">白皮书 V6.1 §5.6 收益对比参考</CardTitle>
+                <CardTitle className="text-sm text-gray-600">白皮书 V6.1 收益对比参考</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
@@ -637,7 +613,7 @@ export default function Calculator() {
 
         {/* 免责声明 */}
         <p className="text-center text-xs text-gray-400 mt-8">
-          本计算器依据白皮书 V6.1 §5.3.2 公式计算，仅供参考，不构成任何投资建议。
+          本计算器依据白皮书 V6.1 公式计算，仅供参考，不构成任何投资建议。
           实际收益受电站发电量、电价、汇率等因素影响，存在不确定性。
           请参阅{" "}
           <a href="/disclaimer" className="underline hover:text-gray-600">免责声明</a>

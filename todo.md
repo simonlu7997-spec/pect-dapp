@@ -442,3 +442,10 @@
 - [x] 管理后台新增"计算器参数"配置页面（/admin/calculator-params）
 - [x] Calculator.tsx 改为从后端读取动态参数（汇率/电价），fallback 到白皮书默认值
 - [x] 购买页面私募/公募价格卡片旁显示"预期年化 17.15%"/"预期年化 13.72%"标签
+
+## 2026-05-18 计算器页面优化 + 管理员导航调整
+
+- [x] Calculator.tsx：去掉所有 §5.3.2 和 §5.6 引用文字
+- [x] Calculator.tsx：去掉对比视图和详情视图中的"预期回本"行
+- [x] 管理员导航菜单：添加"计算器参数"（/admin/calculator-params）入口
+- [x] 管理员导航菜单：删除"安全中心"（/admin/security）入口
