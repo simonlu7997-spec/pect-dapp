@@ -23,7 +23,7 @@ import { useLocation } from "wouter";
 // ─── 业务常量 ──────────────────────────────────────────────────────────────────
 const PRIVATE_PRICE = 0.08;   // USDT/PVC
 const PUBLIC_PRICE  = 0.10;   // USDT/PVC
-const PVC_TOTAL_SUPPLY = 10_000_000; // PVC 总发行量（1000 万）
+const PVC_TOTAL_SUPPLY = 4_000_000; // PVC 总发行量（400 万）
 // 分红池占电站收入比例（60%）
 const DIVIDEND_RATIO = 0.60;
 
@@ -225,9 +225,9 @@ export default function Calculator() {
     if (stats && stats.recordCount > 0) {
       return parseFloat(stats.totalDividendPool) / stats.recordCount;
     }
-    // 无历史数据时，使用首页展示的年化 13.72% 反推：假设总发行量 1000 万，价格 0.1，总市值 100 万 USDT
-    // 年化 13.72% → 年分红 137,200 USDT → 月均 11,433 USDT
-    return 11_433;
+    // 无历史数据时，使用首页展示的年化 13.72% 反推：假设总发行量 400 万，价格 0.1，总市値 40 万 USDT
+    // 年化 13.72% → 年分红 54,880 USDT → 月均 4,573 USDT
+    return 4_573;
   }, [recentRecords, stats]);
 
   // 计算某种模式的收益

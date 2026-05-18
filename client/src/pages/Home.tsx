@@ -139,6 +139,14 @@ export default function Home() {
               >
                 电站现场
               </Button>
+              <Button 
+                size="lg"
+                variant="outline"
+                className="border-2 border-amber-500 text-amber-600 hover:bg-amber-50 px-8 py-6 text-lg"
+                onClick={() => navigate("/calculator")}
+              >
+                估算收益
+              </Button>
               </div>
             </div>
             <div className="relative rounded-2xl h-96 flex items-center justify-center text-white text-center p-8 overflow-hidden bg-cover bg-center" style={{backgroundImage: "url('https://d2xsxph8kpxj0f.cloudfront.net/310519663279243720/8stZafG66C8pumsuGH6Z2q/rooftop-solar-hero-QJ5SgxZinTrPSxpYwsVqqU.webp')"}}>

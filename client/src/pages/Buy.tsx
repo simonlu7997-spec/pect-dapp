@@ -505,6 +505,19 @@ export default function Buy() {
                               </div>
                             )}
 
+                            {/* 收益计算器入口 */}
+                            {usdtInput && !inputError && (
+                              <div className="text-center">
+                                <a
+                                  href={`/calculator?amount=${usdtInput}&type=private`}
+                                  className="text-xs text-blue-500 hover:text-blue-700 underline underline-offset-2"
+                                  onClick={(e) => { e.preventDefault(); window.location.href = `/calculator?amount=${usdtInput}&type=private`; }}
+                                >
+                                  查看该金额的预期收益 →
+                                </a>
+                              </div>
+                            )}
+
                             {/* 错误提示 */}
                             {txError && (
                               <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
@@ -994,6 +1007,17 @@ function PublicSaleTab({
                             <span>单价</span>
                             <span>{tokenPrice} {U}/PVC</span>
                           </div>
+                        </div>
+                      )}
+                      {usdtInput && !inputError && (
+                        <div className="text-center">
+                          <a
+                            href={`/calculator?amount=${usdtInput}&type=public`}
+                            className="text-xs text-blue-500 hover:text-blue-700 underline underline-offset-2"
+                            onClick={(e) => { e.preventDefault(); window.location.href = `/calculator?amount=${usdtInput}&type=public`; }}
+                          >
+                            查看该金额的预期收益 →
+                          </a>
                         </div>
                       )}
                       {txError && (
