@@ -585,10 +585,10 @@ export default function Calculator() {
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                   {[
-                    { label: "PV-Coin 公募（前24月）", yield: "13.72%", color: "text-blue-600" },
-                    { label: "PV-Coin 私募（前24月）", yield: "17.15%", color: "text-emerald-600" },
-                    { label: "PV-Coin 公募（24月后）", yield: "10.29%", color: "text-blue-400" },
-                    { label: "PV-Coin 私募（24月后）", yield: "12.86%", color: "text-emerald-400" },
+                    { label: "PV-Coin 公募（前24月）", yield: fmtPct((dynamicMonthlyP1 * 12 / PUBLIC_PRICE) * 100), color: "text-blue-600" },
+                    { label: "PV-Coin 私募（前24月）", yield: fmtPct((dynamicMonthlyP1 * 12 / PRIVATE_PRICE) * 100), color: "text-emerald-600" },
+                    { label: "PV-Coin 公募（24月后）", yield: fmtPct((dynamicMonthlyP2 * 12 / PUBLIC_PRICE) * 100), color: "text-blue-400" },
+                    { label: "PV-Coin 私募（24月后）", yield: fmtPct((dynamicMonthlyP2 * 12 / PRIVATE_PRICE) * 100), color: "text-emerald-400" },
                   ].map((item) => (
                     <div key={item.label} className="bg-white rounded-lg p-3 border border-gray-100 text-center">
                       <p className="text-xs text-gray-500 mb-1">{item.label}</p>
