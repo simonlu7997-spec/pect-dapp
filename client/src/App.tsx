@@ -24,6 +24,7 @@ import AdminAirdrop from "./pages/AdminAirdrop";
 import AdminAnnouncements from "./pages/AdminAnnouncements";
 import AdminSecurity from "./pages/AdminSecurity";
 import AdminMessages from "./pages/AdminMessages";
+import AdminCalculatorParams from "./pages/AdminCalculatorParams";
 import PurchaseHistory from "./pages/PurchaseHistory";
 import Calculator from "./pages/Calculator";
 import Stations from "./pages/Stations";
@@ -57,6 +58,7 @@ function Router() {
       <Route path={"/admin/announcements"} component={AdminAnnouncements} />
       <Route path={"/admin/security"} component={AdminSecurity} />
       <Route path={"/admin/messages"} component={AdminMessages} />
+      <Route path={"/admin/calculator-params"} component={AdminCalculatorParams} />
       <Route path={"/purchase-history"} component={PurchaseHistory} />
       <Route path={"/stations"} component={Stations} />
       <Route path={"/privacy"} component={Privacy} />

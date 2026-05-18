@@ -78,6 +78,13 @@
       "when": 1778898995064,
       "tag": "0010_first_shinobi_shaw",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1779091149337,
+      "tag": "0011_whole_wasp",
+      "breakpoints": true
     }
   ]
 }

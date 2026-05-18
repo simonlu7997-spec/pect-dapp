@@ -9,6 +9,7 @@
  *   公募年化（前24月）= 0.01372 ÷ 0.10 = 13.72%
  */
 import { useState, useMemo, useEffect } from "react";
+import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -275,6 +276,23 @@ export default function Calculator() {
   const [activeTab, setActiveTab] = useState<"compare" | "private" | "public">("compare");
   const searchString = useSearch();
 
+  // 读取动态计算器参数（汇率/电价可在管理后台配置）
+  const { data: calcParams } = trpc.calculatorParams.getParams.useQuery();
+
+  // 动态参数（fallback 到白皮书 V6.1 默认值）
+  const dynamicAnnualDividendPool = calcParams?.annualDividendPool ?? ANNUAL_DIVIDEND_POOL;
+  const dynamicPhase1Supply = calcParams
+    ? Math.round(PVC_TOTAL_SUPPLY * calcParams.phase1TokenRatio)
+    : PHASE1_SUPPLY;
+  const dynamicPhase2Supply = calcParams
+    ? Math.round((calcParams.totalPvcSupply ?? PVC_TOTAL_SUPPLY) * calcParams.phase2TokenRatio)
+    : PHASE2_SUPPLY;
+  const dynamicTotalSupply = calcParams?.totalPvcSupply ?? PVC_TOTAL_SUPPLY;
+
+  // 动态月分红单价
+  const dynamicMonthlyP1 = (dynamicAnnualDividendPool / dynamicPhase1Supply) / 12;
+  const dynamicMonthlyP2 = (dynamicAnnualDividendPool / dynamicPhase2Supply) / 12;
+
   // 读取 URL 参数，自动填入金额并切换 Tab
   useEffect(() => {
     if (!searchString) return;
@@ -293,18 +311,18 @@ export default function Calculator() {
 
   const investUsdt = Math.max(0, parseFloat(investInput) || 0);
 
-  // ─── 核心计算函数（按白皮书 V6.1）────────────────────────────────────────────
+  // ─── 核心计算函数（按白皮书 V6.1，支持动态参数）────────────────────────────────
   function calcResult(price: number, lockMonths: number, color: string, label: string): CalcResult {
     const pvcAmount = investUsdt / price;
-    const holdingPct = (pvcAmount / PVC_TOTAL_SUPPLY) * 100;
+    const holdingPct = (pvcAmount / dynamicTotalSupply) * 100;
 
-    // 前24个月（75%代币参与，月分红 0.00114/枚）
-    const monthlyDividendP1 = pvcAmount * MONTHLY_PER_TOKEN_PHASE1;
+    // 前24个月（75%代币参与）—使用动态参数
+    const monthlyDividendP1 = pvcAmount * dynamicMonthlyP1;
     const annualDividendP1 = monthlyDividendP1 * 12;
     const annualYieldP1 = investUsdt > 0 ? (annualDividendP1 / investUsdt) * 100 : 0;
 
-    // 24个月后（100%代币参与，月分红 0.00086/枚）
-    const monthlyDividendP2 = pvcAmount * MONTHLY_PER_TOKEN_PHASE2;
+    // 24个月后（100%代币参与）—使用动态参数
+    const monthlyDividendP2 = pvcAmount * dynamicMonthlyP2;
     const annualDividendP2 = monthlyDividendP2 * 12;
     const annualYieldP2 = investUsdt > 0 ? (annualDividendP2 / investUsdt) * 100 : 0;
 
@@ -336,12 +354,12 @@ export default function Calculator() {
   const privateResult = useMemo(
     () => calcResult(PRIVATE_PRICE, PRIVATE_LOCK_MONTHS, "green", "私募"),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [investUsdt]
+    [investUsdt, dynamicMonthlyP1, dynamicMonthlyP2, dynamicTotalSupply]
   );
   const publicResult = useMemo(
     () => calcResult(PUBLIC_PRICE, 0, "blue", "公募"),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [investUsdt]
+    [investUsdt, dynamicMonthlyP1, dynamicMonthlyP2, dynamicTotalSupply]
   );
 
   // 24 个月累计收益对比图
@@ -350,15 +368,15 @@ export default function Calculator() {
     let pubCum = 0;
     return Array.from({ length: 24 }, (_, i) => {
       const monthNum = i + 1;
-      privCum += privateResult.pvcAmount * MONTHLY_PER_TOKEN_PHASE1;
-      pubCum  += publicResult.pvcAmount  * MONTHLY_PER_TOKEN_PHASE1;
+      privCum += privateResult.pvcAmount * dynamicMonthlyP1;
+      pubCum  += publicResult.pvcAmount  * dynamicMonthlyP1;
       return {
         month: `M${monthNum}`,
         私募累计: parseFloat(privCum.toFixed(2)),
         公募累计: parseFloat(pubCum.toFixed(2)),
       };
     });
-  }, [privateResult, publicResult]);
+  }, [privateResult, publicResult, dynamicMonthlyP1]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-blue-50 py-12">

@@ -282,7 +282,11 @@ export default function Buy() {
                   <CardContent className="space-y-3 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-500">代币价格</span>
-                      <span className="font-semibold">{saleInfo?.tokenPrice ?? "0.10"} {U}/PVC</span>
+                      <span className="font-semibold">{saleInfo?.tokenPrice ?? "0.08"} {U}/PVC</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-500">预期年化（前24月）</span>
+                      <span className="font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full text-xs">≈ 17.15%</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">最低购买</span>
@@ -827,6 +831,10 @@ function PublicSaleTab({
               <div className="flex justify-between">
                 <span className="text-gray-500">代币价格</span>
                 <span className="font-semibold">{saleInfo?.tokenPrice ?? "0.10"} {U}/PVC</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500">预期年化（前24月）</span>
+                <span className="font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full text-xs">≈ 13.72%</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">最低购买</span>

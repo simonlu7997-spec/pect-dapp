@@ -240,3 +240,26 @@ export const contactMessages = mysqlTable("contact_messages", {
 });
 export type ContactMessage = typeof contactMessages.$inferSelect;
 export type InsertContactMessage = typeof contactMessages.$inferInsert;
+
+/**
+ * 收益计算器参数配置表（管理员可配置汇率、电价等参数）
+ */
+export const calculatorParams = mysqlTable("calculator_params", {
+  id: serial("id").primaryKey(),
+  /** RMB/USDT 汇率，默认 7.2 */
+  exchangeRate: decimal("exchangeRate", { precision: 10, scale: 4 }).notNull().default("7.2"),
+  /** 电费单价（RMB/kWh），默认 1.109 */
+  electricityPrice: decimal("electricityPrice", { precision: 10, scale: 4 }).notNull().default("1.109"),
+  /** 年度分红池（USDT），默认 41155 */
+  annualDividendPool: decimal("annualDividendPool", { precision: 18, scale: 4 }).notNull().default("41155"),
+  /** 前24月参与分红的代币比例（0-1），默认 0.75 */
+  phase1TokenRatio: decimal("phase1TokenRatio", { precision: 5, scale: 4 }).notNull().default("0.75"),
+  /** 24月后参与分红的代币比例（0-1），默认 1.0 */
+  phase2TokenRatio: decimal("phase2TokenRatio", { precision: 5, scale: 4 }).notNull().default("1.0"),
+  /** PVC 总发行量，默认 4000000 */
+  totalPvcSupply: int("totalPvcSupply").notNull().default(4000000),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  updatedBy: varchar("updatedBy", { length: 42 }),
+});
+export type CalculatorParams = typeof calculatorParams.$inferSelect;
+export type InsertCalculatorParams = typeof calculatorParams.$inferInsert;

@@ -434,3 +434,11 @@
 - [x] 公募年化收益率 13.72%（前24月）/ 10.29%（24月后）
 - [x] 两阶段收益对比卡片 + 24月累计分红面积图 + 回本周期计算
 - [x] 底部新增白皮书 §5.6 收益对比参考表（4 种场景）
+
+## 2026-05-18 计算器参数配置 + 购买页年化收益率
+
+- [x] 数据库新增 calculator_params 表（exchangeRate、electricityPrice、annualDividendPool）
+- [x] 后端路由：getCalcParams（公开）、updateCalcParams（管理员）
+- [x] 管理后台新增"计算器参数"配置页面（/admin/calculator-params）
+- [x] Calculator.tsx 改为从后端读取动态参数（汇率/电价），fallback 到白皮书默认值
+- [x] 购买页面私募/公募价格卡片旁显示"预期年化 17.15%"/"预期年化 13.72%"标签

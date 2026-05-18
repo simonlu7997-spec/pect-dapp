@@ -17,6 +17,7 @@ import { announcementsRouter } from "./routers/announcements";
 import { adminSecurityRouter } from "./routers/adminSecurity";
 import { stationSnapshotsRouter } from "./routers/stationSnapshots";
 import { contactRouter } from "./routers/contact";
+import { calculatorParamsRouter } from "./routers/calculatorParams";
 
 export const appRouter = router({
   // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -72,6 +73,8 @@ export const appRouter = router({
   stationSnapshots: stationSnapshotsRouter,
   // 联系我们留言
   contact: contactRouter,
+  // 收益计算器参数配置（公开查询 + 管理员修改）
+  calculatorParams: calculatorParamsRouter,
 });
 
 export type AppRouter = typeof appRouter;
