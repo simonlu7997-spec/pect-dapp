@@ -449,6 +449,14 @@ export default function Navbar() {
               数据分析
             </button>
 
+            {/* 收益计算器 */}
+            <button
+              onClick={() => setLocation("/calculator")}
+              className={`px-4 py-2 rounded-lg transition-all font-medium text-sm ${isActive("/calculator") ? "bg-emerald-100 text-emerald-900" : "text-gray-600 hover:text-emerald-900 hover:bg-gray-100"}`}
+            >
+              收益计算
+            </button>
+
             {/* 白名单 */}
             <button
               onClick={() => setLocation("/whitelist")}

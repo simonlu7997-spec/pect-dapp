@@ -25,6 +25,7 @@ import AdminAnnouncements from "./pages/AdminAnnouncements";
 import AdminSecurity from "./pages/AdminSecurity";
 import AdminMessages from "./pages/AdminMessages";
 import PurchaseHistory from "./pages/PurchaseHistory";
+import Calculator from "./pages/Calculator";
 import Stations from "./pages/Stations";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
@@ -44,6 +45,7 @@ function Router() {
       <Route path={"/revenue"} component={Revenue} />
       <Route path={"/airdrop"} component={Airdrop} />
       <Route path={"/analytics"} component={Analytics} />
+      <Route path={"/calculator"} component={Calculator} />
       <Route path={"/whitelist"} component={Whitelist} />
       <Route path={"/docs"} component={Docs} />
       <Route path={"/faq"} component={FAQ} />
