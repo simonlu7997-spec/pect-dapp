@@ -329,14 +329,17 @@ export default function Navbar() {
   const [showAssetMenu, setShowAssetMenu] = useState(false);
   const [showAdminMenu, setShowAdminMenu] = useState(false);
   const [showCommunityMenu, setShowCommunityMenu] = useState(false);
+  const [showToolsMenu, setShowToolsMenu] = useState(false);
   const assetMenuRef = useRef<HTMLDivElement>(null);
   const adminMenuRef = useRef<HTMLDivElement>(null);
   const communityMenuRef = useRef<HTMLDivElement>(null);
+  const toolsMenuRef = useRef<HTMLDivElement>(null);
 
   // 移动端手风琴状态
   const [mobileAssetOpen, setMobileAssetOpen] = useState(false);
   const [mobileAdminOpen, setMobileAdminOpen] = useState(false);
   const [mobileCommunityOpen, setMobileCommunityOpen] = useState(false);
+  const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
 
   const {
     isConnected, isSignedIn, shortAddress, isConnecting,
@@ -349,6 +352,7 @@ export default function Navbar() {
       if (assetMenuRef.current && !assetMenuRef.current.contains(e.target as Node)) setShowAssetMenu(false);
       if (adminMenuRef.current && !adminMenuRef.current.contains(e.target as Node)) setShowAdminMenu(false);
       if (communityMenuRef.current && !communityMenuRef.current.contains(e.target as Node)) setShowCommunityMenu(false);
+      if (toolsMenuRef.current && !toolsMenuRef.current.contains(e.target as Node)) setShowToolsMenu(false);
     }
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -441,21 +445,54 @@ export default function Navbar() {
               )}
             </div>
 
-            {/* 数据分析 */}
-            <button
-              onClick={() => setLocation("/analytics")}
-              className={`px-4 py-2 rounded-lg transition-all font-medium text-sm ${isActive("/analytics") ? "bg-emerald-100 text-emerald-900" : "text-gray-600 hover:text-emerald-900 hover:bg-gray-100"}`}
-            >
-              数据分析
-            </button>
+            {/* 工具 下拉 */}
+            <div className="relative" ref={toolsMenuRef}>
+              <button
+                onClick={() => setShowToolsMenu(!showToolsMenu)}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg transition-all font-medium text-sm ${
+                  isActive("/analytics") || isActive("/calculator")
+                    ? "bg-emerald-100 text-emerald-900"
+                    : "text-gray-600 hover:text-emerald-900 hover:bg-gray-100"
+                }`}
+              >
+                工具
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showToolsMenu ? "rotate-180" : ""}`} />
+              </button>
 
-            {/* 收益计算器 */}
-            <button
-              onClick={() => setLocation("/calculator")}
-              className={`px-4 py-2 rounded-lg transition-all font-medium text-sm ${isActive("/calculator") ? "bg-emerald-100 text-emerald-900" : "text-gray-600 hover:text-emerald-900 hover:bg-gray-100"}`}
-            >
-              收益计算
-            </button>
+              {showToolsMenu && (
+                <div className="absolute left-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden">
+                  <div className="px-3 py-2 bg-emerald-50 border-b border-emerald-100">
+                    <p className="text-xs font-semibold text-emerald-700">分析工具</p>
+                  </div>
+                  <div className="py-1">
+                    <button
+                      onClick={() => { setLocation("/analytics"); setShowToolsMenu(false); }}
+                      className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 transition-colors ${
+                        isActive("/analytics") ? "bg-emerald-50 text-emerald-800 font-medium" : "text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      <BarChart3 className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium leading-tight">数据分析</p>
+                        <p className="text-xs text-gray-400">发电量与收益趋势</p>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => { setLocation("/calculator"); setShowToolsMenu(false); }}
+                      className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 transition-colors ${
+                        isActive("/calculator") ? "bg-emerald-50 text-emerald-800 font-medium" : "text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      <TrendingUp className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium leading-tight">收益计算</p>
+                        <p className="text-xs text-gray-400">预期分红与回本周期</p>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* 白名单 */}
             <button
@@ -628,13 +665,46 @@ export default function Navbar() {
               )}
             </div>
 
-            {/* 数据分析 */}
-            <button
-              onClick={() => setLocation("/analytics")}
-              className={`flex items-center gap-2 w-full text-left px-4 py-2.5 rounded-lg transition-all font-medium text-sm ${isActive("/analytics") ? "bg-emerald-100 text-emerald-900" : "text-gray-600 hover:text-emerald-900 hover:bg-gray-100"}`}
-            >
-              <BarChart3 className="w-4 h-4" />数据分析
-            </button>
+            {/* 工具 手风琴 */}
+            <div>
+              <button
+                onClick={() => setMobileToolsOpen(!mobileToolsOpen)}
+                className={`flex items-center justify-between w-full px-4 py-2.5 rounded-lg transition-all font-medium text-sm ${
+                  isActive("/analytics") || isActive("/calculator")
+                    ? "bg-emerald-100 text-emerald-900"
+                    : "text-gray-600 hover:text-emerald-900 hover:bg-gray-100"
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4" />工具
+                </span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${mobileToolsOpen ? "rotate-180" : ""}`} />
+              </button>
+              {mobileToolsOpen && (
+                <div className="mt-1 ml-4 border-l-2 border-emerald-100 pl-3 space-y-0.5">
+                  <button
+                    onClick={() => setLocation("/analytics")}
+                    className={`flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg transition-all text-sm ${
+                      isActive("/analytics") ? "bg-emerald-100 text-emerald-900 font-medium" : "text-gray-600 hover:text-emerald-900 hover:bg-gray-50"
+                    }`}
+                  >
+                    <BarChart3 className="w-4 h-4 flex-shrink-0" />
+                    <span>数据分析</span>
+                    <span className="ml-auto text-xs text-gray-400">发电量趋势</span>
+                  </button>
+                  <button
+                    onClick={() => setLocation("/calculator")}
+                    className={`flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg transition-all text-sm ${
+                      isActive("/calculator") ? "bg-emerald-100 text-emerald-900 font-medium" : "text-gray-600 hover:text-emerald-900 hover:bg-gray-50"
+                    }`}
+                  >
+                    <TrendingUp className="w-4 h-4 flex-shrink-0" />
+                    <span>收益计算</span>
+                    <span className="ml-auto text-xs text-gray-400">预期分红</span>
+                  </button>
+                </div>
+              )}
+            </div>
 
             {/* 白名单 */}
             <button
