@@ -3,7 +3,7 @@
  * 支持私募（0.08 USDT/PVC，3 个月锁仓）和公募（0.10 USDT/PVC，无锁仓）两种模式
  * 基于历史分红数据动态计算预期收益，并展示 12 个月收益曲线对比图
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,7 @@ import { trpc } from "@/lib/trpc";
 import {
   TrendingUp, Calculator as CalcIcon, Lock, Unlock, Info, ArrowRight, Zap,
 } from "lucide-react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 
 // ─── 业务常量 ──────────────────────────────────────────────────────────────────
 const PRIVATE_PRICE = 0.08;   // USDT/PVC
@@ -206,10 +206,27 @@ function ResultCard({ result, investUsdt }: { result: CalcResult; investUsdt: nu
   );
 }
 
-// ─── 主页面 ────────────────────────────────────────────────────────────────────
+// ─── 主页面 ──────────────────────────────────────────────────────────────────────────────
 export default function Calculator() {
   const [investInput, setInvestInput] = useState("10000");
   const [activeTab, setActiveTab] = useState<"compare" | "private" | "public">("compare");
+  const searchString = useSearch();
+
+  // 读取 URL 参数，自动填入金额并切换 Tab
+  useEffect(() => {
+    if (!searchString) return;
+    const params = new URLSearchParams(searchString);
+    const amount = params.get("amount");
+    const type = params.get("type");
+    if (amount && parseFloat(amount) > 0) {
+      setInvestInput(amount);
+    }
+    if (type === "private") {
+      setActiveTab("private");
+    } else if (type === "public") {
+      setActiveTab("public");
+    }
+  }, [searchString]);
 
   // 从后端获取历史分红数据，用于计算月均分红池
   const { data: recentRecords } = trpc.oracle.getRecentRecords.useQuery();
