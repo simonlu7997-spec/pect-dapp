@@ -145,7 +145,7 @@ describe("getPrivateSaleInfo - 合约未配置时的降级逻辑", () => {
     expect(result.isActive).toBe(false);
     expect(result.tokenPrice).toBe("0.08");
     expect(result.exchangeRate).toBe(12.5);
-    expect(result.maxPurchase).toBe("20000");
+    expect(result.maxPurchase).toBe("200000");
     expect(result.userUsdtBalance).toBe("0");
   });
 });

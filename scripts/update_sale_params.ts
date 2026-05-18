@@ -2,10 +2,10 @@
  * 更新私募和公募合约的 exchangeRate 和 maxPerUser 参数
  *
  * 私募：0.08 USDT/PVC = 12.5 PVC/USDT → exchangeRate = 12.5 * 10^6 = 12500000
- *       最高购买 20000 USDT → maxPerUser = 20000 * 10^6 = 20000000000
+ *       最高购买 200000 USDT → maxPerUser = 200000 * 10^6 = 200000000000
  *
  * 公募：0.1 USDT/PVC = 10 PVC/USDT → exchangeRate = 10 * 10^6 = 10000000
- *       最高购买 10000 USDT → maxPerUser = 10000 * 10^6 = 10000000000
+ *       最高购买 100000 USDT → maxPerUser = 100000 * 10^6 = 100000000000
  */
 
 import { ethers } from "ethers";
@@ -53,7 +53,7 @@ async function updateSaleParams() {
 
   // 私募：0.08 USDT/PVC → 12.5 PVC/USDT → exchangeRate = 12500000
   const newPrivateRate = 12500000n; // 12.5 * 10^6
-  const newPrivateMax = 20000n * 1000000n; // 20000 * 10^6
+  const newPrivateMax = 200000n * 1000000n; // 200000 * 10^6
 
   if (currentPrivateRate !== newPrivateRate) {
     console.log(`\n[PrivateSale] 更新 exchangeRate: ${currentPrivateRate} → ${newPrivateRate}`);
@@ -91,7 +91,7 @@ async function updateSaleParams() {
 
   // 公募：0.1 USDT/PVC → 10 PVC/USDT → exchangeRate = 10000000（已是默认值，但仍显式设置）
   const newPublicRate = 10000000n; // 10 * 10^6
-  const newPublicMax = 10000n * 1000000n; // 10000 * 10^6
+  const newPublicMax = 100000n * 1000000n; // 100000 * 10^6
 
   if (currentPublicRate !== newPublicRate) {
     console.log(`\n[PublicSale] 更新 exchangeRate: ${currentPublicRate} → ${newPublicRate}`);
@@ -121,7 +121,7 @@ async function updateSaleParams() {
   const finalPublicMax = await publicSale.maxPerUser();
 
   console.log(`[PrivateSale] exchangeRate: ${finalPrivateRate} (= ${Number(finalPrivateRate) / 1e6} PVC/USDT = 0.08 USDT/PVC)`);
-  console.log(`[PrivateSale] maxPerUser: ${finalPrivateMax} (= ${Number(finalPrivateMax) / 1e6} USDT)`);
+  console.log(`[PrivateSale] maxPerUser: ${finalPrivateMax} (= ${Number(finalPrivateMax) / 1e6} USDT = 200000 USDT)`);
   console.log(`[PublicSale] exchangeRate: ${finalPublicRate} (= ${Number(finalPublicRate) / 1e6} PVC/USDT = 0.1 USDT/PVC)`);
   console.log(`[PublicSale] maxPerUser: ${finalPublicMax} (= ${Number(finalPublicMax) / 1e6} USDT)`);
 

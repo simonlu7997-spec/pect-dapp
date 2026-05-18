@@ -397,3 +397,10 @@
 - [x] 前端：新增面积图（累计分红池增长曲线）
 - [x] 前端：新增柱状图（各电站发电量对比）
 - [x] 前端：增加空数据状态处理（暂无数据提示）
+
+## 2026-05-18 购买上限调整（v5.0 合约配套）
+
+- [x] purchase.ts：私募 maxPurchase fallback 值从 20000 → 200000
+- [x] purchase.ts：公募 maxPurchase fallback 值从 10000 → 100000
+- [x] update_sale_params.ts：同步更新目标值注释和脚本参数
+- [x] 检查前端页面是否有相关硬编码值（Buy.tsx 已同步更新）

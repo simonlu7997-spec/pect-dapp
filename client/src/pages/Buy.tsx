@@ -102,7 +102,7 @@ export default function Buy() {
 
   // 验证输入
   const minPurchase = parseFloat(saleInfo?.minPurchase || "400");
-  const maxPurchase = parseFloat(saleInfo?.maxPurchase || "20000");
+  const maxPurchase = parseFloat(saleInfo?.maxPurchase || "200000");
   const userBalance = parseFloat(saleInfo?.userUsdtBalance || "0");
   const userPurchasedAmount = parseFloat(saleInfo?.userPurchased || "0");
   const remainingQuota = Math.max(0, maxPurchase - userPurchasedAmount);
@@ -290,7 +290,7 @@ export default function Buy() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">最高购买</span>
-                      <span className="font-semibold">{saleInfo?.maxPurchase ?? "10,000"} {U}</span>
+                      <span className="font-semibold">{saleInfo?.maxPurchase ?? "200,000"} {U}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">锁仓期</span>
@@ -680,7 +680,7 @@ function PublicSaleTab({
   const usdtAmount = parseFloat(usdtInput) || 0;
   const pvcAmount = tokenPrice > 0 ? (usdtAmount / tokenPrice).toFixed(2) : "0";
   const minPurchase = parseFloat(saleInfo?.minPurchase || "100");
-  const maxPurchase = parseFloat(saleInfo?.maxPurchase || "10000");
+  const maxPurchase = parseFloat(saleInfo?.maxPurchase || "100000");
   const userBalance = parseFloat(saleInfo?.userUsdtBalance || "0");
   const userPurchasedAmount = parseFloat(saleInfo?.userPurchased || "0");
   const remainingQuota = Math.max(0, maxPurchase - userPurchasedAmount);
@@ -821,7 +821,7 @@ function PublicSaleTab({
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">最高购买</span>
-                <span className="font-semibold">{saleInfo?.maxPurchase ?? "10,000"} {U}</span>
+                <span className="font-semibold">{saleInfo?.maxPurchase ?? "100,000"} {U}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">锁仓期</span>

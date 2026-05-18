@@ -136,7 +136,7 @@ export const purchaseRouter = router({
           totalRaised: "0",
           hardCap: "80000",
           minPurchase: "400",
-          maxPurchase: "20000",
+          maxPurchase: "200000",
           progressPercent: 0,
           userPurchased: "0",
           userUsdtBalance: "0",
@@ -148,7 +148,7 @@ export const purchaseRouter = router({
 
       try {
         const info = await fetchSaleInfo(rpcUrl, privateSaleAddress, usdtAddress, input.walletAddress);
-        return { ...info, minPurchase: "400", maxPurchase: "20000" };
+        return { ...info, minPurchase: "400", maxPurchase: "200000" };
       } catch (error) {
         console.error("[Purchase] 查询私募轮信息失败:", error);
         return {
@@ -159,7 +159,7 @@ export const purchaseRouter = router({
           totalRaised: "0",
           hardCap: "80000",
           minPurchase: "400",
-          maxPurchase: "20000",
+          maxPurchase: "200000",
           progressPercent: 0,
           userPurchased: "0",
           userUsdtBalance: "0",
@@ -186,7 +186,7 @@ export const purchaseRouter = router({
           totalRaised: "0",
           hardCap: "200000",
           minPurchase: "100",
-          maxPurchase: "10000",
+          maxPurchase: "100000",
           progressPercent: 0,
           userPurchased: "0",
           userUsdtBalance: "0",
@@ -198,7 +198,7 @@ export const purchaseRouter = router({
 
       try {
         const info = await fetchSaleInfo(rpcUrl, publicSaleAddress, usdtAddress, input.walletAddress);
-        return { ...info, minPurchase: "100", maxPurchase: "10000" };
+        return { ...info, minPurchase: "100", maxPurchase: "100000" };
       } catch (error) {
         console.error("[Purchase] 查询公募轮信息失败:", error);
         return {
@@ -209,7 +209,7 @@ export const purchaseRouter = router({
           totalRaised: "0",
           hardCap: "200000",
           minPurchase: "100",
-          maxPurchase: "10000",
+          maxPurchase: "100000",
           progressPercent: 0,
           userPurchased: "0",
           userUsdtBalance: "0",
