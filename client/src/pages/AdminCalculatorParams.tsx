@@ -347,12 +347,21 @@ export default function AdminCalculatorParams() {
                   // PV-Coin 基础分红
                   const phase1MonthlyPerPvc = adp / (tps * p1) / 12;
                   const phase2MonthlyPerPvc = adp / (tps * p2) / 12;
-                  // C2C 质押收益（10,000 USDT 投入示例）
+                  // C2C 质押收益（白皮书 §5.4.1 + §5.5 案例，以 10,000 USDT 投入为例）
                   const exampleInvest = 10000;
-                  const stakingPoolTotal = c2ca * c2csr;
-                  const stakingAnnual = asp * ((exampleInvest / publicPrice * c2csr) / stakingPoolTotal);
-                  const stakingYieldPub = stakingPoolTotal > 0 ? (stakingAnnual / exampleInvest) * 100 : 0;
-                  const stakingYieldPriv = stakingPoolTotal > 0 ? (asp * ((exampleInvest / privatePrice * c2csr) / stakingPoolTotal) / exampleInvest) * 100 : 0;
+                  const stakingPoolTotal = c2ca * c2csr; // 全网质押池总量 M
+                  // 公募：每 1 USDT 买 1/0.10 = 10 PVC
+                  const pubPvc = exampleInvest / publicPrice;
+                  const pubC2cAirdrop = c2ca * (pubPvc / tps);         // C2C 空投量
+                  const pubC2cStaked  = pubC2cAirdrop * c2csr;          // 质押 C2C
+                  const pubStakingRatio = stakingPoolTotal > 0 ? pubC2cStaked / stakingPoolTotal : 0;
+                  const stakingYieldPub = (asp * pubStakingRatio / exampleInvest) * 100;
+                  // 私募：每 1 USDT 买 1/0.08 = 12.5 PVC
+                  const privPvc = exampleInvest / privatePrice;
+                  const privC2cAirdrop = c2ca * (privPvc / tps);
+                  const privC2cStaked  = privC2cAirdrop * c2csr;
+                  const privStakingRatio = stakingPoolTotal > 0 ? privC2cStaked / stakingPoolTotal : 0;
+                  const stakingYieldPriv = (asp * privStakingRatio / exampleInvest) * 100;
                   // 综合年化
                   const privateYield1 = (phase1MonthlyPerPvc * 12) / privatePrice * 100 + stakingYieldPriv;
                   const publicYield1 = (phase1MonthlyPerPvc * 12) / publicPrice * 100 + stakingYieldPub;

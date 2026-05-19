@@ -590,13 +590,13 @@ export default function Calculator() {
                           {fmt(privateResult.pvcAmount - publicResult.pvcAmount, 0)} PVC
                         </span>
                         （多 {fmtPct(((privateResult.pvcAmount - publicResult.pvcAmount) / publicResult.pvcAmount) * 100)}），
-                        前 24 个月月均多分红{" "}
+                        前 24 个月月均多综合收益{" "}
                         <span className="font-bold text-emerald-600">
-                          {fmt(privateResult.monthlyDividendP1 - publicResult.monthlyDividendP1)} USDT
+                          {fmt(privateResult.monthlyTotalP1 - publicResult.monthlyTotalP1)} USDT
                         </span>
-                        ，年化收益率高出{" "}
+                        ，综合年化收益率高出{" "}
                         <span className="font-bold text-emerald-600">
-                          {fmtPct(privateResult.annualYieldP1 - publicResult.annualYieldP1)}
+                          {fmtPct(privateResult.annualTotalYieldP1 - publicResult.annualTotalYieldP1)}
                         </span>
                         ，但需锁仓 3 个月。
                       </span>
