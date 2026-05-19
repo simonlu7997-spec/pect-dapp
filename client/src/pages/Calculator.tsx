@@ -91,7 +91,8 @@ interface CalcResult {
   annualDividendP2: number;
   annualYieldP2: number;
   // C2-Coin 质押收益（50% 质押率）
-  c2cStakedAmount: number;          // 质押 C2C 数量
+  c2cAirdropAmount: number;          // C2C 年度空投量（枚）
+  c2cStakedAmount: number;           // 质押 C2C 数量（枚）
   monthlyStakingReward: number;     // 每月质押奖励（USDT）
   annualStakingReward: number;      // 年度质押奖励（USDT）
   // 综合收益（PV分红 + C2C质押）
@@ -180,6 +181,8 @@ function ResultCard({ result, investUsdt }: { result: CalcResult; investUsdt: nu
             <div className="mt-2 pt-2 border-t border-dashed border-emerald-200 grid grid-cols-2 gap-1 text-xs text-gray-500">
               <div>PVC 分红：{fmt(result.monthlyDividendP1)} USDT/月</div>
               <div>C2C 质押：{fmt(result.monthlyStakingReward)} USDT/月</div>
+              <div>C2C 空投：{result.c2cAirdropAmount.toFixed(0)} 枚/年</div>
+              <div>质押 C2C：{result.c2cStakedAmount.toFixed(0)} 枚（50%）</div>
             </div>
           </div>
 
@@ -208,6 +211,8 @@ function ResultCard({ result, investUsdt }: { result: CalcResult; investUsdt: nu
             <div className="mt-2 pt-2 border-t border-dashed border-gray-300 grid grid-cols-2 gap-1 text-xs text-gray-500">
               <div>PVC 分红：{fmt(result.monthlyDividendP2)} USDT/月</div>
               <div>C2C 质押：{fmt(result.monthlyStakingReward)} USDT/月</div>
+              <div>C2C 空投：{result.c2cAirdropAmount.toFixed(0)} 枚/年</div>
+              <div>质押 C2C：{result.c2cStakedAmount.toFixed(0)} 枚（50%）</div>
             </div>
           </div>
         </div>
@@ -342,10 +347,13 @@ export default function Calculator() {
     const annualDividendP2 = monthlyDividendP2 * 12;
     const annualYieldP2 = investUsdt > 0 ? (annualDividendP2 / investUsdt) * 100 : 0;
 
-    // ─── C2-Coin 质押收益（§5.4.1，50% 质押率）
-    // 用户获得 C2C 空投（按 1:1 与 PVC 比例估算），质押 50%
-    const c2cStakedAmount = pvcAmount * dynamicC2cStakingRate;
-    // 用户质押占比 = 用户质押 C2C 数量 ÷ 全网质押池总量 M
+    // ─── C2-Coin 质押收益（白皮书 §5.4.1 + §5.5 案例验证）
+    // C2C 空投量 = 年度C2C发行量 × (用户PVC持仓 / PVC总供应量)
+    // 例：100,000 PVC / 4,000,000 总量 = 2.5%，C2C空投 = 382,990 × 2.5% = 9,574.75 枚
+    const c2cAirdropAmount = dynamicC2cAnnualAirdrop * (pvcAmount / dynamicTotalSupply);
+    // 质押 C2C = 空投量 × 质押率（50%）
+    const c2cStakedAmount = c2cAirdropAmount * dynamicC2cStakingRate;
+    // 用户质押占比 = 用户质押C2C / 全网质押池总量 M = PVC持仓比例（约分后等价）
     const userStakingRatio = dynamicStakingPoolTotal > 0 ? c2cStakedAmount / dynamicStakingPoolTotal : 0;
     // 年度质押奖励 = 质押奖励池 × 用户质押占比
     const annualStakingReward = dynamicAnnualStakingPool * userStakingRatio;
@@ -377,7 +385,7 @@ export default function Calculator() {
       pvcAmount, holdingPct,
       monthlyDividendP1, annualDividendP1, annualYieldP1,
       monthlyDividendP2, annualDividendP2, annualYieldP2,
-      c2cStakedAmount, monthlyStakingReward, annualStakingReward,
+      c2cAirdropAmount, c2cStakedAmount, monthlyStakingReward, annualStakingReward,
       monthlyTotalP1, annualTotalP1, annualTotalYieldP1,
       monthlyTotalP2, annualTotalP2, annualTotalYieldP2,
       lockMonths, price, label, color, chartData,
