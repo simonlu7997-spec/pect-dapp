@@ -1,0 +1,9 @@
+{
+  "query": "UPDATE calculator_params SET exchangeRate = '6.8', annualStakingPool = '4573', c2cAnnualAirdrop = '382990', c2cStakingRate = '0.5';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3cjZAXaBhHWMJTD.root --database 8stZafG66C8pumsuGH6Z2q --execute UPDATE calculator_params SET exchangeRate = '6.8', annualStakingPool = '4573', c2cAnnualAirdrop = '382990', c2cStakingRate = '0.5';",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1751
+}

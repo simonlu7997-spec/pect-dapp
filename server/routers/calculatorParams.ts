@@ -5,11 +5,14 @@ import { publicProcedure, protectedProcedure, router } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 
-// 默认参数（与白皮书 V6.1 一致）
+// 默认参数（与白皮书 V6.1 一致，汇率更新为 6.8）
 export const DEFAULT_CALC_PARAMS = {
-  exchangeRate: 7.2,
+  exchangeRate: 6.8,
   electricityPrice: 1.109,
-  annualDividendPool: 41155,
+  annualDividendPool: 41155,       // PV-Coin 基础分红池（USDT）
+  annualStakingPool: 4573,         // C2-Coin 年度质押奖励池（USDT）
+  c2cAnnualAirdrop: 382990,        // C2-Coin 年度空投总量（枚）
+  c2cStakingRate: 0.5,             // 全网 C2-Coin 质押率
   phase1TokenRatio: 0.75,
   phase2TokenRatio: 1.0,
   totalPvcSupply: 4000000,
@@ -31,6 +34,9 @@ export const calculatorParamsRouter = router({
       exchangeRate: parseFloat(row.exchangeRate),
       electricityPrice: parseFloat(row.electricityPrice),
       annualDividendPool: parseFloat(row.annualDividendPool),
+      annualStakingPool: parseFloat(row.annualStakingPool),
+      c2cAnnualAirdrop: parseFloat(row.c2cAnnualAirdrop),
+      c2cStakingRate: parseFloat(row.c2cStakingRate),
       phase1TokenRatio: parseFloat(row.phase1TokenRatio),
       phase2TokenRatio: parseFloat(row.phase2TokenRatio),
       totalPvcSupply: row.totalPvcSupply,
@@ -46,6 +52,9 @@ export const calculatorParamsRouter = router({
         exchangeRate: z.number().positive().max(100),
         electricityPrice: z.number().positive().max(100),
         annualDividendPool: z.number().positive(),
+        annualStakingPool: z.number().min(0),
+        c2cAnnualAirdrop: z.number().int().min(0),
+        c2cStakingRate: z.number().min(0).max(1),
         phase1TokenRatio: z.number().min(0).max(1),
         phase2TokenRatio: z.number().min(0).max(1),
         totalPvcSupply: z.number().int().positive(),
@@ -65,6 +74,9 @@ export const calculatorParamsRouter = router({
           exchangeRate: input.exchangeRate.toString(),
           electricityPrice: input.electricityPrice.toString(),
           annualDividendPool: input.annualDividendPool.toString(),
+          annualStakingPool: input.annualStakingPool.toString(),
+          c2cAnnualAirdrop: input.c2cAnnualAirdrop.toString(),
+          c2cStakingRate: input.c2cStakingRate.toString(),
           phase1TokenRatio: input.phase1TokenRatio.toString(),
           phase2TokenRatio: input.phase2TokenRatio.toString(),
           totalPvcSupply: input.totalPvcSupply,
@@ -77,6 +89,9 @@ export const calculatorParamsRouter = router({
             exchangeRate: input.exchangeRate.toString(),
             electricityPrice: input.electricityPrice.toString(),
             annualDividendPool: input.annualDividendPool.toString(),
+            annualStakingPool: input.annualStakingPool.toString(),
+            c2cAnnualAirdrop: input.c2cAnnualAirdrop.toString(),
+            c2cStakingRate: input.c2cStakingRate.toString(),
             phase1TokenRatio: input.phase1TokenRatio.toString(),
             phase2TokenRatio: input.phase2TokenRatio.toString(),
             totalPvcSupply: input.totalPvcSupply,

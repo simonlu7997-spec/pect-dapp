@@ -18,6 +18,9 @@ export default function AdminCalculatorParams() {
   const [exchangeRate, setExchangeRate] = useState("");
   const [electricityPrice, setElectricityPrice] = useState("");
   const [annualDividendPool, setAnnualDividendPool] = useState("");
+  const [annualStakingPool, setAnnualStakingPool] = useState("");
+  const [c2cAnnualAirdrop, setC2cAnnualAirdrop] = useState("");
+  const [c2cStakingRate, setC2cStakingRate] = useState("");
   const [phase1TokenRatio, setPhase1TokenRatio] = useState("");
   const [phase2TokenRatio, setPhase2TokenRatio] = useState("");
   const [totalPvcSupply, setTotalPvcSupply] = useState("");
@@ -31,6 +34,9 @@ export default function AdminCalculatorParams() {
       setExchangeRate(params.exchangeRate.toString());
       setElectricityPrice(params.electricityPrice.toString());
       setAnnualDividendPool(params.annualDividendPool.toString());
+      setAnnualStakingPool((params.annualStakingPool ?? 4573).toString());
+      setC2cAnnualAirdrop((params.c2cAnnualAirdrop ?? 382990).toString());
+      setC2cStakingRate((params.c2cStakingRate ?? 0.5).toString());
       setPhase1TokenRatio(params.phase1TokenRatio.toString());
       setPhase2TokenRatio(params.phase2TokenRatio.toString());
       setTotalPvcSupply(params.totalPvcSupply.toString());
@@ -53,13 +59,19 @@ export default function AdminCalculatorParams() {
     const er = parseFloat(exchangeRate);
     const ep = parseFloat(electricityPrice);
     const adp = parseFloat(annualDividendPool);
+    const asp = parseFloat(annualStakingPool);
+    const c2ca = parseInt(c2cAnnualAirdrop);
+    const c2csr = parseFloat(c2cStakingRate);
     const p1 = parseFloat(phase1TokenRatio);
     const p2 = parseFloat(phase2TokenRatio);
     const tps = parseInt(totalPvcSupply);
 
     if (isNaN(er) || er <= 0) return toast.error("汇率必须为正数");
     if (isNaN(ep) || ep <= 0) return toast.error("电费单价必须为正数");
-    if (isNaN(adp) || adp <= 0) return toast.error("年度分红池必须为正数");
+    if (isNaN(adp) || adp <= 0) return toast.error("PV-Coin 基础分红池必须为正数");
+    if (isNaN(asp) || asp < 0) return toast.error("C2-Coin 质押奖励池必须为非负数");
+    if (isNaN(c2ca) || c2ca < 0) return toast.error("C2C 年度空投总量必须为非负整数");
+    if (isNaN(c2csr) || c2csr < 0 || c2csr > 1) return toast.error("C2C 质押率必须在 0~1 之间");
     if (isNaN(p1) || p1 < 0 || p1 > 1) return toast.error("前24月代币比例必须在 0~1 之间");
     if (isNaN(p2) || p2 < 0 || p2 > 1) return toast.error("24月后代币比例必须在 0~1 之间");
     if (isNaN(tps) || tps <= 0) return toast.error("PVC 总发行量必须为正整数");
@@ -68,6 +80,9 @@ export default function AdminCalculatorParams() {
       exchangeRate: er,
       electricityPrice: ep,
       annualDividendPool: adp,
+      annualStakingPool: asp,
+      c2cAnnualAirdrop: c2ca,
+      c2cStakingRate: c2csr,
       phase1TokenRatio: p1,
       phase2TokenRatio: p2,
       totalPvcSupply: tps,
@@ -178,7 +193,7 @@ export default function AdminCalculatorParams() {
 
                   <div className="space-y-2">
                     <Label htmlFor="annualDividendPool">
-                      年度分红池
+                      PV-Coin 基础分红池
                       <span className="ml-2 text-xs text-gray-400">白皮书默认：41,155</span>
                     </Label>
                     <div className="relative">
@@ -192,6 +207,64 @@ export default function AdminCalculatorParams() {
                         placeholder="41155"
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">USDT/年</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="annualStakingPool">
+                      C2-Coin 质押奖励池
+                      <span className="ml-2 text-xs text-gray-400">白皮书默认：4,573</span>
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="annualStakingPool"
+                        type="number"
+                        step="1"
+                        min="0"
+                        value={annualStakingPool}
+                        onChange={(e) => setAnnualStakingPool(e.target.value)}
+                        placeholder="4573"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">USDT/年</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="c2cAnnualAirdrop">
+                      C2C 年度空投总量
+                      <span className="ml-2 text-xs text-gray-400">白皮书默认：382,990</span>
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="c2cAnnualAirdrop"
+                        type="number"
+                        step="1"
+                        min="0"
+                        value={c2cAnnualAirdrop}
+                        onChange={(e) => setC2cAnnualAirdrop(e.target.value)}
+                        placeholder="382990"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">枚/年</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="c2cStakingRate">
+                      全网 C2C 质押率
+                      <span className="ml-2 text-xs text-gray-400">白皮书默认：0.5（50%）</span>
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="c2cStakingRate"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="1"
+                        value={c2cStakingRate}
+                        onChange={(e) => setC2cStakingRate(e.target.value)}
+                        placeholder="0.5"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">0~1</span>
                     </div>
                   </div>
 
@@ -262,37 +335,48 @@ export default function AdminCalculatorParams() {
 
                 {/* 实时预览 */}
                 {(() => {
-                  const er = parseFloat(exchangeRate) || 7.2;
                   const adp = parseFloat(annualDividendPool) || 41155;
+                  const asp = parseFloat(annualStakingPool) || 4573;
+                  const c2ca = parseInt(c2cAnnualAirdrop) || 382990;
+                  const c2csr = parseFloat(c2cStakingRate) || 0.5;
                   const p1 = parseFloat(phase1TokenRatio) || 0.75;
                   const p2 = parseFloat(phase2TokenRatio) || 1.0;
                   const tps = parseInt(totalPvcSupply) || 4000000;
                   const privatePrice = 0.08;
                   const publicPrice = 0.10;
-                  const phase1MonthlyPerPvc = (adp * p1) / tps / 12;
-                  const phase2MonthlyPerPvc = (adp * p2) / tps / 12;
-                  const privateYield1 = (phase1MonthlyPerPvc * 12) / privatePrice * 100;
-                  const publicYield1 = (phase1MonthlyPerPvc * 12) / publicPrice * 100;
-                  const privateYield2 = (phase2MonthlyPerPvc * 12) / privatePrice * 100;
-                  const publicYield2 = (phase2MonthlyPerPvc * 12) / publicPrice * 100;
+                  // PV-Coin 基础分红
+                  const phase1MonthlyPerPvc = adp / (tps * p1) / 12;
+                  const phase2MonthlyPerPvc = adp / (tps * p2) / 12;
+                  // C2C 质押收益（10,000 USDT 投入示例）
+                  const exampleInvest = 10000;
+                  const stakingPoolTotal = c2ca * c2csr;
+                  const stakingAnnual = asp * ((exampleInvest / publicPrice * c2csr) / stakingPoolTotal);
+                  const stakingYieldPub = stakingPoolTotal > 0 ? (stakingAnnual / exampleInvest) * 100 : 0;
+                  const stakingYieldPriv = stakingPoolTotal > 0 ? (asp * ((exampleInvest / privatePrice * c2csr) / stakingPoolTotal) / exampleInvest) * 100 : 0;
+                  // 综合年化
+                  const privateYield1 = (phase1MonthlyPerPvc * 12) / privatePrice * 100 + stakingYieldPriv;
+                  const publicYield1 = (phase1MonthlyPerPvc * 12) / publicPrice * 100 + stakingYieldPub;
+                  const privateYield2 = (phase2MonthlyPerPvc * 12) / privatePrice * 100 + stakingYieldPriv;
+                  const publicYield2 = (phase2MonthlyPerPvc * 12) / publicPrice * 100 + stakingYieldPub;
                   return (
                     <div className="border-t pt-5">
-                      <p className="text-sm font-medium text-gray-700 mb-3">参数预览（实时计算）</p>
+                      <p className="text-sm font-medium text-gray-700 mb-1">参数预览（实时计算，含 C2C 质押，以 10,000 USDT 投入为例）</p>
+                      <p className="text-xs text-gray-400 mb-3">C2C 质押收益基于 50% 质押率假设，实际收益随质押率变化</p>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         <div className="bg-green-50 rounded-lg p-3 text-center">
-                          <p className="text-xs text-gray-500 mb-1">私募年化（前24月）</p>
+                          <p className="text-xs text-gray-500 mb-1">私募综合年化（前24月）</p>
                           <p className="text-lg font-bold text-green-600">{privateYield1.toFixed(2)}%</p>
                         </div>
                         <div className="bg-green-50 rounded-lg p-3 text-center">
-                          <p className="text-xs text-gray-500 mb-1">私募年化（24月后）</p>
+                          <p className="text-xs text-gray-500 mb-1">私募综合年化（24月后）</p>
                           <p className="text-lg font-bold text-green-700">{privateYield2.toFixed(2)}%</p>
                         </div>
                         <div className="bg-blue-50 rounded-lg p-3 text-center">
-                          <p className="text-xs text-gray-500 mb-1">公募年化（前24月）</p>
+                          <p className="text-xs text-gray-500 mb-1">公募综合年化（前24月）</p>
                           <p className="text-lg font-bold text-blue-600">{publicYield1.toFixed(2)}%</p>
                         </div>
                         <div className="bg-blue-50 rounded-lg p-3 text-center">
-                          <p className="text-xs text-gray-500 mb-1">公募年化（24月后）</p>
+                          <p className="text-xs text-gray-500 mb-1">公募综合年化（24月后）</p>
                           <p className="text-lg font-bold text-blue-700">{publicYield2.toFixed(2)}%</p>
                         </div>
                       </div>

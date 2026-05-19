@@ -78,20 +78,29 @@ function CustomTooltip({ active, payload, label }: {
   );
 }
 
-// ─── 计算结果类型 ────────────────────────────────────────────────────────────────
+// ─── 计算结果类型 ──────────────────────────────────────────────────────────────────────────────────
 interface CalcResult {
   pvcAmount: number;
   holdingPct: number;
-  // 前24个月
+  // 前24个月：PV-Coin 基础分红
   monthlyDividendP1: number;
   annualDividendP1: number;
   annualYieldP1: number;
-  // 24个月后
+  // 24个月后：PV-Coin 基础分红
   monthlyDividendP2: number;
   annualDividendP2: number;
   annualYieldP2: number;
-  // 回本周期（月）
-  paybackMonths: number;
+  // C2-Coin 质押收益（50% 质押率）
+  c2cStakedAmount: number;          // 质押 C2C 数量
+  monthlyStakingReward: number;     // 每月质押奖励（USDT）
+  annualStakingReward: number;      // 年度质押奖励（USDT）
+  // 综合收益（PV分红 + C2C质押）
+  monthlyTotalP1: number;           // 前24月每月综合收益
+  annualTotalP1: number;            // 前24月年度综合收益
+  annualTotalYieldP1: number;       // 前24月综合年化收益率
+  monthlyTotalP2: number;           // 24月后每月综合收益
+  annualTotalP2: number;            // 24月后年度综合收益
+  annualTotalYieldP2: number;       // 24月后综合年化收益率
   lockMonths: number;
   price: number;
   label: string;
@@ -100,7 +109,7 @@ interface CalcResult {
   chartData: { month: string; cumulative: number; monthly: number; phase: string }[];
 }
 
-// ─── 单模式计算结果组件 ────────────────────────────────────────────────────────
+// ─── 单模式计算结果组件
 function ResultCard({ result, investUsdt }: { result: CalcResult; investUsdt: number }) {
   const [, navigate] = useLocation();
   const isGreen = result.color === "green";
@@ -145,28 +154,32 @@ function ResultCard({ result, investUsdt }: { result: CalcResult; investUsdt: nu
         </div>
 
         {/* 两阶段收益对比 */}
-        <div className="grid grid-cols-1 gap-3">
+          <div className="grid grid-cols-1 gap-3">
           {/* 前24个月 */}
           <div className={`rounded-lg p-3 border ${isGreen ? "bg-emerald-50 border-emerald-200" : "bg-blue-50 border-blue-200"}`}>
             <div className="flex items-center gap-1.5 mb-2">
               <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isGreen ? "bg-emerald-600 text-white" : "bg-blue-600 text-white"}`}>
                 前 24 个月
               </span>
-              <span className="text-xs text-gray-500">75% 代币参与分红</span>
+              <span className="text-xs text-gray-500">75% PVC 参与分红 + C2C 质押</span>
             </div>
             <div className="grid grid-cols-3 gap-2 text-sm">
               <div>
-                <p className="text-xs text-gray-500">月均分红</p>
-                <p className={`font-bold text-${accent}-600`}>{fmt(result.monthlyDividendP1)} USDT</p>
+                <p className="text-xs text-gray-500">月均综合收益</p>
+                <p className={`font-bold text-${accent}-600`}>{fmt(result.monthlyTotalP1)} USDT</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500">年化分红</p>
-                <p className={`font-bold text-${accent}-600`}>{fmt(result.annualDividendP1)} USDT</p>
+                <p className="text-xs text-gray-500">年度综合收益</p>
+                <p className={`font-bold text-${accent}-600`}>{fmt(result.annualTotalP1)} USDT</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500">年化收益率</p>
-                <p className={`font-bold text-${accent}-600`}>{fmtPct(result.annualYieldP1)}</p>
+                <p className="text-xs text-gray-500">综合年化收益率</p>
+                <p className={`font-bold text-${accent}-600`}>{fmtPct(result.annualTotalYieldP1)}</p>
               </div>
+            </div>
+            <div className="mt-2 pt-2 border-t border-dashed border-emerald-200 grid grid-cols-2 gap-1 text-xs text-gray-500">
+              <div>PVC 分红：{fmt(result.monthlyDividendP1)} USDT/月</div>
+              <div>C2C 质押：{fmt(result.monthlyStakingReward)} USDT/月</div>
             </div>
           </div>
 
@@ -176,21 +189,25 @@ function ResultCard({ result, investUsdt }: { result: CalcResult; investUsdt: nu
               <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-gray-500 text-white">
                 24 个月后
               </span>
-              <span className="text-xs text-gray-500">100% 代币参与分红</span>
+              <span className="text-xs text-gray-500">100% PVC 参与分红 + C2C 质押</span>
             </div>
             <div className="grid grid-cols-3 gap-2 text-sm">
               <div>
-                <p className="text-xs text-gray-500">月均分红</p>
-                <p className="font-bold text-gray-600">{fmt(result.monthlyDividendP2)} USDT</p>
+                <p className="text-xs text-gray-500">月均综合收益</p>
+                <p className="font-bold text-gray-600">{fmt(result.monthlyTotalP2)} USDT</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500">年化分红</p>
-                <p className="font-bold text-gray-600">{fmt(result.annualDividendP2)} USDT</p>
+                <p className="text-xs text-gray-500">年度综合收益</p>
+                <p className="font-bold text-gray-600">{fmt(result.annualTotalP2)} USDT</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500">年化收益率</p>
-                <p className="font-bold text-gray-600">{fmtPct(result.annualYieldP2)}</p>
+                <p className="text-xs text-gray-500">综合年化收益率</p>
+                <p className="font-bold text-gray-600">{fmtPct(result.annualTotalYieldP2)}</p>
               </div>
+            </div>
+            <div className="mt-2 pt-2 border-t border-dashed border-gray-300 grid grid-cols-2 gap-1 text-xs text-gray-500">
+              <div>PVC 分红：{fmt(result.monthlyDividendP2)} USDT/月</div>
+              <div>C2C 质押：{fmt(result.monthlyStakingReward)} USDT/月</div>
             </div>
           </div>
         </div>
@@ -285,6 +302,13 @@ export default function Calculator() {
   const dynamicMonthlyP1 = (dynamicAnnualDividendPool / dynamicPhase1Supply) / 12;
   const dynamicMonthlyP2 = (dynamicAnnualDividendPool / dynamicPhase2Supply) / 12;
 
+  // C2-Coin 质押相关动态参数（白皮书 V6.1 §5.4.1）
+  const dynamicAnnualStakingPool = calcParams?.annualStakingPool ?? 4573;    // 年度质押奖励池（USDT）
+  const dynamicC2cAnnualAirdrop  = calcParams?.c2cAnnualAirdrop  ?? 382990;  // C2C 年度空投总量（枚）
+  const dynamicC2cStakingRate    = calcParams?.c2cStakingRate    ?? 0.5;     // 全网质押率
+  // 全网质押池总量 M = 年度空投总量 × 全网质押率
+  const dynamicStakingPoolTotal  = dynamicC2cAnnualAirdrop * dynamicC2cStakingRate;
+
   // 读取 URL 参数，自动填入金额并切换 Tab
   useEffect(() => {
     if (!searchString) return;
@@ -303,29 +327,43 @@ export default function Calculator() {
 
   const investUsdt = Math.max(0, parseFloat(investInput) || 0);
 
-  // ─── 核心计算函数（按白皮书 V6.1，支持动态参数）────────────────────────────────
+  // ─── 核心计算函数（按白皮书 V6.1 §5.3.2 + §5.4.1，支持动态参数）
   function calcResult(price: number, lockMonths: number, color: string, label: string): CalcResult {
     const pvcAmount = investUsdt / price;
     const holdingPct = (pvcAmount / dynamicTotalSupply) * 100;
 
-    // 前24个月（75%代币参与）—使用动态参数
+    // ─── PV-Coin 基础分红（§5.3.2）
+    // 前24个月（75%代币参与）
     const monthlyDividendP1 = pvcAmount * dynamicMonthlyP1;
     const annualDividendP1 = monthlyDividendP1 * 12;
     const annualYieldP1 = investUsdt > 0 ? (annualDividendP1 / investUsdt) * 100 : 0;
-
-    // 24个月后（100%代币参与）—使用动态参数
+    // 24个月后（100%代币参与）
     const monthlyDividendP2 = pvcAmount * dynamicMonthlyP2;
     const annualDividendP2 = monthlyDividendP2 * 12;
     const annualYieldP2 = investUsdt > 0 ? (annualDividendP2 / investUsdt) * 100 : 0;
 
-    // 回本周期：按前24个月月分红计算（更保守）
-    const paybackMonths = monthlyDividendP1 > 0 ? Math.ceil(investUsdt / monthlyDividendP1) : 0;
+    // ─── C2-Coin 质押收益（§5.4.1，50% 质押率）
+    // 用户获得 C2C 空投（按 1:1 与 PVC 比例估算），质押 50%
+    const c2cStakedAmount = pvcAmount * dynamicC2cStakingRate;
+    // 用户质押占比 = 用户质押 C2C 数量 ÷ 全网质押池总量 M
+    const userStakingRatio = dynamicStakingPoolTotal > 0 ? c2cStakedAmount / dynamicStakingPoolTotal : 0;
+    // 年度质押奖励 = 质押奖励池 × 用户质押占比
+    const annualStakingReward = dynamicAnnualStakingPool * userStakingRatio;
+    const monthlyStakingReward = annualStakingReward / 12;
 
-    // 生成 24 个月累计收益数据（第1-24月用 P1，第25月起用 P2）
+    // ─── 综合收益（PV 基础分红 + C2C 质押奖励）
+    const monthlyTotalP1 = monthlyDividendP1 + monthlyStakingReward;
+    const annualTotalP1  = annualDividendP1  + annualStakingReward;
+    const annualTotalYieldP1 = investUsdt > 0 ? (annualTotalP1 / investUsdt) * 100 : 0;
+    const monthlyTotalP2 = monthlyDividendP2 + monthlyStakingReward;
+    const annualTotalP2  = annualDividendP2  + annualStakingReward;
+    const annualTotalYieldP2 = investUsdt > 0 ? (annualTotalP2 / investUsdt) * 100 : 0;
+
+    // 生成24 个月累计收益数据（第1-24月用综合收益 P1，第25月起用 P2）
     let cumulative = 0;
     const chartData = Array.from({ length: 24 }, (_, i) => {
       const monthNum = i + 1;
-      const monthly = monthNum <= 24 ? monthlyDividendP1 : monthlyDividendP2;
+      const monthly = monthNum <= 24 ? monthlyTotalP1 : monthlyTotalP2;
       cumulative += monthly;
       return {
         month: `M${monthNum}`,
@@ -339,19 +377,22 @@ export default function Calculator() {
       pvcAmount, holdingPct,
       monthlyDividendP1, annualDividendP1, annualYieldP1,
       monthlyDividendP2, annualDividendP2, annualYieldP2,
-      paybackMonths, lockMonths, price, label, color, chartData,
+      c2cStakedAmount, monthlyStakingReward, annualStakingReward,
+      monthlyTotalP1, annualTotalP1, annualTotalYieldP1,
+      monthlyTotalP2, annualTotalP2, annualTotalYieldP2,
+      lockMonths, price, label, color, chartData,
     };
   }
 
   const privateResult = useMemo(
     () => calcResult(PRIVATE_PRICE, PRIVATE_LOCK_MONTHS, "green", "私募"),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [investUsdt, dynamicMonthlyP1, dynamicMonthlyP2, dynamicTotalSupply]
+    [investUsdt, dynamicMonthlyP1, dynamicMonthlyP2, dynamicTotalSupply, dynamicC2cStakingRate, dynamicStakingPoolTotal, dynamicAnnualStakingPool]
   );
   const publicResult = useMemo(
     () => calcResult(PUBLIC_PRICE, 0, "blue", "公募"),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [investUsdt, dynamicMonthlyP1, dynamicMonthlyP2, dynamicTotalSupply]
+    [investUsdt, dynamicMonthlyP1, dynamicMonthlyP2, dynamicTotalSupply, dynamicC2cStakingRate, dynamicStakingPoolTotal, dynamicAnnualStakingPool]
   );
 
   // 24 个月累计收益对比图
@@ -426,10 +467,9 @@ export default function Calculator() {
             <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex gap-2 text-xs text-amber-700">
               <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
               <span>
-                收益基于白皮书 V6.1 公式：年度 PV-Coin 基础分红池 41,155 USDT，
-                前 24 个月 75% 代币参与分红（月分红 0.00114 USDT/枚，年化 13.72%），
-                24 个月后 100% 代币参与分红（月分红 0.00086 USDT/枚，年化 10.29%）。
-                实际分红受电站发电量、电价、汇率等因素影响，不构成投资承诺。
+                收益基于白皮书 V6.1 公式：PV-Coin 基础分红池 41,155 USDT + C2-Coin 质押奖励池 4,573 USDT，
+                假设全网 C2C 质押率 50%。前 24 个月 75% PVC 参与分红，24 个月后 100% PVC 参与分红，
+                C2C 质押奖励不随时间变化。实际收益受电站发电量、电价、汇率等因素影响，不构成投质承诺。
               </span>
             </div>
           </CardContent>
@@ -467,16 +507,16 @@ export default function Calculator() {
                     <span className="font-bold text-emerald-600">{fmt(privateResult.pvcAmount, 0)} PVC</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">前24月月均分红</span>
-                    <span className="font-bold text-emerald-600">{fmt(privateResult.monthlyDividendP1)} USDT</span>
+                    <span className="text-gray-500">前24月月均综合收益</span>
+                    <span className="font-bold text-emerald-600">{fmt(privateResult.monthlyTotalP1)} USDT</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">前24月年化收益率</span>
-                    <span className="font-bold text-emerald-600">{fmtPct(privateResult.annualYieldP1)}</span>
+                    <span className="text-gray-500">前24月综合年化收益率</span>
+                    <span className="font-bold text-emerald-600">{fmtPct(privateResult.annualTotalYieldP1)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">24月后年化收益率</span>
-                    <span className="font-semibold text-gray-500">{fmtPct(privateResult.annualYieldP2)}</span>
+                    <span className="text-gray-500">24月后综合年化收益率</span>
+                    <span className="font-semibold text-gray-500">{fmtPct(privateResult.annualTotalYieldP2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">锁仓期</span>
@@ -499,16 +539,16 @@ export default function Calculator() {
                     <span className="font-bold text-blue-600">{fmt(publicResult.pvcAmount, 0)} PVC</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">前24月月均分红</span>
-                    <span className="font-bold text-blue-600">{fmt(publicResult.monthlyDividendP1)} USDT</span>
+                    <span className="text-gray-500">前24月月均综合收益</span>
+                    <span className="font-bold text-blue-600">{fmt(publicResult.monthlyTotalP1)} USDT</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">前24月年化收益率</span>
-                    <span className="font-bold text-blue-600">{fmtPct(publicResult.annualYieldP1)}</span>
+                    <span className="text-gray-500">前24月综合年化收益率</span>
+                    <span className="font-bold text-blue-600">{fmtPct(publicResult.annualTotalYieldP1)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">24月后年化收益率</span>
-                    <span className="font-semibold text-gray-500">{fmtPct(publicResult.annualYieldP2)}</span>
+                    <span className="text-gray-500">24月后综合年化收益率</span>
+                    <span className="font-semibold text-gray-500">{fmtPct(publicResult.annualTotalYieldP2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">锁仓期</span>
@@ -583,12 +623,13 @@ export default function Calculator() {
                 <CardTitle className="text-sm text-gray-600">白皮书 V6.1 收益对比参考</CardTitle>
               </CardHeader>
               <CardContent>
+                <p className="text-xs text-gray-400 mb-3">含 C2C 质押奖励（50% 质押率假设）的综合年化收益率</p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                   {[
-                    { label: "PV-Coin 公募（前24月）", yield: fmtPct((dynamicMonthlyP1 * 12 / PUBLIC_PRICE) * 100), color: "text-blue-600" },
-                    { label: "PV-Coin 私募（前24月）", yield: fmtPct((dynamicMonthlyP1 * 12 / PRIVATE_PRICE) * 100), color: "text-emerald-600" },
-                    { label: "PV-Coin 公募（24月后）", yield: fmtPct((dynamicMonthlyP2 * 12 / PUBLIC_PRICE) * 100), color: "text-blue-400" },
-                    { label: "PV-Coin 私募（24月后）", yield: fmtPct((dynamicMonthlyP2 * 12 / PRIVATE_PRICE) * 100), color: "text-emerald-400" },
+                    { label: "公募（前24月）", yield: fmtPct(publicResult.annualTotalYieldP1), color: "text-blue-600" },
+                    { label: "私募（前24月）", yield: fmtPct(privateResult.annualTotalYieldP1), color: "text-emerald-600" },
+                    { label: "公募（24月后）", yield: fmtPct(publicResult.annualTotalYieldP2), color: "text-blue-400" },
+                    { label: "私募（24月后）", yield: fmtPct(privateResult.annualTotalYieldP2), color: "text-emerald-400" },
                   ].map((item) => (
                     <div key={item.label} className="bg-white rounded-lg p-3 border border-gray-100 text-center">
                       <p className="text-xs text-gray-500 mb-1">{item.label}</p>

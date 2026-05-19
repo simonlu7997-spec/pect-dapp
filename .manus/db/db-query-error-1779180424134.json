@@ -1,0 +1,8 @@
+{
+  "query": "UPDATE calculator_params SET exchange_rate = '6.8', annual_staking_pool = '4573', c2c_annual_airdrop = '382990', c2c_staking_rate = '0.5' WHERE id = (SELECT id FROM calculator_params LIMIT 1);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3cjZAXaBhHWMJTD.root --database 8stZafG66C8pumsuGH6Z2q --execute UPDATE calculator_params SET exchange_rate = '6.8', annual_staking_pool = '4573', c2c_annual_airdrop = '382990', c2c_staking_rate = '0.5' WHERE id = (SELECT id FROM calculator_params LIMIT 1);",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'exchange_rate' in 'field list'"
+  ]
+}

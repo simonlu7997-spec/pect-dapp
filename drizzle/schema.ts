@@ -246,12 +246,18 @@ export type InsertContactMessage = typeof contactMessages.$inferInsert;
  */
 export const calculatorParams = mysqlTable("calculator_params", {
   id: serial("id").primaryKey(),
-  /** RMB/USDT 汇率，默认 7.2 */
-  exchangeRate: decimal("exchangeRate", { precision: 10, scale: 4 }).notNull().default("7.2"),
+  /** RMB/USDT 汇率，默认 6.8 */
+  exchangeRate: decimal("exchangeRate", { precision: 10, scale: 4 }).notNull().default("6.8"),
   /** 电费单价（RMB/kWh），默认 1.109 */
   electricityPrice: decimal("electricityPrice", { precision: 10, scale: 4 }).notNull().default("1.109"),
-  /** 年度分红池（USDT），默认 41155 */
+  /** PV-Coin 基础分红池（USDT），默认 41155 */
   annualDividendPool: decimal("annualDividendPool", { precision: 18, scale: 4 }).notNull().default("41155"),
+  /** C2-Coin 年度质押奖励池（USDT），默认 4573 */
+  annualStakingPool: decimal("annualStakingPool", { precision: 18, scale: 4 }).notNull().default("4573"),
+  /** C2-Coin 年度空投总量（枚），默认 382990 */
+  c2cAnnualAirdrop: decimal("c2cAnnualAirdrop", { precision: 18, scale: 0 }).notNull().default("382990"),
+  /** 全网 C2-Coin 质押率（0-1），默认 0.5 */
+  c2cStakingRate: decimal("c2cStakingRate", { precision: 5, scale: 4 }).notNull().default("0.5"),
   /** 前24月参与分红的代币比例（0-1），默认 0.75 */
   phase1TokenRatio: decimal("phase1TokenRatio", { precision: 5, scale: 4 }).notNull().default("0.75"),
   /** 24月后参与分红的代币比例（0-1），默认 1.0 */

@@ -1,0 +1,106 @@
+{
+  "query": "DESCRIBE calculator_params;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3cjZAXaBhHWMJTD.root --database 8stZafG66C8pumsuGH6Z2q --execute DESCRIBE calculator_params;",
+  "rows": [
+    {
+      "Field": "id",
+      "Type": "bigint unsigned",
+      "Null": "NO",
+      "Key": "PRI",
+      "Default": "NULL",
+      "Extra": "auto_increment"
+    },
+    {
+      "Field": "exchangeRate",
+      "Type": "decimal(10,4)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "6.8",
+      "Extra": ""
+    },
+    {
+      "Field": "electricityPrice",
+      "Type": "decimal(10,4)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "1.109",
+      "Extra": ""
+    },
+    {
+      "Field": "annualDividendPool",
+      "Type": "decimal(18,4)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "41155",
+      "Extra": ""
+    },
+    {
+      "Field": "phase1TokenRatio",
+      "Type": "decimal(5,4)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "0.75",
+      "Extra": ""
+    },
+    {
+      "Field": "phase2TokenRatio",
+      "Type": "decimal(5,4)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "1.0",
+      "Extra": ""
+    },
+    {
+      "Field": "totalPvcSupply",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "",
+      "Default": "4000000",
+      "Extra": ""
+    },
+    {
+      "Field": "updatedAt",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": ""
+    },
+    {
+      "Field": "updatedBy",
+      "Type": "varchar(42)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "annualStakingPool",
+      "Type": "decimal(18,4)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "4573",
+      "Extra": ""
+    },
+    {
+      "Field": "c2cAnnualAirdrop",
+      "Type": "decimal(18,0)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "382990",
+      "Extra": ""
+    },
+    {
+      "Field": "c2cStakingRate",
+      "Type": "decimal(5,4)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "0.5",
+      "Extra": ""
+    }
+  ],
+  "messages": [],
+  "stdout": "Field\tType\tNull\tKey\tDefault\tExtra\nid\tbigint unsigned\tNO\tPRI\tNULL\tauto_increment\nexchangeRate\tdecimal(10,4)\tNO\t\t6.8\t\nelectricityPrice\tdecimal(10,4)\tNO\t\t1.109\t\nannualDividendPool\tdecimal(18,4)\tNO\t\t41155\t\nphase1TokenRatio\tdecimal(5,4)\tNO\t\t0.75\t\nphase2TokenRatio\tdecimal(5,4)\tNO\t\t1.0\t\ntotalPvcSupply\tint\tNO\t\t4000000\t\nupdatedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\t\nupdatedBy\tvarchar(42)\tYES\t\tNULL\t\nannualStakingPool\tdecimal(18,4)\tNO\t\t4573\t\nc2cAnnualAirdrop\tdecimal(18,0)\tNO\t\t382990\t\nc2cStakingRate\tdecimal(5,4)\tNO\t\t0.5\t\n",
+  "stderr": "",
+  "execution_time_ms": 1813
+}
