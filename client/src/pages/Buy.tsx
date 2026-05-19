@@ -95,6 +95,24 @@ export default function Buy() {
     }
   }, [txConfirm, refetchSaleInfo, navigate]);
 
+  // 读取计算器动态参数（用于年化标签）
+  const { data: calcParams } = trpc.calculatorParams.getParams.useQuery();
+  // 私募年化（前24月）= (PVC分红池 / PVC参与分红量 + C2C质押奖励按持仓比例) / 私募价格
+  const privateAnnualYieldP1 = (() => {
+    const annualDivPool = calcParams?.annualDividendPool ?? 41155;
+    const phase1Supply = calcParams ? Math.round(4000000 * calcParams.phase1TokenRatio) : 3000000;
+    const totalSupply = calcParams?.totalPvcSupply ?? 4000000;
+    const stakingPool = calcParams?.annualStakingPool ?? 4573;
+    const c2cAirdrop = calcParams?.c2cAnnualAirdrop ?? 382990;
+    const stakingRate = calcParams?.c2cStakingRate ?? 0.5;
+    const price = 0.08;
+    const pvc = 1 / price; // 每 1 USDT 买到的 PVC
+    const annualDiv = pvc * (annualDivPool / phase1Supply);
+    const c2cAirdropPerPvc = c2cAirdrop * (pvc / totalSupply);
+    const stakingReward = stakingPool * (c2cAirdropPerPvc * stakingRate) / (c2cAirdrop * stakingRate);
+    return ((annualDiv + stakingReward) * 100).toFixed(2);
+  })();
+
   // 计算 PVC 数量
   const tokenPrice = parseFloat(saleInfo?.tokenPrice || "0.08");
   const usdtAmount = parseFloat(usdtInput) || 0;
@@ -286,7 +304,7 @@ export default function Buy() {
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-500">预期年化（前24月）</span>
-                      <span className="font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full text-xs">≈ 17.15%</span>
+                      <span className="font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full text-xs">≈ {privateAnnualYieldP1}%</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">最低购买</span>
@@ -666,6 +684,24 @@ function PublicSaleTab({
     { enabled: !!account }
   );
 
+  // 读取计算器动态参数（用于年化标签）
+  const { data: calcParams } = trpc.calculatorParams.getParams.useQuery();
+  // 公募年化（前24月）= (PVC分红池 / PVC参与分红量 + C2C质押奖励按持仓比例) / 公募价格
+  const publicAnnualYieldP1 = (() => {
+    const annualDivPool = calcParams?.annualDividendPool ?? 41155;
+    const phase1Supply = calcParams ? Math.round(4000000 * calcParams.phase1TokenRatio) : 3000000;
+    const totalSupply = calcParams?.totalPvcSupply ?? 4000000;
+    const stakingPool = calcParams?.annualStakingPool ?? 4573;
+    const c2cAirdrop = calcParams?.c2cAnnualAirdrop ?? 382990;
+    const stakingRate = calcParams?.c2cStakingRate ?? 0.5;
+    const price = 0.10;
+    const pvc = 1 / price;
+    const annualDiv = pvc * (annualDivPool / phase1Supply);
+    const c2cAirdropPerPvc = c2cAirdrop * (pvc / totalSupply);
+    const stakingReward = stakingPool * (c2cAirdropPerPvc * stakingRate) / (c2cAirdrop * stakingRate);
+    return ((annualDiv + stakingReward) * 100).toFixed(2);
+  })();
+
   const { data: saleInfo, isLoading: saleLoading, refetch: refetchSaleInfo } =
     trpc.purchase.getPublicSaleInfo.useQuery(
       { walletAddress: account ?? undefined },
@@ -834,7 +870,7 @@ function PublicSaleTab({
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-500">预期年化（前24月）</span>
-                <span className="font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full text-xs">≈ 13.72%</span>
+                <span className="font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full text-xs">≈ {publicAnnualYieldP1}%</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">最低购买</span>

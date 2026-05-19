@@ -475,9 +475,19 @@ export default function Calculator() {
             <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex gap-2 text-xs text-amber-700">
               <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
               <span>
-                收益基于白皮书 V6.1 公式：PV-Coin 基础分红池 41,155 USDT + C2-Coin 质押奖励池 4,573 USDT，
-                假设全网 C2C 质押率 50%。前 24 个月 75% PVC 参与分红，24 个月后 100% PVC 参与分红，
-                C2C 质押奖励不随时间变化。实际收益受电站发电量、电价、汇率等因素影响，不构成投质承诺。
+                收益基于白皮书 V6.1 公式：PV-Coin 基础分红池{" "}
+                <strong>{fmt(dynamicAnnualDividendPool, 0)} USDT</strong>
+                {" "}+ C2-Coin 质押奖励池{" "}
+                <strong>{fmt(dynamicAnnualStakingPool, 0)} USDT</strong>
+                ，全网 C2C 质押率{" "}
+                <strong>{(dynamicC2cStakingRate * 100).toFixed(0)}%</strong>
+                ，C2C 年度发行量{" "}
+                <strong>{fmt(dynamicC2cAnnualAirdrop, 0)} 枚</strong>
+                。前 24 个月 75% PVC 参与分红，24 个月后 100% PVC 参与分红。
+                {calcParams?.exchangeRate && (
+                  <>，当前汇率：<strong>{calcParams.exchangeRate} RMB/USDT</strong></>
+                )}
+                。实际收益受电站发电量、电价、汇率等因素影响，不构成投质承诺。
               </span>
             </div>
           </CardContent>
